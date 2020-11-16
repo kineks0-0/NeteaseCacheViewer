@@ -3,7 +3,7 @@ package com.owo.recall.music.core.setting
 import android.content.SharedPreferences
 import com.owo.recall.music.CoreApplication
 
-class SettingItem(val title: String, val summary: String, val summaryOff: String = summary, val summaryOn: String = summary, val itemType: Int, val keyValueEditor: KeyValueEditor) {
+class SettingItem(val title: String, val summary: String, val summaryOff: String = summary, val summaryOn: String = summary, val itemType: Int, val keyValueEditor: KeyValueEditor = KeyValueEditor(-1,"null","null",KeyValueEditor.TYPE_STRING)) {
 
     companion object {
         const val TYPE_ITEM = 10
@@ -11,9 +11,17 @@ class SettingItem(val title: String, val summary: String, val summaryOff: String
         const val TYPE_ITEM_SWITCH = 11
         const val TYPE_ITEM_HEAD = 0
         const val TYPE_ITEM_NOTHING = 1
+
+        fun addItemHead(text: String,settingList: ArrayList<SettingItem>) {
+            settingList.add(SettingItem(text,"",itemType = TYPE_ITEM_HEAD))
+        }
     }
 
-    class KeyValueEditor(var id: Int, private val key: String, private var value: String, val valueType: Int, private val onSettingListener: OnSettingListener) {
+
+    class KeyValueEditor(var id: Int = -1, private val key: String, private var value: String, valueType: Int, private val onSettingListener: OnSettingListener = object : OnSettingListener{
+        override fun onListener(keyValueEditor: KeyValueEditor): Boolean = getSettingItemBoolean(keyValueEditor)
+        override fun getSettingItemBoolean(keyValueEditor: KeyValueEditor): Boolean {return false}
+    }) {
 
         companion object {
             const val TYPE_STRING = 0

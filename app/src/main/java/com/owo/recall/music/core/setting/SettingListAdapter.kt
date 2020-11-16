@@ -3,11 +3,9 @@ package com.owo.recall.music.core.setting
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.owo.recall.music.R
-import com.owo.recall.music.ui.NeteaseMusicSongAdapter
 
 class SettingListAdapter(val settingList: ArrayList<SettingItem>):RecyclerView.Adapter<SettingListAdapter.ViewHolder>() {
 
@@ -17,8 +15,16 @@ class SettingListAdapter(val settingList: ArrayList<SettingItem>):RecyclerView.A
         val onLitener: View = view
     }
 
-    private fun onClick(it: View, position: Int) {}
-    private fun onLongClick(it: View, position: Int) {}
+    private fun onClick(it: View, position: Int, viewType: Int) {
+        val settingItem: SettingItem = settingList[position]
+        if (settingItem.itemType == SettingItem.TYPE_ITEM) {
+            settingItem.keyValueEditor.onListener()
+        }
+    }
+
+    private fun onLongClick(it: View, position: Int, viewType: Int) {
+
+    }
 
     override fun getItemViewType(position: Int): Int {
         return settingList[position].itemType
@@ -35,12 +41,12 @@ class SettingListAdapter(val settingList: ArrayList<SettingItem>):RecyclerView.A
 
         holder.itemView.setOnClickListener {
             val position: Int = holder.adapterPosition
-            onClick(it,position)
+            onClick(it,position, viewType)
         }
 
         holder.itemView.setOnLongClickListener {
             val position: Int = holder.adapterPosition
-            onLongClick(it,position)
+            onLongClick(it,position, viewType)
             true
         }
 
@@ -50,6 +56,9 @@ class SettingListAdapter(val settingList: ArrayList<SettingItem>):RecyclerView.A
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val settingItem: SettingItem = settingList[position]
         holder.title.text = settingItem.title
+        if (settingItem.itemType == SettingItem.TYPE_ITEM) {
+            holder.itemView.findViewById<TextView>(R.id.textView2).text = settingItem.summary
+        }
     }
 
     override fun getItemCount(): Int {

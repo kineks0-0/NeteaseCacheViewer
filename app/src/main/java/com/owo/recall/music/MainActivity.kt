@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
                     //当屏幕滚动且用户使用的触碰或手指还在屏幕上，停止加载图片
                     RecyclerView.SCROLL_STATE_DRAGGING -> Glide.with(this@MainActivity).pauseRequests()
 
-                    RecyclerView.SCROLL_STATE_IDLE -> Glide.with(this@MainActivity).resumeRequests();
+                    RecyclerView.SCROLL_STATE_IDLE -> Glide.with(this@MainActivity).resumeRequests()
                 }
             }
 
@@ -431,9 +431,9 @@ class MainActivity : AppCompatActivity() {
                                     return
                                 }
 
-                                if ( coreRun.checkJSONisAvailable(response) ) {
+                                if ( !coreRun.checkJSONisAvailable(response) ) {
 
-                                    CoreApplication.toast("Wrong: Null CallBack")
+                                    CoreApplication.toast("Wrong: CallBack Not Available")
                                     //Todo:对获取失败进行处理
 
                                 } else {
@@ -493,8 +493,7 @@ class MainActivity : AppCompatActivity() {
                     if (song.songInfo.id != -1L) {
                         val dir_Music: File = getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
                         dir_Music.mkdirs()
-                        val outFile: File  =
-                        File(dir_Music,song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3")
+                        val outFile = File(dir_Music,song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3")
 
                         //Todo: 对文件类型判断 对音乐写入标签信息
                         outFile.writeBytes(decodeFile.readBytes())

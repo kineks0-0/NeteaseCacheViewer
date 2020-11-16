@@ -7,8 +7,9 @@ import com.owo.recall.music.core.net.HttpUtil
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
-import org.json.*
 import java.io.IOException
 
 object MusicFileProvider {
@@ -18,11 +19,11 @@ object MusicFileProvider {
     private val CacheDecodeFolder: File
     private val CacheOtherFolder: File
     var NeteaseMusicCacheFolder: File
-    val NeteaseMusicCacheFileEnd: String by lazy { "uc!" }
-    val NeteaseInfoCacheFileEnd: String by lazy { "idx!" }
+    private val NeteaseMusicCacheFileEnd: String by lazy { "uc!" }
+    private val NeteaseInfoCacheFileEnd: String by lazy { "idx!" }
 
-    val second: String by lazy { CoreApplication.context.getString(R.string.second) }
-    val minute: String by lazy { CoreApplication.context.getString(R.string.minute) }
+    private val second: String by lazy { CoreApplication.context.getString(R.string.second) }
+    private val minute: String by lazy { CoreApplication.context.getString(R.string.minute) }
 
 
     init {

@@ -124,7 +124,7 @@ class NeteaseMusicSongAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val holder: ViewHolder = ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.recycler_song_item_layout,parent,false))
+        val holder = ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.recycler_song_item_layout,parent,false))
 
         holder.itemView.setOnClickListener {
             val position: Int = holder.adapterPosition
@@ -175,18 +175,20 @@ class NeteaseMusicSongAdapter(
     }
 
     fun update(list: ArrayList<NeteaseMusicSong>) {
-        songList.clear()
-        songList.addAll(list)
-        CoreApplication.post(Runnable {
+        CoreApplication.post {
+            songList.clear()
+            songList.addAll(list)
             notifyDataSetChanged()
-        })
+        }
     }
 
     fun update(song: NeteaseMusicSong, update: Boolean = false, index: Int = songList.indexOf(song)){
         if (index < 0 || index > songList.lastIndex) return
         if (songList[index] != song || update) {
-            songList[index] = song
-            notifyItemChanged(index)
+            CoreApplication.post {
+                songList[index] = song
+                notifyItemChanged(index)
+            }
         }
     }
 
