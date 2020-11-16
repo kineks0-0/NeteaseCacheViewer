@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">忆乐</string>
+    <string name="title_home">缓存</string>
+    <string name="title_playing">播放</string>
+    <string name="title_setting">设置</string>
+    <string name="incomplete_file">不完整的文件</string>
+    <string name="search">搜索</string>
+    <string name="all_update">更新全部信息</string>
+    <string name="export_songs">导出歌曲</string>
+    <string name="view_details">查看详细</string>
+    <string name="batch_management">批量管理</string>
+    <string name="options">选项</string>
+    <string name="text_view">TextView</string>
+    <string name="unknown">Unknown</string>
+    <string name="second">s</string>
+    <string name="minute">m</string>
+</resources>

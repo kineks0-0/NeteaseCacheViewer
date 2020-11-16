@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">忆乐</string>
+    <string name="title_home">List</string>
+    <string name="title_playing">Play</string>
+    <string name="title_setting">Setting</string>
+    <string name="incomplete_file">Incomplete file</string>
+    <string name="search">search</string>
+    <string name="all_update">All Update</string>
+    <string name="export_songs">Export songs</string>
+    <string name="view_details">View details</string>
+    <string name="batch_management">Batch management</string>
+    <string name="options">Options</string>
+    <string name="text_view">TextView</string>
+    <string name="unknown">unknown</string>
+    <string name="second">s</string>
+    <string name="minute">m</string>
+</resources>

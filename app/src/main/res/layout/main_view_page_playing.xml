@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/settingImageView"
+        android:layout_width="255dp"
+        android:layout_height="255dp"
+        android:layout_marginTop="32dp"
+        android:background="@drawable/view_background"
+        android:elevation="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/songTitle2TextView"
+        android:contentDescription="@string/app_name" />
+
+    <TextView
+        android:id="@+id/songTitleTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="70dp"
+        android:layout_marginEnd="24dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:shadowColor="@android:color/darker_gray"
+        android:shadowDx="4"
+        android:shadowDy="4"
+        android:shadowRadius="8"
+        android:text="@string/text_view"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/songTitle2TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/view_background2"
+        android:elevation="2dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingLeft="12dp"
+        android:paddingTop="4dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="4dp"
+        android:shadowDx="30"
+        android:shadowDy="30"
+        android:shadowRadius="30"
+        android:text="@string/text_view"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="@+id/songTitleTextView"
+        app:layout_constraintStart_toStartOf="@+id/songTitleTextView"
+        app:layout_constraintTop_toBottomOf="@+id/songTitleTextView" />
+
+    <ImageView
+        android:id="@+id/playImageView2"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginBottom="96dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/middle_grey"
+        app:srcCompat="@drawable/ic_play_arrow_black_48dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/settingImageView" />
+
+    <ImageView
+        android:id="@+id/nextImageView3"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/middle_grey"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="32dp"
+        app:layout_constraintStart_toEndOf="@+id/playImageView2"
+        app:layout_constraintTop_toTopOf="@+id/playImageView2"
+        app:srcCompat="@drawable/ic_skip_next_black_48dp" />
+
+    <ImageView
+        android:id="@+id/perImageView4"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/middle_grey"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginEnd="32dp"
+        app:layout_constraintEnd_toStartOf="@+id/playImageView2"
+        app:layout_constraintTop_toTopOf="@+id/playImageView2"
+        app:srcCompat="@drawable/ic_skip_previous_black_48dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
