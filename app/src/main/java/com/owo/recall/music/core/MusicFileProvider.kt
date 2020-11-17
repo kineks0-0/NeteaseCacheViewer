@@ -1,9 +1,11 @@
 package com.owo.recall.music.core
 
+import android.os.Environment
 import android.util.Log
 import com.owo.recall.music.CoreApplication
 import com.owo.recall.music.R
 import com.owo.recall.music.core.net.HttpUtil
+import com.owo.recall.music.core.setting.SettingList
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -18,6 +20,7 @@ object MusicFileProvider {
     private val CacheNetFolder: File
     private val CacheDecodeFolder: File
     private val CacheOtherFolder: File
+    var DIR_Music: File// = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
     var NeteaseMusicCacheFolder: File
     private val NeteaseMusicCacheFileEnd: String by lazy { "uc!" }
     private val NeteaseInfoCacheFileEnd: String by lazy { "idx!" }
@@ -37,14 +40,25 @@ object MusicFileProvider {
         CacheOtherFolder = File(CacheFolder.absolutePath + "/Other/" )
         CacheOtherFolder.mkdirs()
 
-        NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusic/Cache/Music1/")
-        if (!NeteaseMusicCacheFolder.exists()) {
-            NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusiclite/Cache/Music1/")
+
+        val index = SettingList.getSettingItemIndex("NeteaseMusicCacheFolder")
+        if (index != -1){
+            NeteaseMusicCacheFolder = File(SettingList.getSettingItem(index).keyValueEditor.getValueAsString())
+        } else {
+            NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusic/Cache/Music1/")
+            if (!NeteaseMusicCacheFolder.exists()) {
+                NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusiclite/Cache/Music1/")
+            }
         }
 
+        DIR_Music = File(SettingList.getSettingItem("ExportMusicFolder", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).absolutePath))
 
         //getOtherCacheFile("CacheDecodeNeteaseFile.song").delete()
 
+    }
+
+    fun getMusicFile(fileName: String): File {
+        return File(DIR_Music , fileName )
     }
 
     fun getNetCacheFile(fileName: String): File {

@@ -3,7 +3,7 @@ package com.owo.recall.music.core.setting
 import android.content.SharedPreferences
 import com.owo.recall.music.CoreApplication
 
-class SettingItem(val title: String, val summary: String, val summaryOff: String = summary, val summaryOn: String = summary, val itemType: Int, val keyValueEditor: KeyValueEditor = KeyValueEditor(-1,"null","null",KeyValueEditor.TYPE_STRING)) {
+class SettingItem(var title: String, var summary: String, var summaryOff: String = summary, var summaryOn: String = summary, val itemType: Int, val keyValueEditor: KeyValueEditor = KeyValueEditor(-1,"null","null",KeyValueEditor.TYPE_STRING)) {
 
     companion object {
         const val TYPE_ITEM = 10
@@ -18,8 +18,8 @@ class SettingItem(val title: String, val summary: String, val summaryOff: String
     }
 
 
-    class KeyValueEditor(var id: Int = -1, private val key: String, private var value: String, valueType: Int, private val onSettingListener: OnSettingListener = object : OnSettingListener{
-        override fun onListener(keyValueEditor: KeyValueEditor): Boolean = getSettingItemBoolean(keyValueEditor)
+    class KeyValueEditor(var id: Int = -1, val key: String, private var value: String, valueType: Int, private val onSettingListener: OnSettingListener = object : OnSettingListener{
+        override fun onListener(keyValueEditor: KeyValueEditor, callback: OnSettingListener.Callback) {}
         override fun getSettingItemBoolean(keyValueEditor: KeyValueEditor): Boolean {return false}
     }) {
 
@@ -37,7 +37,7 @@ class SettingItem(val title: String, val summary: String, val summaryOff: String
             }
         }
 
-        fun onListener() : Boolean = onSettingListener.onListener(this)
+        fun onListener(callback: OnSettingListener.Callback) = onSettingListener.onListener(this,callback)
         fun getSettingItemBoolean(): Boolean = onSettingListener.getSettingItemBoolean(this)
 
         fun getValueAsString() : String = value

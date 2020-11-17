@@ -4,13 +4,12 @@ package com.owo.recall.music
 
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.os.Environment.getExternalStoragePublicDirectory
 import android.os.Process
 import android.util.Log
 import android.view.LayoutInflater
@@ -49,10 +48,16 @@ import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
+import kotlin.random.Random
+import kotlin.reflect.KProperty
 
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        lateinit var ThisActivity: AppCompatActivity
+    }
 
     private val coreRun: MusicFileProvider = MusicFileProvider
     private val songsList : ArrayList<NeteaseMusicSong> by lazy { coreRun.getMusicCacheFileList() }
@@ -123,7 +128,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        ThisActivity = this
 
 
 
@@ -451,7 +456,8 @@ class MainActivity : AppCompatActivity() {
 
 
                         })
-                        Thread.sleep(1000)//延迟 1 s ,防止被判定爬取
+
+                        Thread.sleep(Random.nextLong(1000,4000))//延迟几秒 ,防止被判定爬取
                     }
                 }
                 CoreApplication.toast("已完成获取 " + songsList.size + " 个歌曲信息")
@@ -491,7 +497,7 @@ class MainActivity : AppCompatActivity() {
                         //todo 将硬编码文本转移string.xml 对不完整缓存采用联网下载
                     }
                     if (song.songInfo.id != -1L) {
-                        val dir_Music: File = getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                        val dir_Music: File = coreRun.DIR_Music//getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
                         dir_Music.mkdirs()
                         val outFile = File(dir_Music,song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3")
 
@@ -556,3 +562,8 @@ class MainActivity : AppCompatActivity() {
         //Todo
     }*/
 }
+
+private operator fun Any.setValue(companion: MainActivity.Companion, property: KProperty<*>, appCompatActivity: AppCompatActivity) {
+
+}
+

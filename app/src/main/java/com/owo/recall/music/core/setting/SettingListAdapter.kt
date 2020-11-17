@@ -12,13 +12,26 @@ class SettingListAdapter(val settingList: ArrayList<SettingItem>):RecyclerView.A
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imageView: View = view//view.findViewById(R.id.imageView)
         val title: TextView = view.findViewById(R.id.textView)
-        val onLitener: View = view
+        val onListener: View = view
     }
 
     private fun onClick(it: View, position: Int, viewType: Int) {
         val settingItem: SettingItem = settingList[position]
         if (settingItem.itemType == SettingItem.TYPE_ITEM) {
-            settingItem.keyValueEditor.onListener()
+            settingItem.keyValueEditor.onListener(object : OnSettingListener.Callback{
+                override fun onListenerBack(
+                    keyValueEditor: SettingItem.KeyValueEditor,
+                    settingItem: SettingItem,
+                    update: Boolean
+                ) {
+                    if (update) {
+                        val index: Int = settingList.indexOf(settingItem)
+                        settingList[index] = settingItem
+                        notifyItemChanged(index)
+                    }
+                }
+
+            })
         }
     }
 
