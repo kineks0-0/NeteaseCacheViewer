@@ -176,8 +176,8 @@ fun getPath(context: Context, uri: Uri): String {
         return path
     }
 
-    // 以 content:// 开头的，比如 content://media/extenral/images/media/17766
-    // 4.4
+    // 以 content:// 开头的，比如 content://media/extenral/images/media/17766// 4.4
+
     if (DocumentsContract.isDocumentUri(context, uri)) {
         if (isExternalStorageDocument(uri)) {
             // ExternalStorageProvider
