@@ -39,16 +39,16 @@ class CoreApplication : Application() {
         }*/
 
         fun getAppVersionCode(): Long {
-            var appVersionCode = 0L;
+            var appVersionCode = 0L
 
             try {
                 val packageInfo = context.applicationContext
                     .packageManager
-                    .getPackageInfo(context.packageName, 0);
+                    .getPackageInfo(context.packageName, 0)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    appVersionCode = packageInfo.longVersionCode;
+                    appVersionCode = packageInfo.longVersionCode
                 } else {
-                    appVersionCode = packageInfo.versionCode.toLong();
+                    appVersionCode = packageInfo.versionCode.toLong()
                 }
             } catch ( e : PackageManager.NameNotFoundException ) {
                 e.let { Log.e(CoreApplication::class.toString() , it.message , it) }
@@ -61,8 +61,8 @@ class CoreApplication : Application() {
             try {
                 val packageInfo = context.applicationContext
                     .packageManager
-                    .getPackageInfo(context.packageName, 0);
-                appVersionName = packageInfo.versionName;
+                    .getPackageInfo(context.packageName, 0)
+                appVersionName = packageInfo.versionName
             } catch ( e : PackageManager.NameNotFoundException ) {
                 e.let { Log.e(CoreApplication::class.toString() , it.message , it) }
             }
@@ -80,15 +80,6 @@ class CoreApplication : Application() {
         super.onLowMemory()
         Glide.get(context).clearMemory()
     }
-
-    override fun onTerminate() {
-        super.onTerminate()
-    }
-
-    override fun onTrimMemory(level: Int) {
-        super.onTrimMemory(level)
-    }
-
 
 
 }

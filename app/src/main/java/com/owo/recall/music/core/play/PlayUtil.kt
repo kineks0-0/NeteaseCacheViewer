@@ -13,6 +13,7 @@ import com.owo.recall.music.R
 import com.owo.recall.music.core.MusicFileProvider
 import com.owo.recall.music.core.NeteaseMusicSong
 import com.owo.recall.music.core.play.HeadSetUtil.OnHeadSetListener
+import com.owo.recall.music.getApplicationContext
 import java.io.File
 import kotlin.concurrent.thread
 import kotlin.experimental.xor
@@ -25,7 +26,7 @@ object PlayUtil {
     var mediaPlayer = getNewMediaPlayer()
 
     //private var song: NeteaseMusicSong = NeteaseMusicSong(File("404"),-1L,-1L,-1L,"",-1,"")
-    private val mAudioManager: AudioManager by lazy { CoreApplication.context.getSystemService(
+    private val mAudioManager: AudioManager by lazy { getApplicationContext().getSystemService(
         Context.AUDIO_SERVICE
     ) as AudioManager }
     private val mAudioFocusChange: OnAudioFocusChangeListener =
@@ -96,7 +97,7 @@ object PlayUtil {
     }
 
 
-    public var playMode: PlayMode = object : PlayMode {
+    var playMode: PlayMode = object : PlayMode {
 
 
         val SongLoop = 0
@@ -144,7 +145,7 @@ object PlayUtil {
             }
         }
 
-        override fun updata(songList: ArrayList<NeteaseMusicSong>, index: Int) {
+        override fun update(songList: ArrayList<NeteaseMusicSong>, index: Int) {
             this.songList = songList
             this.index = index
             switchPlayMode(playModeID)
@@ -206,12 +207,12 @@ object PlayUtil {
 
                         } else {
 
-                            CoreApplication.toast(CoreApplication.context.getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
+                            CoreApplication.toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
 
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 mediaPlayer.setDataSource(ByteArrayMediaDataSource(decodeByteArray))
                             } else {
-                                CoreApplication.toast(CoreApplication.context.getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
+                                CoreApplication.toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
                                 val cacheDataFile =
                                     MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
                                 cacheDataFile.writeBytes(decodeByteArray)
@@ -355,7 +356,7 @@ object PlayUtil {
         fun switchPlayMode()
         fun switchPlayMode(PlayModeID: Int)
 
-        fun updata(songList: ArrayList<NeteaseMusicSong>, index: Int)
+        fun update(songList: ArrayList<NeteaseMusicSong>, index: Int)
 
         fun play()
         fun play(songList: ArrayList<NeteaseMusicSong>, index: Int)
@@ -417,7 +418,7 @@ object PlayUtil {
         }
 
         // 设置设备进入锁状态模式-可在后台播放或者缓冲音乐-CPU一直工作
-        mediaPlayer.setWakeMode(CoreApplication.context, PowerManager.PARTIAL_WAKE_LOCK)
+        mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK)
         mediaPlayer.setVolume(1.0F, 1.0F)
         mediaPlayer.isLooping = false
 
@@ -444,7 +445,7 @@ object PlayUtil {
                     incompleteFile = false
                 } else {
                     incompleteFile = true
-                  CoreApplication.toast(CoreApplication.context.getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + encodeSong.filesize)
+                  CoreApplication.toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + encodeSong.filesize)
                     cacheDataFile = MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
                     cacheDataFile.writeBytes(decodeByteArray)
                 }

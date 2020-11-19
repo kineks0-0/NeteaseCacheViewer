@@ -6,6 +6,7 @@ import com.owo.recall.music.CoreApplication
 import com.owo.recall.music.R
 import com.owo.recall.music.core.net.HttpUtil
 import com.owo.recall.music.core.setting.SettingList
+import com.owo.recall.music.getApplicationContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -16,7 +17,7 @@ import java.io.IOException
 
 object MusicFileProvider {
 
-    private val CacheFolder: File = CoreApplication.context.externalCacheDir ?: CoreApplication.context.cacheDir
+    private val CacheFolder: File = getApplicationContext().externalCacheDir ?: CoreApplication.context.cacheDir
     private val CacheNetFolder: File
     private val CacheDecodeFolder: File
     private val CacheOtherFolder: File
@@ -25,8 +26,8 @@ object MusicFileProvider {
     private val NeteaseMusicCacheFileEnd: String by lazy { "uc!" }
     private val NeteaseInfoCacheFileEnd: String by lazy { "idx!" }
 
-    private val second: String by lazy { CoreApplication.context.getString(R.string.second) }
-    private val minute: String by lazy { CoreApplication.context.getString(R.string.minute) }
+    private val second: String by lazy { getApplicationContext().getString(R.string.second) }
+    private val minute: String by lazy { getApplicationContext().getString(R.string.minute) }
 
 
     init {
@@ -41,7 +42,7 @@ object MusicFileProvider {
         CacheOtherFolder.mkdirs()
 
 
-        val index = SettingList.getSettingItemIndex("NeteaseMusicCacheFolder")
+        /*val index = SettingList.getSettingItemIndex("NeteaseMusicCacheFolder")
         if (index != -1){
             NeteaseMusicCacheFolder = File(SettingList.getSettingItem(index).keyValueEditor.getValueAsString())
         } else {
@@ -49,8 +50,8 @@ object MusicFileProvider {
             if (!NeteaseMusicCacheFolder.exists()) {
                 NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusiclite/Cache/Music1/")
             }
-        }
-
+        }*/
+        NeteaseMusicCacheFolder = File(SettingList.getSettingItem("NeteaseMusicCacheFolder").keyValueEditor.getValueAsString())//默认值在settinglist那处理
         DIR_Music = File(SettingList.getSettingItem("ExportMusicFolder", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).absolutePath))
 
         //getOtherCacheFile("CacheDecodeNeteaseFile.song").delete()

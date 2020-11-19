@@ -11,7 +11,7 @@ import androidx.fragment.app.Fragment
 class AvoidOnResult(activity: AppCompatActivity) {
     private var mAvoidOnResultFragment: AvoidOnResultFragment = getAvoidOnResultFragment(activity)
 
-    constructor(fragment: Fragment) : this(fragment.activity as AppCompatActivity) {}
+    constructor(fragment: Fragment) : this(fragment.activity as AppCompatActivity)
 
     private fun getAvoidOnResultFragment(activity: AppCompatActivity): AvoidOnResultFragment {
         var avoidOnResultFragment: AvoidOnResultFragment? = findAvoidOnResultFragment(activity)

@@ -67,8 +67,8 @@ android {
         applicationId "com.owo.recall.music"
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 3
-        versionName "Alpha 0.3"
+        versionCode 4
+        versionName "Alpha 0.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

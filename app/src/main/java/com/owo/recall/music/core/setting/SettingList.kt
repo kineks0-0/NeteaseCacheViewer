@@ -14,6 +14,7 @@ import com.owo.recall.music.CoreApplication
 import com.owo.recall.music.MainActivity
 import com.owo.recall.music.core.AvoidOnResult
 import com.owo.recall.music.core.MusicFileProvider
+import com.owo.recall.music.getApplicationContext
 import java.io.File
 
 
@@ -39,7 +40,7 @@ object SettingList {
                     SettingItem.KeyValueEditor.TYPE_STRING,
                     object : OnSettingListener {
                         override fun onListener(keyValueEditor: SettingItem.KeyValueEditor, callback: OnSettingListener.Callback) {
-                            CoreApplication.toast("测试委托事件")
+                            CoreApplication.toast("测试委托事件，请选择目录下的文件")
                             val REQUEST_CODE_CALLBACK = 160
 
                             val intent = Intent(Intent.ACTION_GET_CONTENT)
@@ -66,14 +67,19 @@ object SettingList {
                                             }*/
 
                                             val uri: Uri = data?.data!!
-                                            val file = File(getPath(CoreApplication.context,uri))
+                                            val file = File(getPath(getApplicationContext(),uri))
                                             //CoreApplication.toast(file.absolutePath)
                                             //CoreApplication.toast(file.parentFile.absolutePath)
-                                            keyValueEditor.setValueAsString(file.parentFile.absolutePath)
-                                            MusicFileProvider.NeteaseMusicCacheFolder = file.parentFile
-                                            getSettingItem(keyValueEditor.key).summary = file.parentFile.absolutePath.replaceFirst("/storage/emulated/0","")
-                                            CoreApplication.toast("部分数据重启生效")
-                                            callback.onListenerBack(keyValueEditor,getSettingItem("NeteaseMusicCacheFolder"),true)
+                                            val fileParentFile = file.parentFile
+                                            if (fileParentFile != null) {
+                                                keyValueEditor.setValueAsString(fileParentFile.absolutePath)
+                                                MusicFileProvider.NeteaseMusicCacheFolder = fileParentFile
+                                                getSettingItem(keyValueEditor.key).summary = fileParentFile.absolutePath.replaceFirst("/storage/emulated/0","")
+                                                CoreApplication.toast("部分数据重启生效")
+                                                callback.onListenerBack(keyValueEditor,getSettingItem("NeteaseMusicCacheFolder"),true)
+                                            } else {
+                                                CoreApplication.toast("fileParentFile == null ,无法设置null为路径")
+                                            }
                                         } else {
                                             CoreApplication.toast("Error: DataResultCode != RESULT_OK")
                                         }
@@ -107,7 +113,7 @@ object SettingList {
                     SettingItem.KeyValueEditor.TYPE_STRING,
                     object : OnSettingListener {
                         override fun onListener(keyValueEditor: SettingItem.KeyValueEditor, callback: OnSettingListener.Callback) {
-                            CoreApplication.toast("测试委托事件")
+                            CoreApplication.toast("测试委托事件，请选择的目录下确定，并不会新建文件")
                             val REQUEST_CODE_CALLBACK = 170
 
                             val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
@@ -122,13 +128,18 @@ object SettingList {
                                         if (resultCode == Activity.RESULT_OK) {
 
                                             val uri: Uri = data?.data!!
-                                            val file = File(getPath(CoreApplication.context,uri))
+                                            val file = File(getPath(getApplicationContext(),uri))
                                             file.delete()
-                                            keyValueEditor.setValueAsString(file.parentFile.absolutePath)
-                                            MusicFileProvider.DIR_Music = file.parentFile
-                                            getSettingItem(keyValueEditor.key).summary = file.parentFile.absolutePath.replaceFirst("/storage/emulated/0","")
-                                            CoreApplication.toast("部分数据重启生效")
-                                            callback.onListenerBack(keyValueEditor,getSettingItem(keyValueEditor.key),true)
+                                            val fileParentFile = file.parentFile
+                                            if (fileParentFile != null) {
+                                                keyValueEditor.setValueAsString(fileParentFile.absolutePath)
+                                                MusicFileProvider.DIR_Music = fileParentFile
+                                                getSettingItem(keyValueEditor.key).summary = fileParentFile.absolutePath.replaceFirst("/storage/emulated/0","")
+                                                CoreApplication.toast("部分数据重启生效")
+                                                callback.onListenerBack(keyValueEditor,getSettingItem(keyValueEditor.key),true)
+                                            } else {
+                                                CoreApplication.toast("fileParentFile == null ,无法设置null为路径")
+                                            }
                                         } else {
                                             CoreApplication.toast("Error: DataResultCode != RESULT_OK")
                                         }
@@ -229,7 +240,7 @@ private fun getDataColumn(
     val column = "_data"
     val projection = arrayOf(column)
     try {
-        cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null)
+        cursor = context.contentResolver.query(uri, projection, selection, selectionArgs, null)
         if (cursor != null && cursor.moveToFirst()) {
             val column_index: Int = cursor.getColumnIndexOrThrow(column)
             return cursor.getString(column_index)

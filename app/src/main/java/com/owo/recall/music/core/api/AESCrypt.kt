@@ -1,6 +1,5 @@
 package com.owo.recall.music.core.api
 
-import com.owo.recall.music.aesEncrypt
 import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -27,7 +26,7 @@ object AESCrypt {
             }.toByteArray()
         }
 
-    private fun updataKey(key: String) {
+    private fun updateKey(key: String) {
         if (this.key!=key) {
             this.key = key
             keySpec = SecretKeySpec(AESCrypt.key.toByteArray(), 0, 32, "AES")
@@ -39,7 +38,7 @@ object AESCrypt {
     // 加密使用的方法
     fun encrypt(input: String, key: String = this.key): String {
         val cipher = Cipher.getInstance(transformation)
-        updataKey(key)
+        updateKey(key)
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivParameterSpec)
         val encrypt = cipher.doFinal(input.toByteArray())
         return encrypt.asHexUpper
@@ -48,7 +47,7 @@ object AESCrypt {
     // 解密使用的方法
     fun decrypt(input: String, key: String = this.key): String {
         val cipher = Cipher.getInstance(transformation)
-        updataKey(key)
+        updateKey(key)
         cipher.init(Cipher.DECRYPT_MODE, keySpec, ivParameterSpec)
         val encrypt = cipher.doFinal(input.hexAsByteArray)
         return String(encrypt)

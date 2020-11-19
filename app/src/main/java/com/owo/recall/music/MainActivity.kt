@@ -92,9 +92,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-            }
         })
         mainViewPageHome.swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimaryDark)
         mainViewPageHome.swipeRefreshLayout.setOnRefreshListener {
@@ -288,7 +285,7 @@ class MainActivity : AppCompatActivity() {
                 mainViewPageHome.recyclerView.adapter = NeteaseMusicSongAdapter(songsList,coreRun,requestManager,options,showMenu)
                 mainViewPageSetting.recyclerView_setting.adapter = SettingListAdapter(SettingList.MainSettingList)
             }
-            PlayUtil.playMode.updata(songsList,-1)
+            PlayUtil.playMode.update(songsList,-1)
             initED = true
         }
 

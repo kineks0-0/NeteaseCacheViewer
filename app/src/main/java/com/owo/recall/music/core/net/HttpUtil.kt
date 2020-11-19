@@ -1,11 +1,10 @@
 package com.owo.recall.music.core.net
 
-import android.os.Build
 import android.webkit.WebSettings
-import com.owo.recall.music.CoreApplication.Companion.context
-import okhttp3.*
-import okio.IOException
-import kotlin.concurrent.thread
+import com.owo.recall.music.getApplicationContext
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 
 object HttpUtil {
@@ -38,7 +37,7 @@ object HttpUtil {
     //修改了okhttp请求头和标准请求不一致的错误
     private fun getUserAgent(): String {
         val userAgent = try {
-            WebSettings.getDefaultUserAgent(context)
+            WebSettings.getDefaultUserAgent(getApplicationContext())
         } catch (e: Exception) {
             System.getProperty("http.agent") ?: "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
         }
