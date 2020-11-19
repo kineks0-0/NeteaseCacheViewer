@@ -48,27 +48,27 @@ android {
         debug {
             // 显示Log
             buildConfigField "boolean", "LOG_DEBUG", "true"
-            //// apk包名称后缀，用来区分release和debug
+            // apk包名称后缀，用来区分release和debug
             versionNameSuffix "-debug"
             minifyEnabled false
             zipAlignEnabled false
             shrinkResources false
-            //signingConfig signingConfigs.debug
+//            signingConfig signingConfigs.debug
         }
 
         release {
             // 不显示Log
             buildConfigField "boolean", "LOG_DEBUG", "false"
-            //加载默认混淆配置文件
+            // 加载默认混淆配置文件
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            //混淆
+            // 混淆
             minifyEnabled true
-            // 移除无用的resource文件
+            // 移除无用的 resources 文件
             shrinkResources true
-            //Zipalign优化
+            // Zipalign优化
             zipAlignEnabled true
-            //签名
-            //signingConfig signingConfigs.release
+            // 签名
+//            signingConfig signingConfigs.release
         }
     }
 }
