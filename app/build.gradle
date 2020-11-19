@@ -1,10 +1,8 @@
 apply plugin: 'com.android.application'
-apply plugin: 'AndResGuard'
 apply plugin: 'io.michaelrocks.paranoid'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
-
 
 
 buildscript {
@@ -13,7 +11,6 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.tencent.mm:AndResGuard-gradle-plugin:1.2.18'
         classpath 'io.michaelrocks:paranoid-gradle-plugin:0.2.5'
     }
 }
@@ -31,33 +28,6 @@ if (SHA1 != null) {
 if (isPerVersion) {
     applicationVersionName = applicationVersionName + ".${applicationProperties["preReleaseName"]}-${applicationProperties["preReleaseVer"]}"
 }*/
-
-andResGuard {
-    mappingFile = null
-    use7zip = true
-    useSign = true
-    keepRoot = false
-    mergeDuplicatedRes = true
-    whiteList = ["R.mipmap.ic_launcher",
-                 "R.mipmap.ic_launcher_foreground",
-                 "R.mipmap.ic_launcher_round",
-                 "R.drawable.ic_*",
-                 "R.color.theme_color_*",
-                 "R.id.*"]
-    compressFilePattern = ["*.png",
-                           "*.jpg",
-                           "*.jpeg",
-                           "*.gif",
-                           "*.webp",
-                           "*.kotlin_metadata",
-                           "resources.arsc"]
-    sevenzip {
-        artifact = 'com.tencent.mm:SevenZip:1.2.10'
-    }
-    //finalApkBackupPath = "${project.rootDir}/app/release/${applicationVersionName}(${applicationVersionCode}).apk"
-    finalApkBackupPath = "${project.rootDir}/app/release/app-out.apk"
-    digestalg = "SHA-256"
-}
 
 android {
     compileSdkVersion 30
