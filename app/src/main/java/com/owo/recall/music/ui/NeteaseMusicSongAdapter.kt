@@ -19,6 +19,7 @@ import com.owo.recall.music.R
 import com.owo.recall.music.core.MusicFileProvider
 import com.owo.recall.music.core.NeteaseMusicSong
 import com.owo.recall.music.core.play.PlayUtil
+import com.owo.recall.music.toast
 
 
 class NeteaseMusicSongAdapter(
@@ -63,7 +64,7 @@ class NeteaseMusicSongAdapter(
                 if ( !coreRun.checkJSONisAvailable(response) ) {
                     PlayUtil.playMode.play(songList,position)
                     if (response == "{\"msg\":\"Cheating\",\"code\":-460,\"message\":\"Cheating\"}") {
-                        CoreApplication.toast("警告：被 NetEase Api 返回 Cheating ，请停止获取歌曲信息")
+                        toast("警告：被 NetEase Api 返回 Cheating ，请停止获取歌曲信息")
                     }
                     //CoreApplication.toast("Wrong: Null CallBack")
                     //Todo:对获取失败进行处理
@@ -88,7 +89,7 @@ class NeteaseMusicSongAdapter(
 
         })
 
-        CoreApplication.toast("Playing " + songInfo.songInfo.name)
+        toast("Playing " + songInfo.songInfo.name)
     }
 
     private fun onLongClick(it: View, position: Int) {

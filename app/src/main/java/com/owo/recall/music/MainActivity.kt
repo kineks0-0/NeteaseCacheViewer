@@ -45,7 +45,6 @@ import kotlinx.android.synthetic.main.main_view_page_setting.view.*
 import okhttp3.Call
 import okhttp3.Response
 import org.json.JSONObject
-import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
 import kotlin.random.Random
@@ -299,7 +298,7 @@ class MainActivity : AppCompatActivity() {
             // 判断是否需要对用户进行提醒，用户点击过拒绝&&没有勾选不再提醒时进行提示
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 // 给用于予以权限解释, 对于已经拒绝过的情况，先提示申请理由，再进行申请
-                CoreApplication.toast("程序需要读写权限来读取缓存和导出歌曲")
+                toast("程序需要读写权限来读取缓存和导出歌曲")
                 requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), CoreApplication.REQUEST_PERMISSION_CODE_WRITE_EXTERNAL_STORAGE)
             } else {
                 // 无需说明理由的情况下，直接进行申请。如第一次使用该功能（第一次申请权限），用户拒绝权限并勾选了不再提醒
@@ -349,7 +348,7 @@ class MainActivity : AppCompatActivity() {
                                     setMessage("$theTitle \n  $updateText")
                                     setCancelable(true)
                                     setPositiveButton("Update") {_,_->
-                                        CoreApplication.toast("TodoDownload: $updateLink")
+                                        toast("TodoDownload: $updateLink")
                                         val intent = Intent(Intent.ACTION_VIEW)
                                         intent.data = Uri.parse(downloadLink)
                                         startActivity(intent)
@@ -387,7 +386,7 @@ class MainActivity : AppCompatActivity() {
                         )
                     ) {
                         // 给用于予以权限解释, 对于已经拒绝过的情况，先提示申请理由，再进行申请
-                        CoreApplication.toast("程序需要读写权限来读取缓存和导出歌曲")
+                        toast("程序需要读写权限来读取缓存和导出歌曲")
                     }/* else {
                         // 用户勾选了不再提醒，引导用户进入设置界面进行开启权限
                         /*Snackbar.make(view, "需要打开权限才能使用该功能，您也可以前往设置->应用。。。开启权限",
@@ -413,10 +412,10 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
         when(item.itemId) {
-            R.id.search -> CoreApplication.toast("Todo")
+            R.id.search -> toast("Todo")
 
             R.id.all_update -> thread {
-                CoreApplication.toast("开始获取中")
+                toast("开始获取中")
                 var exitHere = false
                 for ( i in songsList.indices ) {
 
@@ -428,14 +427,14 @@ class MainActivity : AppCompatActivity() {
                             override fun callback(response: String, isCache: Boolean) {
 
                                 if (response == "{\"msg\":\"Cheating\",\"code\":-460,\"message\":\"Cheating\"}") {
-                                    CoreApplication.toast("警告：被 NetEase Api 返回 Cheating ，请停止获取歌曲信息")
+                                    toast("警告：被 NetEase Api 返回 Cheating ，请停止获取歌曲信息")
                                     exitHere = true
                                     return
                                 }
 
                                 if ( !coreRun.checkJSONisAvailable(response) ) {
 
-                                    CoreApplication.toast("Wrong: CallBack Not Available")
+                                    toast("Wrong: CallBack Not Available")
                                     //Todo:对获取失败进行处理
 
                                 } else {
@@ -457,10 +456,10 @@ class MainActivity : AppCompatActivity() {
                         Thread.sleep(Random.nextLong(1000,4000))//延迟几秒 ,防止被判定爬取
                     }
                 }
-                CoreApplication.toast("已完成获取 " + songsList.size + " 个歌曲信息")
+                toast("已完成获取 " + songsList.size + " 个歌曲信息")
             }
 
-            else -> CoreApplication.toast("Unknown")
+            else -> toast("Unknown")
         }
         return true
     }
@@ -483,58 +482,18 @@ class MainActivity : AppCompatActivity() {
 
         view.line1.setOnClickListener {
 
-            PlayUtil.getDecodeNeteaseFile(song,object : PlayUtil.DecodeCompleteCallBack {
 
-                override fun completeCallBack(decodeFile: File,incompleteFile: Boolean) {
-
-                    CoreApplication.toast("导出中")
-
-                    if (incompleteFile) {
-                        CoreApplication.toast("警告: 文件不完整,无法通过校对")
-                        //todo 将硬编码文本转移string.xml 对不完整缓存采用联网下载
-                    }
-                    if (song.songInfo.id != -1L) {
-                        val dir_Music: File = coreRun.DIR_Music//getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-                        dir_Music.mkdirs()
-                        val outFile = File(dir_Music,song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3")
-
-                        //Todo: 对文件类型判断 对音乐写入标签信息
-                        outFile.writeBytes(decodeFile.readBytes())
-
-                        PlayUtil.scanFile(this@MainActivity,outFile.absolutePath)
-                        CoreApplication.toast("已保存在: " + outFile.absolutePath)
-                    } else {
-
-                        CoreApplication.toast("正在下载歌曲信息")
-                        coreRun.getNeteaseSongIDRawJSON(song.musicId,object : MusicFileProvider.RawJSONDataCallBack{
-                            override fun callback(response: String, isCache: Boolean) {
-                                it.post {
-                                    if (!isCache) {
-                                        song.songInfo = coreRun.getNeteaseSongInfo(response)
-                                        it.post {
-                                            (mainViewPageHome.recyclerView.adapter as NeteaseMusicSongAdapter).update(song)
-                                        }
-                                    }
-                                    completeCallBack(decodeFile,incompleteFile)
-                                }
-                            }
-
-                        })
-                    }
-
-                }
-            })
 
             dialog.dismiss()
         }
 
         view.line2.setOnClickListener {
             dialog.dismiss()
-            CoreApplication.toast("Todo")
+            toast("Todo")
         }
 
         view.line3.setOnClickListener {
-            CoreApplication.toast("Todo")
+            toast("Todo")
         }
 
         dialog.setContentView(view)

@@ -8,12 +8,12 @@ import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
-import com.owo.recall.music.CoreApplication
 import com.owo.recall.music.R
 import com.owo.recall.music.core.MusicFileProvider
 import com.owo.recall.music.core.NeteaseMusicSong
 import com.owo.recall.music.core.play.HeadSetUtil.OnHeadSetListener
 import com.owo.recall.music.getApplicationContext
+import com.owo.recall.music.toast
 import java.io.File
 import kotlin.concurrent.thread
 import kotlin.experimental.xor
@@ -207,12 +207,12 @@ object PlayUtil {
 
                         } else {
 
-                            CoreApplication.toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
+                            toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
 
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 mediaPlayer.setDataSource(ByteArrayMediaDataSource(decodeByteArray))
                             } else {
-                                CoreApplication.toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
+                                toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
                                 val cacheDataFile =
                                     MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
                                 cacheDataFile.writeBytes(decodeByteArray)
@@ -445,7 +445,7 @@ object PlayUtil {
                     incompleteFile = false
                 } else {
                     incompleteFile = true
-                  CoreApplication.toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + encodeSong.filesize)
+                  toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + encodeSong.filesize)
                     cacheDataFile = MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
                     cacheDataFile.writeBytes(decodeByteArray)
                 }
@@ -497,7 +497,7 @@ object PlayUtil {
      *
      * @param filePath ilePath 文件绝对路径，、/sda/aaa/jjj.jpg
      */
-    fun scanFile(context: Context, filePath: String) {
+    fun scanFile(filePath: String, context: Context = getApplicationContext()) {
         try {
             MediaScannerConnection.scanFile(
                 context, arrayOf(filePath), null

@@ -5,8 +5,11 @@ import android.util.Log
 import com.owo.recall.music.CoreApplication
 import com.owo.recall.music.R
 import com.owo.recall.music.core.net.HttpUtil
+import com.owo.recall.music.core.play.PlayUtil
 import com.owo.recall.music.core.setting.SettingList
 import com.owo.recall.music.getApplicationContext
+import com.owo.recall.music.toast
+import com.owo.recall.music.ui.NeteaseMusicSongAdapter
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -42,15 +45,7 @@ object MusicFileProvider {
         CacheOtherFolder.mkdirs()
 
 
-        /*val index = SettingList.getSettingItemIndex("NeteaseMusicCacheFolder")
-        if (index != -1){
-            NeteaseMusicCacheFolder = File(SettingList.getSettingItem(index).keyValueEditor.getValueAsString())
-        } else {
-            NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusic/Cache/Music1/")
-            if (!NeteaseMusicCacheFolder.exists()) {
-                NeteaseMusicCacheFolder = File("/storage/emulated/0/netease/cloudmusiclite/Cache/Music1/")
-            }
-        }*/
+
         NeteaseMusicCacheFolder = File(SettingList.getSettingItem("NeteaseMusicCacheFolder").keyValueEditor.getValueAsString())//默认值在settinglist那处理
         DIR_Music = File(SettingList.getSettingItem("ExportMusicFolder", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).absolutePath))
 
@@ -206,6 +201,48 @@ object MusicFileProvider {
             s %= 60
             "$m $minute $s $second"
         }
+    }
+
+    fun ExportNeteaseCacheFile(song: NeteaseMusicSong,adapter: NeteaseMusicSongAdapter) {
+        PlayUtil.getDecodeNeteaseFile(song,object : PlayUtil.DecodeCompleteCallBack {
+            override fun completeCallBack(decodeFile: File,incompleteFile: Boolean) {
+
+                toast("导出中")
+
+                if (incompleteFile) {
+                    toast("警告: 文件不完整,无法通过校对")
+                    //todo 将硬编码文本转移string.xml 对不完整缓存采用联网下载
+                }
+                if (song.songInfo.id != -1L) {
+                    val dirMusic: File = this@MusicFileProvider.DIR_Music//getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                    dirMusic.mkdirs()
+                    val outFile = File(dirMusic,song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3")
+                    //Todo: 对文件类型判断 对音乐写入标签信息
+                    outFile.writeBytes(decodeFile.readBytes())
+
+                    PlayUtil.scanFile(outFile.absolutePath)
+                    toast("已保存在: " + outFile.absolutePath)
+                } else {
+
+                    toast("正在下载歌曲信息")
+                    this@MusicFileProvider.getNeteaseSongIDRawJSON(song.musicId,object : MusicFileProvider.RawJSONDataCallBack{
+                        override fun callback(response: String, isCache: Boolean) {
+                            CoreApplication.post {
+                                if (!isCache) {
+                                    song.songInfo = this@MusicFileProvider.getNeteaseSongInfo(response)
+                                    CoreApplication.post {
+                                        adapter.update(song)
+                                    }
+                                }
+                                completeCallBack(decodeFile,incompleteFile)
+                            }
+                        }
+
+                    })
+                }
+
+            }
+        })
     }
 
             /*fun getCacheDir(context: Context): String {

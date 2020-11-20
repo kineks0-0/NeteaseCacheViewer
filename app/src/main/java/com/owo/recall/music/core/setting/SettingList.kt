@@ -10,11 +10,11 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
-import com.owo.recall.music.CoreApplication
-import com.owo.recall.music.MainActivity
 import com.owo.recall.music.core.AvoidOnResult
 import com.owo.recall.music.core.MusicFileProvider
 import com.owo.recall.music.getApplicationContext
+import com.owo.recall.music.getMainActivityAsAppCompatActivity
+import com.owo.recall.music.toast
 import java.io.File
 
 
@@ -40,7 +40,7 @@ object SettingList {
                     SettingItem.KeyValueEditor.TYPE_STRING,
                     object : OnSettingListener {
                         override fun onListener(keyValueEditor: SettingItem.KeyValueEditor, callback: OnSettingListener.Callback) {
-                            CoreApplication.toast("测试委托事件，请选择目录下的文件")
+                            toast("测试委托事件，请选择目录下的文件")
                             val REQUEST_CODE_CALLBACK = 160
 
                             val intent = Intent(Intent.ACTION_GET_CONTENT)
@@ -51,7 +51,7 @@ object SettingList {
                             intent.type = "*/*"
                             intent.addCategory(Intent.CATEGORY_OPENABLE)
 
-                            AvoidOnResult(MainActivity.ThisActivity).startForResult(intent,//MainActivity::class.java,
+                            AvoidOnResult(getMainActivityAsAppCompatActivity()).startForResult(intent,//MainActivity::class.java,
                                 REQUEST_CODE_CALLBACK,
                                 object : AvoidOnResult.Callback {
                                     override fun onActivityResult(
@@ -75,13 +75,13 @@ object SettingList {
                                                 keyValueEditor.setValueAsString(fileParentFile.absolutePath)
                                                 MusicFileProvider.NeteaseMusicCacheFolder = fileParentFile
                                                 getSettingItem(keyValueEditor.key).summary = fileParentFile.absolutePath.replaceFirst("/storage/emulated/0","")
-                                                CoreApplication.toast("部分数据重启生效")
+                                                toast("部分数据重启生效")
                                                 callback.onListenerBack(keyValueEditor,getSettingItem("NeteaseMusicCacheFolder"),true)
                                             } else {
-                                                CoreApplication.toast("fileParentFile == null ,无法设置null为路径")
+                                                toast("fileParentFile == null ,无法设置null为路径")
                                             }
                                         } else {
-                                            CoreApplication.toast("Error: DataResultCode != RESULT_OK")
+                                            toast("Error: DataResultCode != RESULT_OK")
                                         }
                                     }
                                 })
@@ -113,14 +113,14 @@ object SettingList {
                     SettingItem.KeyValueEditor.TYPE_STRING,
                     object : OnSettingListener {
                         override fun onListener(keyValueEditor: SettingItem.KeyValueEditor, callback: OnSettingListener.Callback) {
-                            CoreApplication.toast("测试委托事件，请选择的目录下确定，并不会新建文件")
+                            toast("测试委托事件，请选择的目录下确定，并不会新建文件")
                             val REQUEST_CODE_CALLBACK = 170
 
                             val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
                             intent.type = "*/*"
                             intent.addCategory(Intent.CATEGORY_OPENABLE)
 
-                            AvoidOnResult(MainActivity.ThisActivity).startForResult(intent,//MainActivity::class.java,
+                            AvoidOnResult(getMainActivityAsAppCompatActivity()).startForResult(intent,//MainActivity::class.java,
                                 REQUEST_CODE_CALLBACK,
                                 object : AvoidOnResult.Callback {
                                     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -135,13 +135,13 @@ object SettingList {
                                                 keyValueEditor.setValueAsString(fileParentFile.absolutePath)
                                                 MusicFileProvider.DIR_Music = fileParentFile
                                                 getSettingItem(keyValueEditor.key).summary = fileParentFile.absolutePath.replaceFirst("/storage/emulated/0","")
-                                                CoreApplication.toast("部分数据重启生效")
+                                                toast("部分数据重启生效")
                                                 callback.onListenerBack(keyValueEditor,getSettingItem(keyValueEditor.key),true)
                                             } else {
-                                                CoreApplication.toast("fileParentFile == null ,无法设置null为路径")
+                                                toast("fileParentFile == null ,无法设置null为路径")
                                             }
                                         } else {
-                                            CoreApplication.toast("Error: DataResultCode != RESULT_OK")
+                                            toast("Error: DataResultCode != RESULT_OK")
                                         }
                                     }
                                 })
