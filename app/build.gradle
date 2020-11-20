@@ -75,7 +75,7 @@ dependencies {
     //implementation 'com.github.kineks0-0:jaudiotagger-android:4d4ffe6'
     implementation "com.github.bumptech.glide:glide:4.11.0"
     implementation("com.squareup.okhttp3:okhttp:4.9.0")
-    implementation files('libs/jaudiotagger-android-master.jar')
+    //implementation files('libs/jaudiotagger-android-master.jar')
 
     testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'

@@ -18,6 +18,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 
+
 object MusicFileProvider {
 
     private val CacheFolder: File = getApplicationContext().externalCacheDir ?: CoreApplication.context.cacheDir
@@ -37,40 +38,46 @@ object MusicFileProvider {
 
         //val cacheDataFile: File = CoreApplication.context.cacheDir
         CacheFolder.mkdirs()
-        CacheNetFolder = File(CacheFolder.absolutePath + "/NetData/" )
+        CacheNetFolder = File(CacheFolder.absolutePath + "/NetData/")
         CacheNetFolder.mkdirs()
-        CacheDecodeFolder = File(CacheFolder.absolutePath + "/DecodeData/" )
+        CacheDecodeFolder = File(CacheFolder.absolutePath + "/DecodeData/")
         CacheDecodeFolder.mkdirs()
-        CacheOtherFolder = File(CacheFolder.absolutePath + "/Other/" )
+        CacheOtherFolder = File(CacheFolder.absolutePath + "/Other/")
         CacheOtherFolder.mkdirs()
 
 
 
         NeteaseMusicCacheFolder = File(SettingList.getSettingItem("NeteaseMusicCacheFolder").keyValueEditor.getValueAsString())//默认值在settinglist那处理
-        DIR_Music = File(SettingList.getSettingItem("ExportMusicFolder", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).absolutePath))
+        DIR_Music = File(
+            SettingList.getSettingItem(
+                "ExportMusicFolder", Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_MUSIC
+                ).absolutePath
+            )
+        )
 
         //getOtherCacheFile("CacheDecodeNeteaseFile.song").delete()
 
     }
 
     fun getMusicFile(fileName: String): File {
-        return File(DIR_Music , fileName )
+        return File(DIR_Music, fileName)
     }
 
     fun getNetCacheFile(fileName: String): File {
-        return File(CacheNetFolder , fileName )
+        return File(CacheNetFolder, fileName)
     }
 
     fun getDecodeCacheFile(fileName: String): File {
-        return File(CacheDecodeFolder , fileName )
+        return File(CacheDecodeFolder, fileName)
     }
 
     fun getOtherCacheFile(fileName: String): File {
-        return File(CacheOtherFolder , fileName )
+        return File(CacheOtherFolder, fileName)
     }
 
     fun getMusicCacheFile(fileEnd: String): Array<File> {
-        return NeteaseMusicCacheFolder.listFiles { _ , s -> s.endsWith(".$fileEnd") }
+        return NeteaseMusicCacheFolder.listFiles { _, s -> s.endsWith(".$fileEnd") }
             ?: return Array(0){File("/404")}
     }
 
@@ -80,7 +87,12 @@ object MusicFileProvider {
         //var songInfo: NeteaseMusicSong
         val songArrayList: ArrayList<NeteaseMusicSong> = ArrayList()
         getMusicCacheFile(NeteaseMusicCacheFileEnd).forEach {
-            infoFile = File(it.absolutePath.replaceFirst(".$NeteaseMusicCacheFileEnd", ".$NeteaseInfoCacheFileEnd" ))
+            infoFile = File(
+                it.absolutePath.replaceFirst(
+                    ".$NeteaseMusicCacheFileEnd",
+                    ".$NeteaseInfoCacheFileEnd"
+                )
+            )
             if (infoFile.exists()) {
                 infoJSON = JSONObject(infoFile.readText())
 
@@ -88,17 +100,43 @@ object MusicFileProvider {
 
                 if (cacheFile.exists()) {
                     if (checkJSONisAvailable(cacheFile.readText())) {
-                        songArrayList.add(NeteaseMusicSong(it,infoJSON.getLong("duration"),infoJSON.getLong("filesize"),infoJSON.getLong("musicId"),infoJSON.getString("filemd5"),
-                            infoJSON.getInt("bitrate"),infoJSON.getString("md5"),getNeteaseSongInfo(cacheFile.readText())))
+                        songArrayList.add(
+                            NeteaseMusicSong(
+                                it,
+                                infoJSON.getLong("duration"),
+                                infoJSON.getLong(
+                                    "filesize"
+                                ),
+                                infoJSON.getLong("musicId"),
+                                infoJSON.getString("filemd5"),
+                                infoJSON.getInt("bitrate"),
+                                infoJSON.getString("md5"),
+                                getNeteaseSongInfo(
+                                    cacheFile.readText()
+                                )
+                            )
+                        )
                     } else {
                         cacheFile.delete()
-                        songArrayList.add(NeteaseMusicSong(it,infoJSON.getLong("duration"),infoJSON.getLong("filesize"),infoJSON.getLong("musicId"),infoJSON.getString("filemd5"),
-                            infoJSON.getInt("bitrate"),infoJSON.getString("md5")))
+                        songArrayList.add(
+                            NeteaseMusicSong(
+                                it, infoJSON.getLong("duration"), infoJSON.getLong(
+                                    "filesize"
+                                ), infoJSON.getLong("musicId"), infoJSON.getString("filemd5"),
+                                infoJSON.getInt("bitrate"), infoJSON.getString("md5")
+                            )
+                        )
                     }
 
                 } else {
-                    songArrayList.add(NeteaseMusicSong(it,infoJSON.getLong("duration"),infoJSON.getLong("filesize"),infoJSON.getLong("musicId"),infoJSON.getString("filemd5"),
-                        infoJSON.getInt("bitrate"),infoJSON.getString("md5")))
+                    songArrayList.add(
+                        NeteaseMusicSong(
+                            it, infoJSON.getLong("duration"), infoJSON.getLong(
+                                "filesize"
+                            ), infoJSON.getLong("musicId"), infoJSON.getString("filemd5"),
+                            infoJSON.getInt("bitrate"), infoJSON.getString("md5")
+                        )
+                    )
                 }
 
             }
@@ -114,12 +152,15 @@ object MusicFileProvider {
         val songJSONObject: JSONObject = rootJSONObject.getJSONArray("songs").getJSONObject(0)
 
         val artistsJSONArray: JSONArray = songJSONObject.getJSONArray("artists")
-        val artistsArray: Array<NeteaseMusicSong.Artists> = Array<NeteaseMusicSong.Artists>(artistsJSONArray.length()){ NeteaseMusicSong.Artists() }
+        val artistsArray: Array<NeteaseMusicSong.Artists> = Array<NeteaseMusicSong.Artists>(
+            artistsJSONArray.length()
+        ){ NeteaseMusicSong.Artists() }
         for (i in 0 until artistsJSONArray.length()) {
             val artistsJSONObject: JSONObject = artistsJSONArray.getJSONObject(i)
             artistsArray[i] = NeteaseMusicSong.Artists(
-                artistsJSONObject.getString("name"),artistsJSONObject.getLong("id"),
-                artistsJSONObject.getString("picUrl"),artistsJSONObject.getString("img1v1Url") )
+                artistsJSONObject.getString("name"), artistsJSONObject.getLong("id"),
+                artistsJSONObject.getString("picUrl"), artistsJSONObject.getString("img1v1Url")
+            )
         }
 
         val albumsJSONObject: JSONObject = songJSONObject.getJSONObject("album")
@@ -128,11 +169,19 @@ object MusicFileProvider {
             songJSONObject.getString("name"),
             songJSONObject.getLong("id"),
             artistsArray,
-            NeteaseMusicSong.
-            Album(albumsJSONObject.getString("name"),albumsJSONObject.getLong("id"),
-                albumsJSONObject.getString("type"),albumsJSONObject.getInt("size"), songJSONObject.getInt("no"),
-                albumsJSONObject.getLong("picId"), albumsJSONObject.getString("blurPicUrl"),
-                albumsJSONObject.getString("picUrl"),albumsJSONObject.getString("description"))
+            NeteaseMusicSong.Album(
+                albumsJSONObject.getString("name"),
+                albumsJSONObject.getLong("id"),
+                albumsJSONObject.getString("type"),
+                albumsJSONObject.getInt("size"),
+                songJSONObject.getInt(
+                    "no"
+                ),
+                albumsJSONObject.getLong("picId"),
+                albumsJSONObject.getString("blurPicUrl"),
+                albumsJSONObject.getString("picUrl"),
+                albumsJSONObject.getString("description")
+            )
         )
     }
 
@@ -141,31 +190,33 @@ object MusicFileProvider {
         val cacheFile: File = getNetCacheFile(songID.toString())
 
         if (cacheFile.exists()) {
-           rawJSONDataCallBack.callback(cacheFile.readText(),true)
+           rawJSONDataCallBack.callback(cacheFile.readText(), true)
 
         } else {
             //http://music.163.com/api/v2/song/detail
-            HttpUtil.sendHttpRequest("https://music.163.com/api/song/detail?id=$songID&ids=%5B$songID%5D", object :
-                Callback {
+            HttpUtil.sendHttpRequest(
+                "https://music.163.com/api/song/detail?id=$songID&ids=%5B$songID%5D",
+                object :
+                    Callback {
 
-                override fun onFailure(call: Call, e: IOException) {
-                    Log.e(this.javaClass.toString(), e.toString())
-                    //TODO 记得log出去
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-
-                    if (response.body!=null) {
-                        val s: String = response.body!!.string()
-                        cacheFile.writeText(s)
-                        rawJSONDataCallBack.callback(s,false)
-                    } else {
-                        rawJSONDataCallBack.callback("",false)
+                    override fun onFailure(call: Call, e: IOException) {
+                        Log.e(this.javaClass.toString(), e.toString())
+                        //TODO 记得log出去
                     }
 
-                }
+                    override fun onResponse(call: Call, response: Response) {
 
-            })
+                        if (response.body != null) {
+                            val s: String = response.body!!.string()
+                            cacheFile.writeText(s)
+                            rawJSONDataCallBack.callback(s, false)
+                        } else {
+                            rawJSONDataCallBack.callback("", false)
+                        }
+
+                    }
+
+                })
         }
     }
     interface RawJSONDataCallBack { fun callback(response: String, isCache: Boolean) }
@@ -174,7 +225,7 @@ object MusicFileProvider {
         return try {
             rootJSONObject.getInt("code")==200
         } catch (e: Exception) {
-            Log.e(this.javaClass.toString(),e.message,e)
+            Log.e(this.javaClass.toString(), e.message, e)
             false
         }
     }
@@ -186,7 +237,7 @@ object MusicFileProvider {
         return try {
             checkJSONisAvailable(JSONObject(rawJSON))
         } catch (e: Exception) {
-            Log.e(this.javaClass.toString(),e.message,e)
+            Log.e(this.javaClass.toString(), e.message, e)
             false
         }
         //return checkJSONisAvailable(JSONObject(rawJSON))
@@ -203,9 +254,9 @@ object MusicFileProvider {
         }
     }
 
-    fun ExportNeteaseCacheFile(song: NeteaseMusicSong,adapter: NeteaseMusicSongAdapter) {
-        PlayUtil.getDecodeNeteaseFile(song,object : PlayUtil.DecodeCompleteCallBack {
-            override fun completeCallBack(decodeFile: File,incompleteFile: Boolean) {
+    fun ExportNeteaseCacheFile(song: NeteaseMusicSong, adapter: NeteaseMusicSongAdapter) {
+        PlayUtil.getDecodeNeteaseFile(song, object : PlayUtil.DecodeCompleteCallBack {
+            override fun completeCallBack(decodeFile: File, incompleteFile: Boolean) {
 
                 toast("导出中")
 
@@ -214,31 +265,46 @@ object MusicFileProvider {
                     //todo 将硬编码文本转移string.xml 对不完整缓存采用联网下载
                 }
                 if (song.songInfo.id != -1L) {
-                    val dirMusic: File = this@MusicFileProvider.DIR_Music//getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                    val dirMusic: File =
+                        this@MusicFileProvider.DIR_Music//getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
                     dirMusic.mkdirs()
-                    val outFile = File(dirMusic,song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3")
+                    val outFile = File(
+                        dirMusic,
+                        song.songInfo.name + " - " + song.songInfo.getArtistsName() + ".mp3"
+                    )
                     //Todo: 对文件类型判断 对音乐写入标签信息
                     outFile.writeBytes(decodeFile.readBytes())
+
+                    /*val audioFile = AudioFileIO.read(outFile)
+                    val newTag: Tag = audioFile.tag
+                    newTag.setField(FieldKey.ALBUM, song.songInfo.albums.name)
+                    newTag.setField(FieldKey.ARTIST, song.songInfo.artists.toString())
+                    newTag.setField(FieldKey.TITLE, song.songInfo.name)
+                    //newTag.setField(FieldKey.A)
+                    audioFile.commit()*/
 
                     PlayUtil.scanFile(outFile.absolutePath)
                     toast("已保存在: " + outFile.absolutePath)
                 } else {
 
                     toast("正在下载歌曲信息")
-                    this@MusicFileProvider.getNeteaseSongIDRawJSON(song.musicId,object : MusicFileProvider.RawJSONDataCallBack{
-                        override fun callback(response: String, isCache: Boolean) {
-                            CoreApplication.post {
-                                if (!isCache) {
-                                    song.songInfo = this@MusicFileProvider.getNeteaseSongInfo(response)
-                                    CoreApplication.post {
-                                        adapter.update(song)
+                    this@MusicFileProvider.getNeteaseSongIDRawJSON(song.musicId,
+                        object : MusicFileProvider.RawJSONDataCallBack {
+                            override fun callback(response: String, isCache: Boolean) {
+                                CoreApplication.post {
+                                    if (!isCache) {
+                                        song.songInfo = this@MusicFileProvider.getNeteaseSongInfo(
+                                            response
+                                        )
+                                        CoreApplication.post {
+                                            adapter.update(song)
+                                        }
                                     }
+                                    completeCallBack(decodeFile, incompleteFile)
                                 }
-                                completeCallBack(decodeFile,incompleteFile)
                             }
-                        }
 
-                    })
+                        })
                 }
 
             }

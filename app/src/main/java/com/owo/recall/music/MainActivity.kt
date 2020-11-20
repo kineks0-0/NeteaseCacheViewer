@@ -481,9 +481,7 @@ class MainActivity : AppCompatActivity() {
         val view = View.inflate(this@MainActivity, R.layout.dialog_layout, null)
 
         view.line1.setOnClickListener {
-
-
-
+            coreRun.ExportNeteaseCacheFile(song,mainViewPageHome.recyclerView.adapter as NeteaseMusicSongAdapter)
             dialog.dismiss()
         }
 
