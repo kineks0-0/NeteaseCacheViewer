@@ -194,9 +194,10 @@ object PlayUtil {
 
                     try {
 
-                        if (!incompleteFile || decodeByteArray.size > 20 * 1024 * 1024 && Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                            decodeFile.writeBytes(decodeByteArray)
 
+                        if (decodeByteArray.size > (1024 * 1024) * 20 && Build.VERSION.SDK_INT < Build.VERSION_CODES.M && !incompleteFile) {
+                            //如果缓存文件大小大于 20 MiB 和 系统版本 M 以下（M开始支持自定义MediaDataSource）并且缓存完整
+                            decodeFile.writeBytes(decodeByteArray)
                             if (decodeFile.exists()) {
                                 mediaPlayer.setDataSource(decodeFile.absolutePath)
                                 song.decodeFile = decodeFile
