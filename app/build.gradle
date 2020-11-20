@@ -7,6 +7,8 @@ apply plugin: 'kotlin-kapt'
 
 buildscript {
     repositories {
+        maven { url 'https://jitpack.io' }
+        maven { url "https://maven.google.com" }
         jcenter()
         google()
     }
@@ -14,20 +16,6 @@ buildscript {
         classpath 'io.michaelrocks:paranoid-gradle-plugin:0.2.5'
     }
 }
-
-/*
-def applicationProperties = new Properties()
-applicationProperties.load(new FileInputStream(rootProject.file("application.properties")))
-def SHA1 = System.getenv("CIRCLE_SHA1")
-def applicationVersionCode = applicationProperties["versionCode"].toInteger()
-def applicationVersionName = applicationProperties["versionName"]
-def isPerVersion = applicationProperties["isPerRelease"] == "true"
-if (SHA1 != null) {
-    applicationVersionName = applicationVersionName + ".${SHA1.substring(0, 7)}"
-}
-if (isPerVersion) {
-    applicationVersionName = applicationVersionName + ".${applicationProperties["preReleaseName"]}-${applicationProperties["preReleaseVer"]}"
-}*/
 
 android {
     compileSdkVersion 30
@@ -84,8 +72,10 @@ dependencies {
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'com.google.android.material:material:1.2.1'
 
+    //implementation 'com.github.kineks0-0:jaudiotagger-android:4d4ffe6'
     implementation "com.github.bumptech.glide:glide:4.11.0"
     implementation("com.squareup.okhttp3:okhttp:4.9.0")
+    implementation files('libs/jaudiotagger-android-master.jar')
 
     testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
