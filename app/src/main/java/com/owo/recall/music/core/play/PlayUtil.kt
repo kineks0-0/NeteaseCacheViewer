@@ -185,7 +185,7 @@ object PlayUtil {
                 override fun completeCallBack(
                     decodeByteArray: ByteArray,
                     decodeFile: File,
-                    incompleteFile: Boolean
+                    incompleteFile: Boolean //不完整文件标识，为 true 时表示该缓存不完整
                 ) {
 
                     if (mediaPlayer.isPlaying) mediaPlayer.stop()
@@ -194,28 +194,40 @@ object PlayUtil {
 
                     try {
 
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 
-                        if (decodeByteArray.size > (1024 * 1024) * 20 && Build.VERSION.SDK_INT < Build.VERSION_CODES.M && !incompleteFile) {
-                            //如果缓存文件大小大于 20 MiB 和 系统版本 M 以下（M开始支持自定义MediaDataSource）并且缓存完整
-                            decodeFile.writeBytes(decodeByteArray)
-                            if (decodeFile.exists()) {
-                                mediaPlayer.setDataSource(decodeFile.absolutePath)
-                                song.decodeFile = decodeFile
-                                decodeFile.deleteOnExit()
-                                //mediaPlayer.setDataSource(CoreApplication.context,Uri.fromFile(decodeFile))
-                                //mediaPlayer.setDataSource(FileInputStream(decodeFile).fd)
-                            } else TODO("Not yet implemented")
+                            if (decodeByteArray.size > (1024 * 1024) * 20  && !incompleteFile) {
+                                //如果缓存文件大小大于 20 MiB 并且缓存完整
+                                decodeFile.writeBytes(decodeByteArray)
+                                if (decodeFile.exists()) {
+                                    mediaPlayer.setDataSource(decodeFile.absolutePath)
+                                    song.decodeFile = decodeFile
+                                    decodeFile.deleteOnExit()
+                                } else TODO("Not yet implemented")
+
+                            } else {
+
+                                if (incompleteFile) toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
+                                mediaPlayer.setDataSource(ByteArrayMediaDataSource(decodeByteArray))
+
+                            }
 
                         } else {
 
-                            toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
+                            if (!incompleteFile) {
 
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                mediaPlayer.setDataSource(ByteArrayMediaDataSource(decodeByteArray))
+                                decodeFile.writeBytes(decodeByteArray)
+                                if (decodeFile.exists()) {
+                                    mediaPlayer.setDataSource(decodeFile.absolutePath)
+                                    song.decodeFile = decodeFile
+                                    decodeFile.deleteOnExit()
+                                    //mediaPlayer.setDataSource(CoreApplication.context,Uri.fromFile(decodeFile))
+                                    //mediaPlayer.setDataSource(FileInputStream(decodeFile).fd)
+                                } else TODO("Not yet implemented")
+
                             } else {
                                 toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + song.filesize)
-                                val cacheDataFile =
-                                    MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
+                                val cacheDataFile = MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
                                 cacheDataFile.writeBytes(decodeByteArray)
                                 if (cacheDataFile.exists()) {
                                     mediaPlayer.setDataSource(cacheDataFile.absolutePath)
@@ -446,7 +458,7 @@ object PlayUtil {
                     incompleteFile = false
                 } else {
                     incompleteFile = true
-                  toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + encodeSong.filesize)
+                  //toast(getApplicationContext().getString(R.string.incomplete_file) + " " + decodeByteArray.size + " / " + encodeSong.filesize)
                     cacheDataFile = MusicFileProvider.getOtherCacheFile("CacheDecodeNeteaseFile.song")
                     cacheDataFile.writeBytes(decodeByteArray)
                 }
