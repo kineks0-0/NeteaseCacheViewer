@@ -9,8 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -97,7 +95,7 @@ fun MusicItem(
     Log.d("SongListItem", "Call once")
 
     Surface(
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         elevation = 1.dp,
         modifier = Modifier
             .padding(start = 8.dp, top = 10.dp, end = 8.dp, bottom = 6.dp)
@@ -111,7 +109,8 @@ fun MusicItem(
             ) {
                 Image(
                     painter = rememberImagePainter(
-                        data = music.song?.album?.picUrl ?: "",
+                        // 添加 250y250 参数限制宽高来优化加载大小,避免原图加载
+                        data = music.getAlbumPicUrl(250,250) ?: "",
                         builder = {
                             crossfade(true)
                         }

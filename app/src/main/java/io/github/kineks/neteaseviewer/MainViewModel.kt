@@ -29,13 +29,12 @@ class MainViewModel : ViewModel() {
 
 
     var songs by mutableStateOf(ArrayList<Music>())
-
-    //private set
+    private set
     //val songs: LiveData<List<Music>> get() = _songs
 
-    init {
+    /*init {
         reloadSongsList()
-    }
+    }*/
 
     fun reloadSongsList(list: List<Music>? = null) {
         viewModelScope.launch {
