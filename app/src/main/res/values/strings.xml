@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">NeteaseViewer</string>
+    <string name="permission_allow">Allow</string>
+    <string name="permission_deny">Deny</string>
+    <string name="permission_request_description">The application requires you to authorize the following permissions</string>
+    <string name="list_no_data">No Data</string>
+</resources>
