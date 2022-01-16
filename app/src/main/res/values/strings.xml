@@ -4,4 +4,9 @@
     <string name="permission_deny">Deny</string>
     <string name="permission_request_description">The application requires you to authorize the following permissions</string>
     <string name="list_no_data">No Data</string>
+    <string name="list_updated">All data update</string>
+    <string name="snackbar_dismissed">Dismissed</string>
+    <string name="list_incomplete">incomplete</string>
+    <string name="list_missing_info_file">missing</string>
+    <string name="list_update">Update</string>
 </resources>

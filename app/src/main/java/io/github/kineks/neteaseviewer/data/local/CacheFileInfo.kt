@@ -8,7 +8,7 @@ data class CacheFileInfo(
     @SerializedName("filemd5")
     val fileMD5: String,
     @SerializedName("filesize")
-    val fileSize: Int,
+    val fileSize: Long,
     val md5: String,
     @SerializedName("musicId")
     val id: Int,

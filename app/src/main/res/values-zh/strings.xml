@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NeteaseViewer</string>
+    <string name="permission_allow">允许</string>
+    <string name="permission_deny">拒绝</string>
+    <string name="permission_request_description">该应用需要您的授权才能正常运行</string>
+    <string name="list_no_data">无数据</string>
+    <string name="list_updated">数据已更新</string>
+    <string name="snackbar_dismissed">关闭</string>
+    <string name="list_incomplete">缓存损坏</string>
+    <string name="list_missing_info_file">丢失</string>
+    <string name="list_update">获取歌曲信息</string>
+</resources>

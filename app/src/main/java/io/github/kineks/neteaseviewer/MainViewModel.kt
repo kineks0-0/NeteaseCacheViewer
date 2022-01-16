@@ -18,6 +18,8 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+
+
 class MainViewModel : ViewModel() {
 
     private val retrofit = Retrofit.Builder()
@@ -28,13 +30,23 @@ class MainViewModel : ViewModel() {
     private val api = retrofit.create(Api::class.java)
 
 
+    // todo: 状态保持与恢复
+    private var initList = false
     var songs by mutableStateOf(ArrayList<Music>())
     private set
+
     //val songs: LiveData<List<Music>> get() = _songs
 
     /*init {
         reloadSongsList()
     }*/
+
+    fun initList(init: Boolean = initList) {
+        if (!init) {
+            reloadSongsList()
+            initList = true
+        }
+    }
 
     fun reloadSongsList(list: List<Music>? = null) {
         viewModelScope.launch {
@@ -75,7 +87,7 @@ class MainViewModel : ViewModel() {
                             else -> quantity
                         }
 
-                    // 对于 该页 只有一个的情况下的分支处理
+                    // 对于该页 只有一个 的情况下的分支处理
                     val get: Call<SongDetail> =
                         when (size) {
                             1 -> {
@@ -116,9 +128,7 @@ class MainViewModel : ViewModel() {
                                 }
 
                                 reloadSongsList(songs)
-                                viewModelScope.launch {
-                                    //this@MainViewModel.songs = songs.toMutableList()
-                                }
+                                //viewModelScope.launch { this@MainViewModel.songs = songs.toMutableList() }
 
                             } else Log.e(this.javaClass.name, "GetSongDetail Failure")
 

@@ -4,15 +4,15 @@ import io.github.kineks.neteaseviewer.data.api.Song
 import java.io.File
 
 
-fun Music(song: Song,file: File?) {
+fun Music(song: Song, file: File?) {
     var artists = ""
     when (song.artists.size) {
         0 -> {
             artists = "N/A"
         }
         else -> {
-            song.artists.forEachIndexed { index,name ->
-                artists += when(index) {
+            song.artists.forEachIndexed { index, name ->
+                artists += when (index) {
                     0 -> name
                     //song.artists.lastIndex -> ",$name"
                     else -> ",$name"
@@ -20,7 +20,7 @@ fun Music(song: Song,file: File?) {
             }
         }
     }
-    Music(song.id,song.name,artists,song.bMusic.bitrate,song,file)
+    Music(song.id, song.name, artists, song.bMusic.bitrate, song, file)
 }
 
 data class Music(
@@ -32,7 +32,18 @@ data class Music(
     val file: File? = null,
     val info: CacheFileInfo? = null
 ) {
-    fun getAlbumPicUrl(width: Int = -1, height: Int = -1) : String? {
+
+    val incomplete =
+        when {
+            info == null -> false
+            file == null -> false
+            else -> {
+                // 判断缓存文件和缓存文件消息中的大小是否一致
+                info.fileSize != file.length()
+            }
+        }
+
+    fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? {
         if (song?.album?.picUrl != null) {
             // api 如果不同时限定宽高参数就会默认返回原图
             if (width != -1 && height != -1) {
@@ -42,4 +53,5 @@ data class Music(
         }
         return null
     }
+
 }

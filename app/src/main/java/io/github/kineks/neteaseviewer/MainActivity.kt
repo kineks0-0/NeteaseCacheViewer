@@ -1,12 +1,12 @@
 package io.github.kineks.neteaseviewer
 
+//import androidx.navigation.compose.composable
 import android.Manifest
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
@@ -26,16 +25,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.ui.HomeScreen
+import io.github.kineks.neteaseviewer.ui.PlayScreen
 import io.github.kineks.neteaseviewer.ui.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
-import io.github.kineks.neteaseviewer.ui.PlayScreen
 import kotlinx.coroutines.launch
 
 
@@ -55,6 +54,7 @@ class MainActivity : FragmentActivity() {
     override fun onStart() {
         super.onStart()
 
+        // 检查权限, 如果已授权读写权限就初始化数据
         PermissionX.init(this)
             .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             .onExplainRequestReason { scope, deniedList ->
@@ -67,7 +67,9 @@ class MainActivity : FragmentActivity() {
             }
             .request { allGranted, grantedList, deniedList ->
                 if (allGranted) {
-                    model.reloadSongsList()
+                    // 注: 该函数仅在第一次调用会重新加载数据
+                    // 重载数据请用 model.reload()
+                    model.initList()
                 } else {
                     // todo: 提示用户
                 }
@@ -77,24 +79,28 @@ class MainActivity : FragmentActivity() {
 }
 
 
-
 /*    DefView    */
 
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DefaultView(model: MainViewModel) {
-    val songs = model.songs//: List<Music>? by model.songs.toMutableList()
 
+    //val songs = model.songs
+
+    // For Snackbar
     val scope = rememberCoroutineScope()
     val scaffoldState = rememberScaffoldState()
 
+    // BottomBar & NavController
     var selectedItem by remember { mutableStateOf(0) }
-    val navItemList: List<String> = listOf("home","play","setting")
-    val navController = rememberNavController()
+    val navItemList: List<String> = listOf("home", "play", "setting")
+    val navController = rememberAnimatedNavController()//rememberNavController()
 
-
+    // use UI Controller in compose
     val systemUiController = rememberSystemUiController()
+
+    var selectedMusicItem: Music? by remember { mutableStateOf(null) }
 
 
     NeteaseViewerTheme {
@@ -112,38 +118,6 @@ fun DefaultView(model: MainViewModel) {
                     elevation = 0.dp
                 )
             },
-            floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = {
-
-                        model.updateSongsInfo(
-                            // todo : 修复加载 bug 之后更改这里的参数
-                            quantity = songs.size.minus(2) ?: 50,
-                            onUpdateComplete = {
-                                Log.d("MainActivity", "All data update")
-
-                                scope.launch {
-                                    scaffoldState.snackbarHostState
-                                        .showSnackbar(
-                                            message = "All data update",
-                                            actionLabel = "Dismissed",
-                                            duration = SnackbarDuration.Short
-                                        )
-                                }
-                            }
-                        )
-
-                    },
-                    icon = {
-                        Icon(
-                            Icons.Outlined.CloudDownload,
-                            contentDescription = "Update"
-                        )
-                    },
-                    text = { Text("Update") }
-
-                )
-            },
             bottomBar = {
                 BottomNavigation(
                     backgroundColor = MaterialTheme.colors.background
@@ -156,10 +130,12 @@ fun DefaultView(model: MainViewModel) {
                                 .clickable(
                                     onClick = {
                                         selectedItem = index
-                                        navController.popBackStack()
+                                        //navController.popBackStack()
                                         navController.navigate(navItemList[index]) {
-                                            //popUpTo("home") { inclusive = true }
+                                            popUpTo("home")// { inclusive = true }
                                             launchSingleTop = true
+                                            restoreState = true
+
                                         }
                                     },
                                     indication = null,
@@ -191,10 +167,58 @@ fun DefaultView(model: MainViewModel) {
                     .padding(bottom = it.calculateBottomPadding())
             ) {
 
-                NavHost(navController = navController, startDestination = "home") {
-                    composable("home") { HomeScreen(songs, scope, scaffoldState) }
-                    composable("play") { PlayScreen() }
-                    composable("setting") { SettingScreen(navController = navController) }
+                AnimatedNavHost(navController = navController, startDestination = "home") {
+
+                    composable(
+                        route = "home",
+                        enterTransition = { fadeIn(animationSpec = tween(255)) },
+                        exitTransition = { ExitTransition.None }
+                    ) {
+                        HomeScreen(
+                            model = model,
+                            //scope = scope,
+                            //scaffoldState = scaffoldState,
+                            clickable = { index, song ->
+                                selectedMusicItem = song
+                                scope.launch {
+                                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                    val result = scaffoldState.snackbarHostState
+                                        .showSnackbar(
+                                            message = "$index  ${song.name}",
+                                            actionLabel = getString(R.string.snackbar_dismissed),
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    when (result) {
+                                        SnackbarResult.ActionPerformed -> {
+
+                                        }
+                                        SnackbarResult.Dismissed -> {
+
+                                        }
+                                    }
+                                }
+
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = "play",
+                        enterTransition = { fadeIn(animationSpec = tween(255)) },
+                        exitTransition = { ExitTransition.None }
+                    ) {
+                        PlayScreen(selectedMusicItem)
+                    }
+
+                    composable(
+                        route = "setting",
+                        enterTransition = { fadeIn(animationSpec = tween(255)) },
+                        exitTransition = { ExitTransition.None }
+                    ) {
+                        SettingScreen(navController = navController)
+                    }
+
+
                 }
 
             }

@@ -34,3 +34,5 @@ fun List<ArtistXX>.getArtists(delimiters: String = ",", defValue: String = "N/A"
     }
     return str.toString()
 }
+
+fun getString(id: Int) = App.context.getString(id)
