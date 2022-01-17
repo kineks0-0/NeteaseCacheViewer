@@ -48,15 +48,30 @@ fun HomeScreen(
             ExtendedFloatingActionButton(
                 onClick = {
 
+                    scope.launch {
+                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                        scaffoldState.snackbarHostState
+                            .showSnackbar(
+                                message = "Working...",
+                                actionLabel = getString(R.string.snackbar_dismissed),
+                                duration = SnackbarDuration.Indefinite
+                            )
+                    }
+
                     model.updateSongsInfo(
-                        onUpdateComplete = {
+                        onUpdateComplete = { _, isFailure ->
                             Log.d("MainActivity", "All data update")
 
                             scope.launch {
                                 scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                                 scaffoldState.snackbarHostState
                                     .showSnackbar(
-                                        message = getString(R.string.list_updated),
+                                        message = getString(
+                                            if (isFailure)
+                                                R.string.list_update_failure
+                                            else
+                                                R.string.list_updated
+                                        ),
                                         actionLabel = getString(R.string.snackbar_dismissed),
                                         duration = SnackbarDuration.Short
                                     )
@@ -131,7 +146,7 @@ fun MusicItem(
             .height(64.dp)
             .fillMaxWidth()
             .clickable { clickable.invoke(index, music) }
-            .padding(top = 8.dp, bottom = 6.dp)
+            .padding(top = 7.dp, bottom = 7.dp)
             .padding(start = 15.dp, end = 15.dp)
     ) {
 

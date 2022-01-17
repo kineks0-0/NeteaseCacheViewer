@@ -38,7 +38,7 @@ data class Music(
             info == null -> false
             file == null -> false
             else -> {
-                // 判断缓存文件和缓存文件消息中的大小是否一致
+                // 判断缓存文件和缓存文件信息中的文件长度大小是否一致
                 info.fileSize != file.length()
             }
         }

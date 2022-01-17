@@ -1,14 +1,16 @@
 package io.github.kineks.neteaseviewer
 
 import android.util.Log
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.kineks.neteaseviewer.data.api.Api
-import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.api.SongDetail
 import io.github.kineks.neteaseviewer.data.local.Music
+import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -17,7 +19,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
 
 
 class MainViewModel : ViewModel() {
@@ -33,13 +34,7 @@ class MainViewModel : ViewModel() {
     // todo: 状态保持与恢复
     private var initList = false
     var songs by mutableStateOf(ArrayList<Music>())
-    private set
-
-    //val songs: LiveData<List<Music>> get() = _songs
-
-    /*init {
-        reloadSongsList()
-    }*/
+        private set
 
     fun initList(init: Boolean = initList) {
         if (!init) {
@@ -52,16 +47,16 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             //songs.clear()
             //songs.addAll(list ?: NeteaseCacheProvider.getCacheSongs())
-            songs = list?.toArrayList() ?: NeteaseCacheProvider.getCacheSongs().toArrayList()
+            songs = list?.toArrayList() ?: NeteaseCacheProvider.getCacheSongs()
         }
     }
 
-    private fun <T>List<T>.toArrayList() = ArrayList<T>(this)
+    private fun <T> List<T>.toArrayList() = ArrayList<T>(this)
 
     fun updateSongsInfo(
         quantity: Int = 50,
         onUpdate: (songDetail: SongDetail, song: Song) -> Unit = { _, _ -> },
-        onUpdateComplete: (songs: List<Music>) -> Unit = {}
+        onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit = { _, _ -> }
     ) {
         // ?
         val songs = this.songs.toArrayList()//.toMutableList()
@@ -105,7 +100,10 @@ class MainViewModel : ViewModel() {
 
                     Log.d(this.toString(), get.request().url().toString())
                     get.enqueue(object : Callback<SongDetail> {
-                        override fun onResponse(call: Call<SongDetail>, response: Response<SongDetail>) {
+                        override fun onResponse(
+                            call: Call<SongDetail>,
+                            response: Response<SongDetail>
+                        ) {
 
                             Log.d(this.javaClass.name, response.message())
                             //Log.d(this.javaClass.name, response.errorBody()?.string() ?: "")
@@ -120,7 +118,7 @@ class MainViewModel : ViewModel() {
                                     )
                                     songs[index] = songs[index].copy(
                                         song = song,
-                                        name = song.name ?: "null",
+                                        name = song.name,
                                         artists = song.artists.getArtists(),
                                         id = song.id
                                     )
@@ -128,15 +126,19 @@ class MainViewModel : ViewModel() {
                                 }
 
                                 reloadSongsList(songs)
-                                //viewModelScope.launch { this@MainViewModel.songs = songs.toMutableList() }
+                                if (i == pages) onUpdateComplete.invoke(songs,false)
 
-                            } else Log.e(this.javaClass.name, "GetSongDetail Failure")
+                            } else {
+                                Log.e(this.javaClass.name, "GetSongDetail Failure")
+                                if (i == pages) onUpdateComplete.invoke(songs,true)
+                            }
 
                         }
 
                         override fun onFailure(call: Call<SongDetail>, t: Throwable) {
                             Log.e(this.javaClass.name, call.request().url().toString())
                             Log.e(this.javaClass.name, t.message, t)
+                            if (i == pages) onUpdateComplete.invoke(songs,true)
                         }
 
                     })
@@ -145,7 +147,6 @@ class MainViewModel : ViewModel() {
         }
 
 
-        onUpdateComplete.invoke(songs)
 
     }
 

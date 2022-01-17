@@ -9,4 +9,5 @@
     <string name="list_incomplete">incomplete</string>
     <string name="list_missing_info_file">missing</string>
     <string name="list_update">Update</string>
+    <string name="list_update_failure">Update Failure</string>
 </resources>

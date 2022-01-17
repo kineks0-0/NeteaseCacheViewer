@@ -75,7 +75,7 @@ dependencies {
     implementation "com.google.accompanist:accompanist-navigation-animation:0.22.0-rc"
 
     // 用于 compose 的系统ui控制(代码设置沉浸状态栏和导航栏)
-    implementation 'com.google.accompanist:accompanist-systemuicontroller:0.21.0-beta'
+    implementation 'com.google.accompanist:accompanist-systemuicontroller:0.22.0-rc'
 
     // 支持 compose 使用的图像加载库
     implementation 'io.coil-kt:coil-compose:1.4.0'
@@ -83,10 +83,12 @@ dependencies {
     // 用于数据请求和处理
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    implementation 'com.google.code.gson:gson:2.8.8'
+    implementation 'com.google.code.gson:gson:2.8.9'
 
     // 简化权限申请库
-    implementation 'com.guolindev.permissionx:permissionx:1.6.0'
+    implementation 'com.guolindev.permissionx:permissionx:1.6.1'
+
+    //implementation 'com.github.EspoirX:StarrySky:v2.6.4'
 
     // 单元测试
     testImplementation 'junit:junit:4.13.2'

@@ -50,7 +50,6 @@ class MainActivity : FragmentActivity() {
 
     }
 
-
     override fun onStart() {
         super.onStart()
 
@@ -180,6 +179,7 @@ fun DefaultView(model: MainViewModel) {
                             //scaffoldState = scaffoldState,
                             clickable = { index, song ->
                                 selectedMusicItem = song
+
                                 scope.launch {
                                     scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                                     val result = scaffoldState.snackbarHostState
