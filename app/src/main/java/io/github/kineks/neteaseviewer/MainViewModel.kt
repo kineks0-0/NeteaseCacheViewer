@@ -19,6 +19,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import kotlin.experimental.xor
 
 
 class MainViewModel : ViewModel() {
@@ -126,11 +127,11 @@ class MainViewModel : ViewModel() {
                                 }
 
                                 reloadSongsList(songs)
-                                if (i == pages) onUpdateComplete.invoke(songs,false)
+                                if (i == pages) onUpdateComplete.invoke(songs, false)
 
                             } else {
                                 Log.e(this.javaClass.name, "GetSongDetail Failure")
-                                if (i == pages) onUpdateComplete.invoke(songs,true)
+                                if (i == pages) onUpdateComplete.invoke(songs, true)
                             }
 
                         }
@@ -138,14 +139,13 @@ class MainViewModel : ViewModel() {
                         override fun onFailure(call: Call<SongDetail>, t: Throwable) {
                             Log.e(this.javaClass.name, call.request().url().toString())
                             Log.e(this.javaClass.name, t.message, t)
-                            if (i == pages) onUpdateComplete.invoke(songs,true)
+                            if (i == pages) onUpdateComplete.invoke(songs, true)
                         }
 
                     })
                 }
             }
         }
-
 
 
     }

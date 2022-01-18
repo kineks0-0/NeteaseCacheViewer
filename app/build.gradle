@@ -11,8 +11,8 @@ android {
         applicationId "io.github.kineks.neteaseviewer"
         minSdk 21
         targetSdk 28
-        versionCode 11
-        versionName "Alpha 1.2"
+        versionCode 14
+        versionName "Alpha 1.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,6 +21,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+        }
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -88,7 +91,12 @@ dependencies {
     // 简化权限申请库
     implementation 'com.guolindev.permissionx:permissionx:1.6.1'
 
-    //implementation 'com.github.EspoirX:StarrySky:v2.6.4'
+    implementation 'com.github.EspoirX:StarrySky:v2.6.4'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
+    implementation 'com.google.android.exoplayer:exoplayer-ui:2.16.1'
+    configurations.all {
+        implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
+    }
 
     // 单元测试
     testImplementation 'junit:junit:4.13.2'

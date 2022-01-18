@@ -5,8 +5,11 @@ import android.Manifest
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,12 +26,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.lzx.starrysky.GlobalPlaybackStageListener
+import com.lzx.starrysky.OnPlayerEventListener
+import com.lzx.starrysky.SongInfo
+import com.lzx.starrysky.StarrySky
+import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.ui.HomeScreen
@@ -81,11 +90,29 @@ class MainActivity : FragmentActivity() {
 /*    DefView    */
 
 
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DefaultView(model: MainViewModel) {
 
-    //val songs = model.songs
+    var playOnError by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(Unit) {
+        StarrySky.with().addPlayerEventListener(
+            object : OnPlayerEventListener {
+                override fun onPlaybackStageChange(stage: PlaybackStage) {
+                    when (stage.stage) {
+                        PlaybackStage.ERROR -> {
+                            playOnError = true
+                            print(playOnError)
+                        }
+                    }
+                }
+            },"Main"
+        )
+    }
 
     // For Snackbar
     val scope = rememberCoroutineScope()
@@ -180,6 +207,15 @@ fun DefaultView(model: MainViewModel) {
                             clickable = { index, song ->
                                 selectedMusicItem = song
 
+                                val info = SongInfo(
+                                    songId = song.id.toString() + song.bitrate,
+                                    songUrl = song.file?.toUri().toString(),
+                                    songName = song.name,
+                                    songCover = song.getAlbumPicUrl(200, 200) ?: "",
+                                    artist = song.artists
+                                )
+                                StarrySky.with().playMusicByInfo(info)
+
                                 scope.launch {
                                     scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                                     val result = scaffoldState.snackbarHostState
@@ -196,6 +232,18 @@ fun DefaultView(model: MainViewModel) {
 
                                         }
                                     }
+                                }
+                                if (playOnError) {
+                                    scope.launch {
+                                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                        scaffoldState.snackbarHostState
+                                            .showSnackbar(
+                                                message = "Play On Error : $index  ${song.name}",
+                                                actionLabel = getString(R.string.snackbar_dismissed),
+                                                duration = SnackbarDuration.Short
+                                            )
+                                    }
+                                    playOnError = false
                                 }
 
                             }

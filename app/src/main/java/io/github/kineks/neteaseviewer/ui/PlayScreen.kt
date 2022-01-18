@@ -1,5 +1,6 @@
 package io.github.kineks.neteaseviewer.ui
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,20 +19,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 import io.github.kineks.neteaseviewer.R
+import io.github.kineks.neteaseviewer.data.local.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.Music
 
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewPlay() {
-    PlayScreen(Music(-1, "Name", "N/A", -1))
+    PlayScreen(EmptyMusic)
 }
 
+const val TAG = "PlayScreen"
 @Composable
 fun PlayScreen(music: Music? = null) {
 
-
-    val song = music ?: Music(-1, "Name", "N/A", -1)
+    val song = music ?: EmptyMusic
 
     Box(
         contentAlignment = Alignment.Center,
@@ -52,7 +54,7 @@ fun PlayScreen(music: Music? = null) {
             ) {
                 Image(
                     painter = rememberImagePainter(
-                        data = song.getAlbumPicUrl() ?: "",
+                        data = song.getAlbumPicUrl(500,500) ?: "",
                         builder = { crossfade(true) }
                     ),
                     contentDescription = "Song Album Art",
@@ -62,6 +64,7 @@ fun PlayScreen(music: Music? = null) {
                             MaterialTheme.colors.onBackground
                                 .copy(alpha = 0.5f))
                 )
+                Log.d(TAG,"Song Album Art : " + song.getAlbumPicUrl(700,700))
             }
 
             Text(

@@ -23,6 +23,8 @@ fun Music(song: Song, file: File?) {
     Music(song.id, song.name, artists, song.bMusic.bitrate, song, file)
 }
 
+val EmptyMusic = Music(-1, "Name", "N/A", -1)
+
 data class Music(
     val id: Int,
     val name: String,
@@ -33,6 +35,7 @@ data class Music(
     val info: CacheFileInfo? = null
 ) {
 
+    var deleted = false
     val incomplete =
         when {
             info == null -> false
@@ -54,4 +57,17 @@ data class Music(
         return null
     }
 
+    suspend fun decryptFile() : Boolean {
+        if (file == null) return false
+        val out = NeteaseCacheProvider.getFileInMusicLibrary("$artists - $name.$bitrate.mp3")
+        NeteaseCacheProvider.decryptFile(
+            file,
+            out
+        )
+        return out.exists()
+    }
+
+    fun delete() = NeteaseCacheProvider.removeCacheFile(this).apply {
+        deleted = this
+    }
 }

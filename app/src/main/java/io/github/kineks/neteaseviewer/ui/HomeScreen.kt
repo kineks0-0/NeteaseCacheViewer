@@ -3,15 +3,14 @@ package io.github.kineks.neteaseviewer.ui
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -31,6 +30,8 @@ import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.getString
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,7 +41,6 @@ fun HomeScreen(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
-
 
     Scaffold(
         scaffoldState = scaffoldState,
@@ -130,6 +130,7 @@ fun SongsList(
 
 }
 
+@OptIn(DelicateCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Preview(showBackground = true)
 @Composable
 fun MusicItem(
@@ -139,16 +140,58 @@ fun MusicItem(
 ) {
 
     Log.d("SongListItem", "Call once")
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+    var saved by remember {
+        mutableStateOf(false)
+    }
+    var deleted by remember {
+        mutableStateOf(music.deleted)
+    }
+    var alpha by remember {
+        mutableStateOf(1f)
+    }
 
+    if (deleted)
+        alpha = 0.4f
 
     Row(
         modifier = Modifier
             .height(64.dp)
             .fillMaxWidth()
-            .clickable { clickable.invoke(index, music) }
+            .combinedClickable(
+                onLongClick = {
+                    expanded = true
+                },
+                onClick = {
+                    clickable.invoke(index, music)
+                })
             .padding(top = 7.dp, bottom = 7.dp)
             .padding(start = 15.dp, end = 15.dp)
+            .alpha(alpha)
     ) {
+
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(onClick = {
+                GlobalScope.launch {
+                    saved = music.decryptFile()
+                }
+            }) {
+                if (saved)
+                    Text("Saved - ")
+                Text("Download to Music Library")
+            }
+            DropdownMenuItem(onClick = {
+                GlobalScope.launch {
+                    deleted = music.delete()
+                }
+            }) {
+                if (deleted)
+                    Text("Deleted - ")
+                Text("Delete th Cache File")
+            }
+        }
 
         Surface(
             shape = MaterialTheme.shapes.medium,
@@ -261,6 +304,52 @@ fun MusicItem(
                                 append(getString(id = R.string.list_missing_info_file))
                                 append(" ")
                                 append(NeteaseCacheProvider.infoExt)
+                            }
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        style = MaterialTheme.typography.body2,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(0.7f)
+                    )
+                }
+
+                if (deleted) {
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(
+                                style = SpanStyle(
+                                    //fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colors.error.copy(alpha = 0.7f)
+                                )
+                            ) {
+                                append(getString(id = R.string.list_deleted))
+                                append(" ")
+                            }
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        style = MaterialTheme.typography.body2,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(0.7f)
+                    )
+                }
+
+                if (saved) {
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(
+                                style = SpanStyle(
+                                    //fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colors.primary.copy(alpha = 0.7f)
+                                )
+                            ) {
+                                append(getString(id = R.string.list_saved))
+                                append(" ")
                             }
                         },
                         maxLines = 1,

@@ -1,11 +1,12 @@
 package io.github.kineks.neteaseviewer.data.local
 
+import android.os.Environment
 import android.util.Log
 import com.google.gson.Gson
+import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import kotlin.experimental.xor
 
 object NeteaseCacheProvider {
 
@@ -23,9 +24,12 @@ object NeteaseCacheProvider {
 
     // 快速读取,跳过读取一些目前还不需要的信息
     var fastReader = !true
-    val gson by lazy { Gson() }
+    private val gson by lazy { Gson() }
 
-    suspend fun getCacheFiles(): List<File> {
+    private val musicDirectory =
+        File(Environment.getExternalStorageDirectory().path + "/Music/NeteaseViewer/")
+
+    private suspend fun getCacheFiles(): List<File> {
         val begin = System.currentTimeMillis()
         val files = ArrayList<File>()
 
@@ -105,13 +109,25 @@ object NeteaseCacheProvider {
         return songs
     }
 
-    suspend fun decryptFile(byteArray: ByteArray, key: Byte = -93): ByteArray =
+    // todo 修复 xorByteInputStream 无法自定义 key 的问题(用 int 或者 byte 传入 xor 异或结果都会有问题)
+    // todo 使用 MediaStore Api 写入
+    suspend fun decryptFile(inPut: File, outPut: File, key: Byte = -93): Boolean =
         withContext(Dispatchers.IO) {
-            val byteArrayOut = ByteArray(byteArray.size)
-            for ((index, byte) in byteArray.withIndex()) {
-                byteArrayOut[index] = byte.xor(key)
+            if (outPut.exists())
+                return@withContext false
+            outPut.parentFile?.mkdirs()
+            val xorByteInputStream = XorByteInputStream(inPut)
+            xorByteInputStream.buffered().use {
+                outPut.writeBytes(it.readBytes())
             }
-            return@withContext byteArrayOut
+            return@withContext true
         }
 
+    fun getFileInMusicLibrary(name: String) = File(musicDirectory,name)
+
+    fun removeCacheFile(music: Music) : Boolean {
+        val file = music.file ?: return false
+        val infoFile = File(file.parentFile, file.nameWithoutExtension + ".$infoExt")
+        return file.delete() || infoFile.delete()
+    }
 }

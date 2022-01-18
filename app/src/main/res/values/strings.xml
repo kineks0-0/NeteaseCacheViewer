@@ -10,4 +10,6 @@
     <string name="list_missing_info_file">missing</string>
     <string name="list_update">Update</string>
     <string name="list_update_failure">Update Failure</string>
+    <string name="list_saved">saved</string>
+    <string name="list_deleted">deleted</string>
 </resources>

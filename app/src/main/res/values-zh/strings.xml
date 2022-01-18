@@ -11,4 +11,6 @@
     <string name="list_missing_info_file">丢失</string>
     <string name="list_update">获取歌曲信息</string>
     <string name="list_update_failure">数据更新失败</string>
+    <string name="list_saved">已导出</string>
+    <string name="list_deleted">已删除</string>
 </resources>
