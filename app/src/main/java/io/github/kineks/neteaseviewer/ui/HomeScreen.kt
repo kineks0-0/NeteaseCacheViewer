@@ -50,25 +50,6 @@ fun HomeScreen(
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
-    Scaffold(
-        //scaffoldState = scaffoldState,
-        /*floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-
-                    updateSongsInfo(scope, scaffoldState, model)
-                },
-                icon = {
-                    Icon(
-                        Icons.Outlined.CloudDownload,
-                        contentDescription = "Update"
-                    )
-                },
-                text = { Text(stringResource(id = R.string.list_update)) }
-
-            )
-        }*/
-    ) {
         val refreshState: SwipeRefreshState = rememberSwipeRefreshState(false)
 
         SwipeRefresh(
@@ -91,7 +72,7 @@ fun HomeScreen(
                 clickable = clickable
             )
         }
-    }
+
 
 
 }
