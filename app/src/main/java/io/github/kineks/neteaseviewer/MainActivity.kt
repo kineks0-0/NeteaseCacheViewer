@@ -3,6 +3,7 @@ package io.github.kineks.neteaseviewer
 //import androidx.navigation.compose.composable
 import android.Manifest
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
@@ -24,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -33,17 +37,18 @@ import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.lzx.starrysky.GlobalPlaybackStageListener
 import com.lzx.starrysky.OnPlayerEventListener
 import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.Music
+import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.ui.HomeScreen
 import io.github.kineks.neteaseviewer.ui.PlayScreen
 import io.github.kineks.neteaseviewer.ui.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
@@ -77,7 +82,12 @@ class MainActivity : FragmentActivity() {
                 if (allGranted) {
                     // 注: 该函数仅在第一次调用会重新加载数据
                     // 重载数据请用 model.reload()
-                    model.initList()
+                    model.initList(
+                        callback = {
+                            model.updateSongsInfo()
+                        }
+                    )
+
                 } else {
                     // todo: 提示用户
                 }
@@ -87,9 +97,44 @@ class MainActivity : FragmentActivity() {
 }
 
 
+fun updateSongsInfo(
+    scope: CoroutineScope,
+    scaffoldState: ScaffoldState,
+    model: MainViewModel
+) {
+    scope.launch {
+        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+        scaffoldState.snackbarHostState
+            .showSnackbar(
+                message = "Working...",
+                actionLabel = getString(R.string.snackbar_dismissed),
+                duration = SnackbarDuration.Indefinite
+            )
+    }
+
+    model.updateSongsInfo(
+        onUpdateComplete = { _, isFailure ->
+            Log.d("MainActivity", "All data update")
+
+            scope.launch {
+                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                scaffoldState.snackbarHostState
+                    .showSnackbar(
+                        message = getString(
+                            if (isFailure)
+                                R.string.list_update_failure
+                            else
+                                R.string.list_updated
+                        ),
+                        actionLabel = getString(R.string.snackbar_dismissed),
+                        duration = SnackbarDuration.Short
+                    )
+            }
+        }
+    )
+}
+
 /*    DefView    */
-
-
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -110,7 +155,7 @@ fun DefaultView(model: MainViewModel) {
                         }
                     }
                 }
-            },"Main"
+            }, "Main"
         )
     }
 
@@ -141,7 +186,90 @@ fun DefaultView(model: MainViewModel) {
                 TopAppBar(
                     title = { Text(stringResource(id = R.string.app_name)) },
                     backgroundColor = MaterialTheme.colors.background,
-                    elevation = 0.dp
+                    elevation = 0.dp,
+                    actions = {
+                        IconButton(onClick = {
+                            updateSongsInfo(scope,scaffoldState,model)
+                        }) {
+                            Icon(
+                                Icons.Filled.CloudDownload, contentDescription = stringResource(
+                                    id = R.string.list_update
+                                )
+                            )
+                        }
+
+                        var skipIncomplete by remember { mutableStateOf(true) }
+                        var skipMissingInfo by remember { mutableStateOf(true) }
+                        var openDialog by remember { mutableStateOf(false) }
+
+                        if (openDialog) {
+                            AlertDialog(
+                                onDismissRequest = {
+                                    // Dismiss the dialog when the user clicks outside the dialog or on the back
+                                    // button. If you want to disable that functionality, simply use an empty
+                                    // onCloseRequest.
+                                    openDialog = false
+                                },
+                                title = {
+                                    Text(text = "DecryptSongList")
+                                },
+                                text = {
+                                    Column(modifier = Modifier.padding(2.dp).fillMaxWidth()) {
+                                        Text(
+                                            "FileSize: " + model.songs.size
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 50.dp).height(20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                            Row {
+                                                Checkbox(
+                                                    checked = skipIncomplete,
+                                                    onCheckedChange = { skipIncomplete = it }
+                                                )
+                                                Text("Skip Incomplete", textAlign = TextAlign.Start)
+                                            }
+
+                                            Row {
+                                                Checkbox(
+                                                    checked = skipMissingInfo,
+                                                    onCheckedChange = { skipMissingInfo = it }
+                                                )
+                                                Text("Skip MissingInfo", textAlign = TextAlign.Start)
+                                            }
+                                        }
+                                    }
+
+
+                                },
+                                confirmButton = {
+                                    TextButton(
+                                        onClick = {
+                                            openDialog = false
+                                            NeteaseCacheProvider.decryptSongList(
+                                                model.songs,
+                                                skipIncomplete,
+                                                skipMissingInfo
+                                            )
+                                        }
+                                    ) {
+                                        Text("Start")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(
+                                        onClick = {
+                                            openDialog = false
+                                        }
+                                    ) {
+                                        Text("Dismiss")
+                                    }
+                                }
+                            )
+                        }
+                        IconButton(onClick = {
+                            openDialog = true
+                        }) {
+                            Icon(Icons.Filled.SaveAlt, contentDescription = "Save All File")
+                        }
+                    }
                 )
             },
             bottomBar = {
@@ -202,8 +330,8 @@ fun DefaultView(model: MainViewModel) {
                     ) {
                         HomeScreen(
                             model = model,
-                            //scope = scope,
-                            //scaffoldState = scaffoldState,
+                            scope = scope,
+                            scaffoldState = scaffoldState,
                             clickable = { index, song ->
                                 selectedMusicItem = song
 
@@ -213,6 +341,11 @@ fun DefaultView(model: MainViewModel) {
                                     songName = song.name,
                                     songCover = song.getAlbumPicUrl(200, 200) ?: "",
                                     artist = song.artists
+                                        .apply {
+                                            if (song.song != null) {
+                                                this + " - " + song.song.album.name
+                                            }
+                                        }
                                 )
                                 StarrySky.with().playMusicByInfo(info)
 

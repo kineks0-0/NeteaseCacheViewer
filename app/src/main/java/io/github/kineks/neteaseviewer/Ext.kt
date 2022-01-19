@@ -1,6 +1,7 @@
 package io.github.kineks.neteaseviewer
 
 import io.github.kineks.neteaseviewer.data.api.ArtistXX
+import kotlin.experimental.and
 
 
 //val context get()= App.context
@@ -44,3 +45,21 @@ fun String.decodeHex(): ByteArray {
         .map { it.toInt(16).toByte() }
         .toByteArray()
 }
+
+fun Byte.toHex(): String {
+    var hex = Integer.toHexString((this and 0xFF.toByte()).toInt())
+    if (hex.length < 2) {
+        hex = "0$hex"
+    }
+    return hex
+}
+
+
+fun String.filterIllegalPathChar() =
+    this.replace("/","／")
+        .replace("*",Char(10034).toString())
+        .replace("?","?")
+        .replace("|","｜")
+        .replace(":",":")
+        .replace("<","＜")
+        .replace(">","＞")

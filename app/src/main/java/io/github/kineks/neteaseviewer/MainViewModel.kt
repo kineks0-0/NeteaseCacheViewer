@@ -19,7 +19,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import kotlin.experimental.xor
 
 
 class MainViewModel : ViewModel() {
@@ -34,22 +33,26 @@ class MainViewModel : ViewModel() {
 
     // todo: 状态保持与恢复
     private var initList = false
-    var songs by mutableStateOf(ArrayList<Music>())
+    var songs by mutableStateOf(ArrayList<Music>().toList())
         private set
 
-    fun initList(init: Boolean = initList) {
+    fun initList(init: Boolean = initList, callback: () -> Unit = {}) {
         if (!init) {
-            reloadSongsList()
-            initList = true
+            viewModelScope.launch {
+                reloadSongsList()
+                initList = true
+                callback.invoke()
+            }
         }
     }
 
-    fun reloadSongsList(list: List<Music>? = null) {
-        viewModelScope.launch {
-            //songs.clear()
-            //songs.addAll(list ?: NeteaseCacheProvider.getCacheSongs())
-            songs = list?.toArrayList() ?: NeteaseCacheProvider.getCacheSongs()
-        }
+    suspend fun reloadSongsList(list: List<Music>? = null): List<Music> {
+
+        //songs.clear()
+        //songs.addAll(list ?: NeteaseCacheProvider.getCacheSongs())
+        songs = list?.toArrayList() ?: NeteaseCacheProvider.getCacheSongs()
+        return songs
+
     }
 
     private fun <T> List<T>.toArrayList() = ArrayList<T>(this)
@@ -126,7 +129,9 @@ class MainViewModel : ViewModel() {
                                     onUpdate.invoke(response.body()!!, song)
                                 }
 
-                                reloadSongsList(songs)
+                                viewModelScope.launch {
+                                    reloadSongsList(songs)
+                                }
                                 if (i == pages) onUpdateComplete.invoke(songs, false)
 
                             } else {

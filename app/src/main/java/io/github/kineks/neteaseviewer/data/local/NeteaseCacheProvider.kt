@@ -4,8 +4,7 @@ import android.os.Environment
 import android.util.Log
 import com.google.gson.Gson
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.io.File
 
 object NeteaseCacheProvider {
@@ -111,23 +110,46 @@ object NeteaseCacheProvider {
 
     // todo 修复 xorByteInputStream 无法自定义 key 的问题(用 int 或者 byte 传入 xor 异或结果都会有问题)
     // todo 使用 MediaStore Api 写入
-    suspend fun decryptFile(inPut: File, outPut: File, key: Byte = -93): Boolean =
+    suspend fun decryptFile(
+        xorByteInputStream: XorByteInputStream,
+        outPut: File,
+    ): Boolean =
         withContext(Dispatchers.IO) {
             if (outPut.exists())
-                return@withContext false
+                return@withContext true
             outPut.parentFile?.mkdirs()
-            val xorByteInputStream = XorByteInputStream(inPut)
             xorByteInputStream.buffered().use {
                 outPut.writeBytes(it.readBytes())
             }
             return@withContext true
         }
 
-    fun getFileInMusicLibrary(name: String) = File(musicDirectory,name)
+    suspend fun decryptFile(inPut: File, outPut: File, key: Byte = -93) =
+        decryptFile(XorByteInputStream(inPut), outPut)
 
-    fun removeCacheFile(music: Music) : Boolean {
+    fun getMusicFile(name: String) = File(musicDirectory, name)
+
+    fun removeCacheFile(music: Music): Boolean {
         val file = music.file ?: return false
         val infoFile = File(file.parentFile, file.nameWithoutExtension + ".$infoExt")
         return file.delete() || infoFile.delete()
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    fun decryptSongList(
+        list: List<Music>,
+        skipIncomplete: Boolean = true,
+        skipMissingInfo: Boolean = true,
+        callback: () -> Unit = {}
+    ) {
+        GlobalScope.launch {
+            withContext(Dispatchers.IO) {
+                list.forEach {
+                    if (skipIncomplete && it.incomplete) return@forEach
+                    if (skipMissingInfo && it.info == null) return@forEach
+                    it.decryptFile()
+                }
+            }
+        }
     }
 }
