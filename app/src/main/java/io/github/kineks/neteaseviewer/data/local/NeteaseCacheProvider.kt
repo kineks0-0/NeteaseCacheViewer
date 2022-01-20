@@ -89,8 +89,8 @@ object NeteaseCacheProvider {
                             name = idx.fileMD5,
                             artists = "N/A",
                             bitrate = idx.bitrate,
-                            null,
                             file = it,
+                            song = null,
                             info = idx
                         )
                     )
@@ -130,9 +130,8 @@ object NeteaseCacheProvider {
     fun getMusicFile(name: String) = File(musicDirectory, name)
 
     fun removeCacheFile(music: Music): Boolean {
-        val file = music.file ?: return false
-        val infoFile = File(file.parentFile, file.nameWithoutExtension + ".$infoExt")
-        return file.delete() || infoFile.delete()
+        val infoFile = File(music.file.parentFile, music.file.nameWithoutExtension + ".$infoExt")
+        return music.file.delete() || infoFile.delete()
     }
 
     @OptIn(DelicateCoroutinesApi::class)

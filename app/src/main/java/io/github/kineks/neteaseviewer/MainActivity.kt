@@ -350,15 +350,10 @@ fun DefaultView(model: MainViewModel) {
 
                                     val info = SongInfo(
                                         songId = song.id.toString() + song.bitrate,
-                                        songUrl = song.file?.toUri().toString(),
+                                        songUrl = song.file.toUri().toString(),
                                         songName = song.name,
                                         songCover = song.getAlbumPicUrl(200, 200) ?: "",
-                                        artist = song.artists
-                                            .apply {
-                                                if (song.song != null) {
-                                                    this + " - " + song.song.album.name
-                                                }
-                                            }
+                                        artist = song.artists + " - " + song.album
                                     )
                                     StarrySky.with().playMusicByInfo(info)
 

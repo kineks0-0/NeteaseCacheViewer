@@ -7,46 +7,37 @@ import androidx.compose.runtime.setValue
 import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.filterIllegalPathChar
+import io.github.kineks.neteaseviewer.scanFile
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
-
-/*fun Music(song: Song, file: File?) {
-    var artists = ""
-    when (song.artists.size) {
-        0 -> {
-            artists = "N/A"
-        }
-        else -> {
-            song.artists.forEachIndexed { index, name ->
-                artists += when (index) {
-                    0 -> name
-                    //song.artists.lastIndex -> ",$name"
-                    else -> ",$name"
-                }
-            }
-        }
-    }
-    Music(song.id, song.name, artists, song.bMusic.bitrate, song, file)
-}*/
-
-val EmptyMusic = Music(-1, "Name", "N/A", -1)
+val EmptyMusic = Music(-1, "Name", "N/A", -1, File(""))
+const val EmptyAlbum = "N/A"
 
 data class Music(
     val id: Int,
     val name: String,
     val artists: String,
     val bitrate: Int = -1,
+    val file: File,
     val song: Song? = null,
-    val file: File? = null,
     val info: CacheFileInfo? = null
 ) {
+    val album get() = song?.album?.name ?: "$EmptyAlbum $id"
+    val track get() = song?.no ?: -1
+    val year: String
+        get() =
+            if (song == null) "N/A" else
+                SimpleDateFormat("yyyy", Locale.US).format(Date(song.album.publishTime))
+    val disc get() = song?.disc ?: ""
+
 
     var deleted by mutableStateOf(false)
     var saved by mutableStateOf(false)
     val incomplete =
-        when {
-            info == null -> false
-            file == null -> false
+        when (info) {
+            null -> false
             else -> {
                 // 判断缓存文件和缓存文件信息中的文件长度大小是否一致
                 info.fileSize != file.length()
@@ -78,7 +69,6 @@ data class Music(
 
     suspend fun decryptFile(): Boolean {
         val begin = System.currentTimeMillis()
-        if (file == null) return false
         val out = NeteaseCacheProvider
             .getMusicFile(displayFileName + "." + FileType.getFileType(XorByteInputStream(file)))
         Log.d("Music", "导出路径 : " + out.path)
@@ -87,13 +77,18 @@ data class Music(
             out
         )
         saved = true
+        AudioInfoEdit.setInfo(this@Music, out)
+        out.scanFile()
         val costTime = System.currentTimeMillis() - begin
         Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
+
         return out.exists()
     }
 
     fun delete() = NeteaseCacheProvider.removeCacheFile(this).apply {
         deleted = this
     }
+
+    val inputStream get() = XorByteInputStream(file)
 
 }

@@ -236,7 +236,7 @@ fun MusicItem(
                 InfoText(
                     buildAnnotatedString {
                         append(music.artists)
-                        append(" - ${music.song?.album?.name ?: music.id}   ")
+                        append(" - ${music.album}   ")
                     },
                     textAlign = TextAlign.Start,
                     modifier = Modifier

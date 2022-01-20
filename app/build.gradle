@@ -11,8 +11,8 @@ android {
         applicationId "io.github.kineks.neteaseviewer"
         minSdk 21
         targetSdk 28
-        versionCode 17
-        versionName "Alpha 1.7"
+        versionCode 18
+        versionName "Alpha 1.8"
 
         resConfigs "en", "zh", "zh-rCN"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -105,6 +105,10 @@ dependencies {
 
     // Compose 版的 ViewPager ,用来滑动页面
     implementation 'com.google.accompanist:accompanist-pager:0.24.0-alpha'
+
+    // 音频文件标签处理
+    implementation 'com.github.Adonai:jaudiotagger:2.3.14'
+    //implementation 'net.jthink:jaudiotagger:2.2.3'
 
     // 单元测试
     testImplementation 'junit:junit:4.13.2'
