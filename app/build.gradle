@@ -11,10 +11,10 @@ android {
         applicationId "io.github.kineks.neteaseviewer"
         minSdk 21
         targetSdk 28
-        versionCode 16
-        versionName "Alpha 1.6"
+        versionCode 17
+        versionName "Alpha 1.7"
 
-        //resConfigs "en", "zh", "zh-rCN"
+        resConfigs "en", "zh", "zh-rCN"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
