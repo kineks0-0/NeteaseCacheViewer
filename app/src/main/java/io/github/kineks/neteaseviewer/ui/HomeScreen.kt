@@ -122,8 +122,7 @@ fun MusicItem(
         mutableStateOf(1f)
     }
 
-    if (music.deleted)
-        alpha = 0.4f
+    alpha = if (music.deleted) 0.4f else 1f
 
     Row(
         modifier = Modifier

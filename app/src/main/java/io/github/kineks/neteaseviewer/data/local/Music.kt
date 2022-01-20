@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
-import io.github.kineks.neteaseviewer.filterIllegalPathChar
+import io.github.kineks.neteaseviewer.replaceIllegalChar
 import io.github.kineks.neteaseviewer.scanFile
 import java.io.File
 import java.text.SimpleDateFormat
@@ -45,9 +45,12 @@ data class Music(
         }
 
     val displayFileName
-        get() =
-            ("$artists - $name." + displayBitrate.replace(" ", ""))
-                .filterIllegalPathChar()
+        get() = when (bitrate) {
+            999000 -> "$artists - $name.".replaceIllegalChar()
+            else -> ("$artists - $name." + displayBitrate.replace(" ", ""))
+                .replaceIllegalChar()
+        }
+
 
     val displayBitrate = when (bitrate) {
         1000 -> {

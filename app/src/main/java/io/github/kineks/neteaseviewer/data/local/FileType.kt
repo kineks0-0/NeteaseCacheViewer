@@ -21,7 +21,7 @@ object FileType {
     }
 
     //获取文件头信息
-    fun getFileHeader(inputStream: InputStream, offset: Int = 0, size: Int = 3): String? {
+    private fun getFileHeader(inputStream: InputStream, offset: Int = 0, size: Int = 3): String? {
         var value: String? = null
         try {
             //`is` = FileInputStream(filePath)

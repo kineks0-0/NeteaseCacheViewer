@@ -66,10 +66,19 @@ class MainViewModel : ViewModel() {
         onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit = { _, _ -> }
     ) {
 
-        isUpdating = !isUpdating
+        isUpdating = false
+        isUpdateComplete = false
+
+        isUpdating = true
         // ?
         val songs = this.songs.toArrayList()//.toMutableList()
 
+        if (songs.isEmpty()) {
+            isFailure = true
+            onUpdateComplete.invoke(songs, isFailure)
+            isUpdateComplete = true
+            return
+        }
 
         // 计算分页数量
         var pages = songs.size / quantity
@@ -139,7 +148,7 @@ class MainViewModel : ViewModel() {
                                     reloadSongsList(songs)
                                 }
                                 if (i == pages) {
-                                    isUpdateComplete = !isUpdateComplete
+                                    isUpdateComplete = true
                                     isFailure = false
                                     onUpdateComplete.invoke(songs, isFailure)
                                 }
@@ -147,7 +156,7 @@ class MainViewModel : ViewModel() {
                             } else {
                                 Log.e(this.javaClass.name, "GetSongDetail Failure")
                                 if (i == pages) {
-                                    isUpdateComplete = !isUpdateComplete
+                                    isUpdateComplete = true
                                     isFailure = true
                                     onUpdateComplete.invoke(songs, isFailure)
                                 }
@@ -159,7 +168,7 @@ class MainViewModel : ViewModel() {
                             Log.e(this.javaClass.name, call.request().url().toString())
                             Log.e(this.javaClass.name, t.message, t)
                             if (i == pages) {
-                                isUpdateComplete = !isUpdateComplete
+                                isUpdateComplete = true
                                 isFailure = true
                                 onUpdateComplete.invoke(songs, isFailure)
                             }

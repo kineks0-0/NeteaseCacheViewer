@@ -66,7 +66,7 @@ fun Byte.toHex(): String {
 }
 
 
-fun String.filterIllegalPathChar() =
+fun String.replaceIllegalChar() =
     this.replace("/", "／")
         .replace("*", Char(10034).toString())
         .replace("?", "?")

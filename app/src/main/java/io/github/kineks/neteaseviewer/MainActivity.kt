@@ -295,32 +295,34 @@ fun DefaultView(model: MainViewModel) {
         ) { paddingValues ->
 
             LaunchedEffect(model.isUpdating) {
-                scope.launch {
-                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                    scaffoldState.snackbarHostState
-                        .showSnackbar(
-                            message = "Working...",
-                            actionLabel = getString(R.string.snackbar_dismissed),
-                            duration = SnackbarDuration.Indefinite
-                        )
-                }
+                if (model.isUpdating)
+                    scope.launch {
+                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                        scaffoldState.snackbarHostState
+                            .showSnackbar(
+                                message = "Working...",
+                                actionLabel = getString(R.string.snackbar_dismissed),
+                                duration = SnackbarDuration.Indefinite
+                            )
+                    }
             }
 
             LaunchedEffect(model.isUpdateComplete) {
-                scope.launch {
-                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                    scaffoldState.snackbarHostState
-                        .showSnackbar(
-                            message = getString(
-                                if (model.isFailure)
-                                    R.string.list_update_failure
-                                else
-                                    R.string.list_updated
-                            ),
-                            actionLabel = getString(R.string.snackbar_dismissed),
-                            duration = SnackbarDuration.Short
-                        )
-                }
+                if (model.isUpdateComplete)
+                    scope.launch {
+                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                        scaffoldState.snackbarHostState
+                            .showSnackbar(
+                                message = getString(
+                                    if (model.isFailure)
+                                        R.string.list_update_failure
+                                    else
+                                        R.string.list_updated
+                                ),
+                                actionLabel = getString(R.string.snackbar_dismissed),
+                                duration = SnackbarDuration.Short
+                            )
+                    }
             }
 
             HorizontalPager(
@@ -328,6 +330,7 @@ fun DefaultView(model: MainViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 count = navItemList.size
             ) { page ->
+                selectedItem = currentPage
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -338,7 +341,6 @@ fun DefaultView(model: MainViewModel) {
                     /*val currentPageOffset = currentPageOffset
 
                     Log.e("NaN", "currentPage: $page  currentPageOffset: $currentPageOffset", null)*/
-                    selectedItem = currentPage
                     when (navItemList[page]) {
                         "home" -> {
                             HomeScreen(
