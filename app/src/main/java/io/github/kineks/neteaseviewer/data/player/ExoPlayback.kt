@@ -11,7 +11,6 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
-import com.google.android.exoplayer2.util.Util
 import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.playback.FocusInfo
 import com.lzx.starrysky.playback.FocusManager

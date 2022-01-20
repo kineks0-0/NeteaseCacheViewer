@@ -6,11 +6,11 @@ import kotlin.experimental.and
 
 //val context get()= App.context
 
-fun Array<Int>.toURLArray() : String {
+fun Array<Int>.toURLArray(): String {
     val str = StringBuilder()
     this.forEachIndexed { index, i ->
         str.append(
-            when(index) {
+            when (index) {
                 0 -> "[$i,"
                 this.lastIndex -> "$i]"
                 else -> "$i,"
@@ -20,13 +20,13 @@ fun Array<Int>.toURLArray() : String {
     return str.toString()
 }
 
-fun List<ArtistXX>.getArtists(delimiters: String = ",", defValue: String = "N/A") : String {
+fun List<ArtistXX>.getArtists(delimiters: String = ",", defValue: String = "N/A"): String {
     if (isEmpty()) return defValue
     val str = StringBuilder()
     forEachIndexed { index, info ->
         val i = info.name
         str.append(
-            when(index) {
+            when (index) {
                 lastIndex -> i
                 0 -> "$i$delimiters"
                 else -> "$i$delimiters"
@@ -56,10 +56,10 @@ fun Byte.toHex(): String {
 
 
 fun String.filterIllegalPathChar() =
-    this.replace("/","／")
-        .replace("*",Char(10034).toString())
-        .replace("?","?")
-        .replace("|","｜")
-        .replace(":",":")
-        .replace("<","＜")
-        .replace(">","＞")
+    this.replace("/", "／")
+        .replace("*", Char(10034).toString())
+        .replace("?", "?")
+        .replace("|", "｜")
+        .replace(":", ":")
+        .replace("<", "＜")
+        .replace(">", "＞")

@@ -1,7 +1,5 @@
 package io.github.kineks.neteaseviewer
 
-import android.util.Log
-import androidx.compose.compiler.plugins.kotlin.write
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -22,7 +20,7 @@ class ExampleUnitTest {
     @Test
     fun test() {
         "EAE790A0A3A3A3A1959EF7E0ECEEA3A3".decodeHex().let { byteArray ->
-           println("测试 " + String(byteArray))
+            println("测试 " + String(byteArray))
             var index = 0
             repeat(byteArray.size) {
                 byteArray[index] = byteArray[index].xor(-93)

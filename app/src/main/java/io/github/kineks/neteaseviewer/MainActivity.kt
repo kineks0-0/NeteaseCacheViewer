@@ -7,10 +7,7 @@ import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,9 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.lzx.starrysky.OnPlayerEventListener
 import com.lzx.starrysky.SongInfo
@@ -48,7 +44,6 @@ import io.github.kineks.neteaseviewer.ui.HomeScreen
 import io.github.kineks.neteaseviewer.ui.PlayScreen
 import io.github.kineks.neteaseviewer.ui.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
@@ -98,45 +93,19 @@ class MainActivity : FragmentActivity() {
 
 
 fun updateSongsInfo(
-    scope: CoroutineScope,
-    scaffoldState: ScaffoldState,
     model: MainViewModel
 ) {
-    scope.launch {
-        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-        scaffoldState.snackbarHostState
-            .showSnackbar(
-                message = "Working...",
-                actionLabel = getString(R.string.snackbar_dismissed),
-                duration = SnackbarDuration.Indefinite
-            )
-    }
 
     model.updateSongsInfo(
         onUpdateComplete = { _, isFailure ->
             Log.d("MainActivity", "All data update")
-
-            scope.launch {
-                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                scaffoldState.snackbarHostState
-                    .showSnackbar(
-                        message = getString(
-                            if (isFailure)
-                                R.string.list_update_failure
-                            else
-                                R.string.list_updated
-                        ),
-                        actionLabel = getString(R.string.snackbar_dismissed),
-                        duration = SnackbarDuration.Short
-                    )
-            }
         }
     )
 }
 
 /*    DefView    */
 
-@OptIn(ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class, com.google.accompanist.pager.ExperimentalPagerApi::class)
 @Composable
 fun DefaultView(model: MainViewModel) {
 
@@ -163,13 +132,15 @@ fun DefaultView(model: MainViewModel) {
     val scope = rememberCoroutineScope()
     val scaffoldState = rememberScaffoldState()
 
-    // BottomBar & NavController
+    // BottomBar & Pager
     var selectedItem by remember { mutableStateOf(0) }
     val navItemList: List<String> = listOf("home", "play", "setting")
-    val navController = rememberAnimatedNavController()//rememberNavController()
+    val state = rememberPagerState(initialPage = 0)
+    val coroutineScope = rememberCoroutineScope()
 
     // use UI Controller in compose
     val systemUiController = rememberSystemUiController()
+
 
     var selectedMusicItem: Music? by remember { mutableStateOf(null) }
 
@@ -189,7 +160,7 @@ fun DefaultView(model: MainViewModel) {
                     elevation = 0.dp,
                     actions = {
                         IconButton(onClick = {
-                            updateSongsInfo(scope,scaffoldState,model)
+                            updateSongsInfo(model)
                         }) {
                             Icon(
                                 Icons.Filled.CloudDownload, contentDescription = stringResource(
@@ -214,11 +185,22 @@ fun DefaultView(model: MainViewModel) {
                                     Text(text = "DecryptSongList")
                                 },
                                 text = {
-                                    Column(modifier = Modifier.padding(2.dp).fillMaxWidth()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .padding(2.dp)
+                                            .fillMaxWidth()
+                                    ) {
                                         Text(
                                             "FileSize: " + model.songs.size
                                         )
-                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 50.dp).height(20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .padding(top = 50.dp)
+                                                .height(20.dp)
+                                                .fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
                                             Row {
                                                 Checkbox(
                                                     checked = skipIncomplete,
@@ -232,7 +214,10 @@ fun DefaultView(model: MainViewModel) {
                                                     checked = skipMissingInfo,
                                                     onCheckedChange = { skipMissingInfo = it }
                                                 )
-                                                Text("Skip MissingInfo", textAlign = TextAlign.Start)
+                                                Text(
+                                                    "Skip MissingInfo",
+                                                    textAlign = TextAlign.Start
+                                                )
                                             }
                                         }
                                     }
@@ -284,12 +269,8 @@ fun DefaultView(model: MainViewModel) {
                                 .clickable(
                                     onClick = {
                                         selectedItem = index
-                                        //navController.popBackStack()
-                                        navController.navigate(navItemList[index]) {
-                                            popUpTo("home")// { inclusive = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-
+                                        coroutineScope.launch {
+                                            state.scrollToPage(index)
                                         }
                                     },
                                     indication = null,
@@ -311,96 +292,118 @@ fun DefaultView(model: MainViewModel) {
                     }
                 }
             }
-        ) {
+        ) { paddingValues ->
 
+            LaunchedEffect(model.isUpdating) {
+                scope.launch {
+                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                    scaffoldState.snackbarHostState
+                        .showSnackbar(
+                            message = "Working...",
+                            actionLabel = getString(R.string.snackbar_dismissed),
+                            duration = SnackbarDuration.Indefinite
+                        )
+                }
+            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colors.background)
-                    .padding(bottom = it.calculateBottomPadding())
-            ) {
+            LaunchedEffect(model.isUpdateComplete) {
+                scope.launch {
+                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                    scaffoldState.snackbarHostState
+                        .showSnackbar(
+                            message = getString(
+                                if (model.isFailure)
+                                    R.string.list_update_failure
+                                else
+                                    R.string.list_updated
+                            ),
+                            actionLabel = getString(R.string.snackbar_dismissed),
+                            duration = SnackbarDuration.Short
+                        )
+                }
+            }
 
-                AnimatedNavHost(navController = navController, startDestination = "home") {
+            HorizontalPager(
+                state = state,
+                modifier = Modifier.fillMaxWidth(),
+                count = navItemList.size
+            ) { page ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colors.background)
+                        .padding(bottom = paddingValues.calculateBottomPadding())
+                ) {
 
-                    composable(
-                        route = "home",
-                        enterTransition = { fadeIn(animationSpec = tween(255)) },
-                        exitTransition = { ExitTransition.None }
-                    ) {
-                        HomeScreen(
-                            model = model,
-                            scope = scope,
-                            scaffoldState = scaffoldState,
-                            clickable = { index, song ->
-                                selectedMusicItem = song
+                    /*val currentPageOffset = currentPageOffset
 
-                                val info = SongInfo(
-                                    songId = song.id.toString() + song.bitrate,
-                                    songUrl = song.file?.toUri().toString(),
-                                    songName = song.name,
-                                    songCover = song.getAlbumPicUrl(200, 200) ?: "",
-                                    artist = song.artists
-                                        .apply {
-                                            if (song.song != null) {
-                                                this + " - " + song.song.album.name
+                    Log.e("NaN", "currentPage: $page  currentPageOffset: $currentPageOffset", null)*/
+                    selectedItem = currentPage
+                    when (navItemList[page]) {
+                        "home" -> {
+                            HomeScreen(
+                                model = model,
+                                scope = scope,
+                                scaffoldState = scaffoldState,
+                                clickable = { index, song ->
+                                    selectedMusicItem = song
+
+                                    val info = SongInfo(
+                                        songId = song.id.toString() + song.bitrate,
+                                        songUrl = song.file?.toUri().toString(),
+                                        songName = song.name,
+                                        songCover = song.getAlbumPicUrl(200, 200) ?: "",
+                                        artist = song.artists
+                                            .apply {
+                                                if (song.song != null) {
+                                                    this + " - " + song.song.album.name
+                                                }
                                             }
-                                        }
-                                )
-                                StarrySky.with().playMusicByInfo(info)
+                                    )
+                                    StarrySky.with().playMusicByInfo(info)
 
-                                scope.launch {
-                                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                    val result = scaffoldState.snackbarHostState
-                                        .showSnackbar(
-                                            message = "$index  ${song.name}",
-                                            actionLabel = getString(R.string.snackbar_dismissed),
-                                            duration = SnackbarDuration.Short
-                                        )
-                                    when (result) {
-                                        SnackbarResult.ActionPerformed -> {
-
-                                        }
-                                        SnackbarResult.Dismissed -> {
-
-                                        }
-                                    }
-                                }
-                                if (playOnError) {
                                     scope.launch {
                                         scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                        scaffoldState.snackbarHostState
+                                        val result = scaffoldState.snackbarHostState
                                             .showSnackbar(
-                                                message = "Play On Error : $index  ${song.name}",
+                                                message = "$index  ${song.name}",
                                                 actionLabel = getString(R.string.snackbar_dismissed),
                                                 duration = SnackbarDuration.Short
                                             )
+                                        when (result) {
+                                            SnackbarResult.ActionPerformed -> {
+
+                                            }
+                                            SnackbarResult.Dismissed -> {
+
+                                            }
+                                        }
                                     }
-                                    playOnError = false
+                                    if (playOnError) {
+                                        scope.launch {
+                                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                            scaffoldState.snackbarHostState
+                                                .showSnackbar(
+                                                    message = "Play On Error : $index  ${song.name}",
+                                                    actionLabel = getString(R.string.snackbar_dismissed),
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                        }
+                                        playOnError = false
+                                    }
+
                                 }
-
-                            }
-                        )
+                            )
+                        }
+                        "play" -> {
+                            PlayScreen(selectedMusicItem)
+                        }
+                        "setting" -> {
+                            SettingScreen()
+                        }
                     }
-
-                    composable(
-                        route = "play",
-                        enterTransition = { fadeIn(animationSpec = tween(255)) },
-                        exitTransition = { ExitTransition.None }
-                    ) {
-                        PlayScreen(selectedMusicItem)
-                    }
-
-                    composable(
-                        route = "setting",
-                        enterTransition = { fadeIn(animationSpec = tween(255)) },
-                        exitTransition = { ExitTransition.None }
-                    ) {
-                        SettingScreen(navController = navController)
-                    }
-
-
                 }
+
 
             }
 

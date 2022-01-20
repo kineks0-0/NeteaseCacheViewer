@@ -6,10 +6,8 @@ import android.content.Context
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.notification.INotification
 import com.lzx.starrysky.notification.NotificationConfig
-import dagger.hilt.android.HiltAndroidApp
 import io.github.kineks.neteaseviewer.data.player.ExoPlayback
 
-@HiltAndroidApp
 class App : Application() {
 
     companion object {

@@ -8,11 +8,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.navigation.NavController
 import io.github.kineks.neteaseviewer.R
 
 @Composable
-fun SettingScreen(navController: NavController) {
+fun SettingScreen() {
 
     Box(
         contentAlignment = Alignment.Center,

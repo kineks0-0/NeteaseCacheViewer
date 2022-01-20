@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# api包下的类混淆会导致无法正常反射
+-keep class io.github.kineks.neteaseviewer.data.api.** {*;}
+-dontwarn io.github.kineks.neteaseviewer.**
+-keep interface io.github.kineks.neteaseviewer.api.** { *; }
+
+
+-keepnames class io.github.kineks.neteaseviewer.data.** {*;}
+-dontwarn com.google.android.exoplayer2.**

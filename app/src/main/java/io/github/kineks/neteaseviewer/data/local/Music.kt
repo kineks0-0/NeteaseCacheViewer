@@ -59,11 +59,11 @@ data class Music(
                 .filterIllegalPathChar()
 
     val displayBitrate = when (bitrate) {
-            1000 -> {
-                "N/A kbps"
-            }
-            else -> "${bitrate / 1000} kbps"
+        1000 -> {
+            "N/A kbps"
         }
+        else -> "${bitrate / 1000} kbps"
+    }
 
     fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? {
         if (song?.album?.picUrl != null) {
@@ -81,7 +81,7 @@ data class Music(
         if (file == null) return false
         val out = NeteaseCacheProvider
             .getMusicFile(displayFileName + "." + FileType.getFileType(XorByteInputStream(file)))
-        Log.d("Music","导出路径 : " + out.path)
+        Log.d("Music", "导出路径 : " + out.path)
         NeteaseCacheProvider.decryptFile(
             file,
             out

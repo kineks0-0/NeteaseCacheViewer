@@ -9,11 +9,11 @@ object FileType {
     private val mFileTypes = HashMap<String?, String>()
 
     fun getFileType(inputStream: InputStream): String? {
-        val hex = getFileHeader(inputStream,0,8)
-        var key = hex?.substring(0,3*2)
+        val hex = getFileHeader(inputStream, 0, 8)
+        var key = hex?.substring(0, 3 * 2)
         if (mFileTypes[key] != null)
             return mFileTypes[key]
-        key = hex?.substring(4*2,4*2+3*2)
+        key = hex?.substring(4 * 2, 4 * 2 + 3 * 2)
         return when (true) {
             mFileTypes[key] != null -> mFileTypes[key]
             else -> "mp3"
@@ -21,7 +21,7 @@ object FileType {
     }
 
     //获取文件头信息
-    fun getFileHeader(inputStream: InputStream, offset: Int = 0,size: Int = 3): String? {
+    fun getFileHeader(inputStream: InputStream, offset: Int = 0, size: Int = 3): String? {
         var value: String? = null
         try {
             //`is` = FileInputStream(filePath)
@@ -30,7 +30,7 @@ object FileType {
                 inputStream.read(b, offset, b.size)
             }
             value = bytesToHexString(b)
-            Log.d(this.javaClass.name,value)
+            Log.d(this.javaClass.name, value)
         } catch (e: Exception) {
             Log.e(this.javaClass.name, e.message, e)
         }

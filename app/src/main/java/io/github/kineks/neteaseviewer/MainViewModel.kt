@@ -30,6 +30,9 @@ class MainViewModel : ViewModel() {
 
     private val api = retrofit.create(Api::class.java)
 
+    var isUpdating by mutableStateOf(false)
+    var isUpdateComplete by mutableStateOf(false)
+    var isFailure by mutableStateOf(false)
 
     // todo: 状态保持与恢复
     private var initList = false
@@ -62,8 +65,11 @@ class MainViewModel : ViewModel() {
         onUpdate: (songDetail: SongDetail, song: Song) -> Unit = { _, _ -> },
         onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit = { _, _ -> }
     ) {
+
+        isUpdating = !isUpdating
         // ?
         val songs = this.songs.toArrayList()//.toMutableList()
+
 
         // 计算分页数量
         var pages = songs.size / quantity
@@ -132,11 +138,19 @@ class MainViewModel : ViewModel() {
                                 viewModelScope.launch {
                                     reloadSongsList(songs)
                                 }
-                                if (i == pages) onUpdateComplete.invoke(songs, false)
+                                if (i == pages) {
+                                    isUpdateComplete = !isUpdateComplete
+                                    isFailure = false
+                                    onUpdateComplete.invoke(songs, isFailure)
+                                }
 
                             } else {
                                 Log.e(this.javaClass.name, "GetSongDetail Failure")
-                                if (i == pages) onUpdateComplete.invoke(songs, true)
+                                if (i == pages) {
+                                    isUpdateComplete = !isUpdateComplete
+                                    isFailure = true
+                                    onUpdateComplete.invoke(songs, isFailure)
+                                }
                             }
 
                         }
@@ -144,7 +158,11 @@ class MainViewModel : ViewModel() {
                         override fun onFailure(call: Call<SongDetail>, t: Throwable) {
                             Log.e(this.javaClass.name, call.request().url().toString())
                             Log.e(this.javaClass.name, t.message, t)
-                            if (i == pages) onUpdateComplete.invoke(songs, true)
+                            if (i == pages) {
+                                isUpdateComplete = !isUpdateComplete
+                                isFailure = true
+                                onUpdateComplete.invoke(songs, isFailure)
+                            }
                         }
 
                     })

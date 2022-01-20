@@ -10,15 +10,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
-import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.Music
 
@@ -30,6 +26,7 @@ fun PreviewPlay() {
 }
 
 const val TAG = "PlayScreen"
+
 @Composable
 fun PlayScreen(music: Music? = null) {
 
@@ -54,7 +51,7 @@ fun PlayScreen(music: Music? = null) {
             ) {
                 Image(
                     painter = rememberImagePainter(
-                        data = song.getAlbumPicUrl(500,500) ?: "",
+                        data = song.getAlbumPicUrl(500, 500) ?: "",
                         builder = { crossfade(true) }
                     ),
                     contentDescription = "Song Album Art",
@@ -62,9 +59,10 @@ fun PlayScreen(music: Music? = null) {
                         .size(240.dp)
                         .background(
                             MaterialTheme.colors.onBackground
-                                .copy(alpha = 0.5f))
+                                .copy(alpha = 0.5f)
+                        )
                 )
-                Log.d(TAG,"Song Album Art : " + song.getAlbumPicUrl(700,700))
+                Log.d(TAG, "Song Album Art : " + song.getAlbumPicUrl(700, 700))
             }
 
             Text(
@@ -75,7 +73,7 @@ fun PlayScreen(music: Music? = null) {
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 30.dp,start = 3.dp)
+                    .padding(top = 30.dp, start = 3.dp)
             )
             Text(
                 text = song.artists,
@@ -84,7 +82,7 @@ fun PlayScreen(music: Music? = null) {
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp,start = 3.dp)
+                    .padding(top = 6.dp, start = 3.dp)
             )
         }
 

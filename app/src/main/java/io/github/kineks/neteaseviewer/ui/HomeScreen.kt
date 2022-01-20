@@ -1,6 +1,5 @@
 package io.github.kineks.neteaseviewer.ui
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -12,7 +11,6 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +33,7 @@ import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.R
+import io.github.kineks.neteaseviewer.data.local.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.getString
@@ -50,29 +49,28 @@ fun HomeScreen(
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
-        val refreshState: SwipeRefreshState = rememberSwipeRefreshState(false)
+    val refreshState: SwipeRefreshState = rememberSwipeRefreshState(false)
 
-        SwipeRefresh(
-            state = refreshState,
-            onRefresh = {
-                refreshState.isRefreshing = true
-                GlobalScope.launch {
-                    val list = NeteaseCacheProvider.getCacheSongs()
-                    if (list != model.songs) {
-                        model.reloadSongsList(list)
-                        updateSongsInfo(scope, scaffoldState, model)
-                    }
-                    delay(1500)
-                    refreshState.isRefreshing = false
+    SwipeRefresh(
+        state = refreshState,
+        onRefresh = {
+            refreshState.isRefreshing = true
+            GlobalScope.launch {
+                val list = NeteaseCacheProvider.getCacheSongs()
+                if (list != model.songs) {
+                    model.reloadSongsList(list)
+                    updateSongsInfo(model)
                 }
+                delay(1500)
+                refreshState.isRefreshing = false
             }
-        ) {
-            SongsList(
-                songs = model.songs,
-                clickable = clickable
-            )
         }
-
+    ) {
+        SongsList(
+            songs = model.songs,
+            clickable = clickable
+        )
+    }
 
 
 }
@@ -84,7 +82,7 @@ fun SongsList(
     available: Boolean = !songs.isNullOrEmpty(),
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
-    Log.d("MainActivity", "Call once")
+    //Log.d("MainActivity", "Call once")
     if (available && songs.isNotEmpty()) {
         LazyColumn(
             contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp)
@@ -112,11 +110,11 @@ fun SongsList(
 @Composable
 fun MusicItem(
     index: Int = 0,
-    music: Music = Music(-1, "Test", "N/A"),
+    music: Music = EmptyMusic,
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
-    Log.d("SongListItem", "Call once")
+    //Log.d("SongListItem", "Call once")
     var expanded by remember {
         mutableStateOf(false)
     }
@@ -181,7 +179,7 @@ fun MusicItem(
             Image(
                 painter = rememberImagePainter(
                     // 添加 250y250 参数限制宽高来优化加载大小,避免原图加载
-                    data = music.getAlbumPicUrl(150, 150) ?: "",
+                    data = music.getAlbumPicUrl(80, 80) ?: "",
                     builder = {
                         crossfade(true)
                     }
