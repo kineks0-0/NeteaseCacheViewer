@@ -59,6 +59,20 @@ class MainViewModel : ViewModel() {
     }
 
     private fun <T> List<T>.toArrayList() = ArrayList<T>(this)
+    suspend fun updateSongsInfo(
+        music: Music
+    ): Music {
+        return withContext(Dispatchers.IO) {
+            return@withContext api.getSongDetail(music.id).execute().body()?.songs?.get(0)?.let { song ->
+                music.copy(
+                    song = song,
+                    name = song.name,
+                    artists = song.artists.getArtists(),
+                    id = song.id
+                )
+            } ?: music
+        }
+    }
 
     fun updateSongsInfo(
         quantity: Int = 50,
@@ -71,7 +85,7 @@ class MainViewModel : ViewModel() {
 
         isUpdating = true
         // ?
-        val songs = this.songs.toArrayList()//.toMutableList()
+        val songs = this.songs.toArrayList()
 
         if (songs.isEmpty()) {
             isFailure = true

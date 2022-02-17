@@ -1,6 +1,7 @@
 package io.github.kineks.neteaseviewer
 
 //import androidx.navigation.compose.composable
+
 import android.Manifest
 import android.os.Bundle
 import android.util.Log
@@ -29,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
@@ -38,12 +40,14 @@ import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
+import io.github.kineks.neteaseviewer.data.local.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.ui.HomeScreen
-import io.github.kineks.neteaseviewer.ui.PlayScreen
-import io.github.kineks.neteaseviewer.ui.SettingScreen
+import io.github.kineks.neteaseviewer.ui.home.HomeScreen
+import io.github.kineks.neteaseviewer.ui.play.PlayScreen
+import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 
@@ -57,36 +61,59 @@ class MainActivity : FragmentActivity() {
             DefaultView(model)
         }
 
+        /*myActivityLauncher.launch(
+            Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata"),
+            ActivityOptionsCompat.makeBasic()
+        )*/
     }
+
+    /*private val myActivityLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { activityResult ->
+        if (activityResult != null) {
+            NeteaseCacheProvider.RFile.androidData = activityResult
+            lifecycleScope.launchWhenCreated {
+                model.reloadSongsList(
+                    NeteaseCacheProvider.getCacheSongs()
+                )
+            }
+        }
+    }*/
 
     override fun onStart() {
         super.onStart()
-
-        // 检查权限, 如果已授权读写权限就初始化数据
-        PermissionX.init(this)
-            .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            .onExplainRequestReason { scope, deniedList ->
-                val message = getString(R.string.permission_request_description)
-                scope.showRequestReasonDialog(
-                    deniedList, message,
-                    getString(R.string.permission_allow),
-                    getString(R.string.permission_deny)
+        lifecycleScope.launchWhenStarted {
+            // 检查权限, 如果已授权读写权限就初始化数据
+            PermissionX.init(this@MainActivity)
+                .permissions(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    //, Manifest.permission.MANAGE_EXTERNAL_STORAGE
                 )
-            }
-            .request { allGranted, grantedList, deniedList ->
-                if (allGranted) {
-                    // 注: 该函数仅在第一次调用会重新加载数据
-                    // 重载数据请用 model.reload()
-                    model.initList(
-                        callback = {
-                            model.updateSongsInfo()
-                        }
+                .onExplainRequestReason { scope, deniedList ->
+                    val message = getString(R.string.permission_request_description)
+                    scope.showRequestReasonDialog(
+                        deniedList, message,
+                        getString(R.string.permission_allow),
+                        getString(R.string.permission_deny)
                     )
-
-                } else {
-                    // todo: 提示用户
                 }
-            }
+                .request { allGranted, grantedList, deniedList ->
+                    if (allGranted) {
+                        // 注: 该函数仅在第一次调用会重新加载数据
+                        // 重载数据请用 model.reload()
+
+                        model.initList(
+                            callback = {
+                                model.updateSongsInfo()
+                            }
+                        )
+
+                    } else {
+                        // todo: 提示用户
+                    }
+                }
+        }
+
 
     }
 }
@@ -95,17 +122,24 @@ class MainActivity : FragmentActivity() {
 fun updateSongsInfo(
     model: MainViewModel
 ) {
-
     model.updateSongsInfo(
         onUpdateComplete = { _, isFailure ->
-            Log.d("MainActivity", "All data update")
+            if (isFailure) {
+                Log.d("MainActivity", "All data was update failure")
+            } else {
+                Log.d("MainActivity", "All data updated")
+            }
+
         }
     )
 }
 
 /*    DefView    */
 
-@OptIn(ExperimentalAnimationApi::class, com.google.accompanist.pager.ExperimentalPagerApi::class)
+@OptIn(
+    ExperimentalAnimationApi::class, com.google.accompanist.pager.ExperimentalPagerApi::class,
+    kotlinx.coroutines.DelicateCoroutinesApi::class
+)
 @Composable
 fun DefaultView(model: MainViewModel) {
 
@@ -113,20 +147,6 @@ fun DefaultView(model: MainViewModel) {
         mutableStateOf(false)
     }
 
-    LaunchedEffect(Unit) {
-        StarrySky.with().addPlayerEventListener(
-            object : OnPlayerEventListener {
-                override fun onPlaybackStageChange(stage: PlaybackStage) {
-                    when (stage.stage) {
-                        PlaybackStage.ERROR -> {
-                            playOnError = true
-                            print(playOnError)
-                        }
-                    }
-                }
-            }, "Main"
-        )
-    }
 
     // For Snackbar
     val scope = rememberCoroutineScope()
@@ -142,8 +162,42 @@ fun DefaultView(model: MainViewModel) {
     val systemUiController = rememberSystemUiController()
 
 
-    var selectedMusicItem: Music? by remember { mutableStateOf(null) }
+    var selectedMusicItem: Music by remember { mutableStateOf(EmptyMusic) }
 
+    LaunchedEffect(Unit) {
+        StarrySky.with().addPlayerEventListener(
+            object : OnPlayerEventListener {
+                override fun onPlaybackStageChange(stage: PlaybackStage) {
+                    when (stage.stage) {
+                        PlaybackStage.ERROR -> {
+                            playOnError = true
+                            print(playOnError)
+                        }
+                        PlaybackStage.SWITCH -> {
+                            if (stage.songInfo?.songUrl ==
+                                selectedMusicItem.file.toUri().toString()
+                            ) return
+                            GlobalScope.launch {
+                                val music = NeteaseCacheProvider.getCacheSongs(
+                                    cacheDir = listOf(
+                                        NeteaseCacheProvider.NeteaseAppCache(
+                                            "", listOf(
+                                                NeteaseCacheProvider.RFile(
+                                                    NeteaseCacheProvider.RFileType.SingleUri,
+                                                    stage.songInfo?.songUrl!!
+                                                )
+                                            )
+                                        )
+                                    )
+                                )[0]
+                                selectedMusicItem = model.updateSongsInfo(music)
+                            }
+                        }
+                    }
+                }
+            }, "Main"
+        )
+    }
 
     NeteaseViewerTheme {
 
@@ -231,7 +285,22 @@ fun DefaultView(model: MainViewModel) {
                                             NeteaseCacheProvider.decryptSongList(
                                                 model.songs,
                                                 skipIncomplete,
-                                                skipMissingInfo
+                                                skipMissingInfo,
+                                                callback = { out, hasError, e ->
+                                                    if (hasError) {
+                                                        Log.e("decrypt songs", e?.message, e)
+                                                        scope.launch {
+                                                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                                            scaffoldState.snackbarHostState
+                                                                .showSnackbar(
+                                                                    message = "DecryptSong was Failure : ${e?.message} ${out?.toString()}",
+                                                                    actionLabel = getString(R.string.snackbar_dismissed),
+                                                                    duration = SnackbarDuration.Short
+                                                                )
+                                                        }
+                                                    }
+
+                                                }
                                             )
                                         }
                                     ) {
@@ -261,7 +330,7 @@ fun DefaultView(model: MainViewModel) {
                 BottomNavigation(
                     backgroundColor = MaterialTheme.colors.background
                 ) {
-                    for (index in 0..2) {
+                    for (index in navItemList.indices) {
                         Column(
                             modifier = Modifier
                                 .fillMaxHeight()
@@ -293,37 +362,6 @@ fun DefaultView(model: MainViewModel) {
                 }
             }
         ) { paddingValues ->
-
-            LaunchedEffect(model.isUpdating) {
-                if (model.isUpdating)
-                    scope.launch {
-                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                        scaffoldState.snackbarHostState
-                            .showSnackbar(
-                                message = "Working...",
-                                actionLabel = getString(R.string.snackbar_dismissed),
-                                duration = SnackbarDuration.Indefinite
-                            )
-                    }
-            }
-
-            LaunchedEffect(model.isUpdateComplete) {
-                if (model.isUpdateComplete)
-                    scope.launch {
-                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                        scaffoldState.snackbarHostState
-                            .showSnackbar(
-                                message = getString(
-                                    if (model.isFailure)
-                                        R.string.list_update_failure
-                                    else
-                                        R.string.list_updated
-                                ),
-                                actionLabel = getString(R.string.snackbar_dismissed),
-                                duration = SnackbarDuration.Short
-                            )
-                    }
-            }
 
             HorizontalPager(
                 state = state,
@@ -416,7 +454,6 @@ fun NavigationIcon(
     selectedItem: Int
 ) {
     val alpha = if (selectedItem != index) 0.5f else 1f
-
     CompositionLocalProvider(LocalContentAlpha provides alpha) {
         when (index) {
             0 -> Icon(Icons.Outlined.Home, contentDescription = null)

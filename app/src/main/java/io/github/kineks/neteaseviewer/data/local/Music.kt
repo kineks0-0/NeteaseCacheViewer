@@ -1,13 +1,15 @@
 package io.github.kineks.neteaseviewer.data.local
 
+import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.replaceIllegalChar
-import io.github.kineks.neteaseviewer.scanFile
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -22,7 +24,8 @@ data class Music(
     val bitrate: Int = -1,
     val file: File,
     val song: Song? = null,
-    val info: CacheFileInfo? = null
+    val info: CacheFileInfo? = null,
+    val neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache? = null
 ) {
     val album get() = song?.album?.name ?: "$EmptyAlbum $id"
     val track get() = song?.no ?: -1
@@ -70,22 +73,53 @@ data class Music(
         return null
     }
 
-    suspend fun decryptFile(): Boolean {
+    suspend fun decryptFile(
+        callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
+    ): Boolean {
         val begin = System.currentTimeMillis()
-        val out = NeteaseCacheProvider
-            .getMusicFile(displayFileName + "." + FileType.getFileType(XorByteInputStream(file)))
-        Log.d("Music", "导出路径 : " + out.path)
-        NeteaseCacheProvider.decryptFile(
-            file,
-            out
-        )
-        saved = true
-        AudioInfoEdit.setInfo(this@Music, out)
-        out.scanFile()
+
+        var error: Boolean = false
+        var exception: Exception? = null
+        /*
+        saved = true// 标记文件导出过,但不保证已经成功导出
+        //error = !out.exists()// 文件不存在就说明导出失败
+         */
+
+        var out: Uri? = null
+        try {
+            val isQ = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            //AudioInfoEdit.setInfo(this@Music, out)
+            val ext = FileType.getFileType(inputStream) ?: ""
+            val path = if (isQ) App.context.cacheDir else NeteaseCacheProvider.musicDirectory
+            val file = File(path, "$displayFileName$ext")
+            Log.d("Music", file.absolutePath)
+            inputStream.use { input ->
+                file.outputStream().use {
+                    input.buffered().copyTo(it.buffered())
+                }
+            }
+            Log.d("Music", file.length().toString())
+            MediaStoreProvider.setInfo(this, file)
+            if (isQ) {
+                out = MediaStoreProvider.insert2Music(file.inputStream(), this,ext)
+                    ?: throw Exception("")
+                Log.d("Music", out.toString())
+                file.delete()
+            }
+            saved = true
+
+        } catch (e: Exception) {
+            error = true
+            exception = e
+            Log.e("Music", e.message, e)
+        }
+        //out.scanFile()
         val costTime = System.currentTimeMillis() - begin
         Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
 
-        return out.exists()
+        callback.invoke(out, error, exception)
+
+        return out != null
     }
 
     fun delete() = NeteaseCacheProvider.removeCacheFile(this).apply {

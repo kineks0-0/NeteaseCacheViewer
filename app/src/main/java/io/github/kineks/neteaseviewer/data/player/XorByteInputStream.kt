@@ -5,7 +5,7 @@ import java.io.FileInputStream
 import kotlin.experimental.xor
 
 /**
- * 避免直接获取ByteArray导致OOM于是写了个输入流
+ * 避免直接获取ByteArray导致OOM于是改用异或输入流
  */
 class XorByteInputStream(file: File) : FileInputStream(file) {
 
@@ -17,16 +17,6 @@ class XorByteInputStream(file: File) : FileInputStream(file) {
             index++
         }
         return i
-    }
-
-    override fun read(b: ByteArray?): Int {
-        return super.read(b).apply {
-            var index = 0
-            repeat(b?.size ?: 0) {
-                b?.set(index, b[index].xor(-93))
-                index++
-            }
-        }
     }
 
 }

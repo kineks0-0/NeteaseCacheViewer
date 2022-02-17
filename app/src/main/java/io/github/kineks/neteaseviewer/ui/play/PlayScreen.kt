@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.ui
+package io.github.kineks.neteaseviewer.ui.play
 
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -28,9 +28,7 @@ fun PreviewPlay() {
 const val TAG = "PlayScreen"
 
 @Composable
-fun PlayScreen(music: Music? = null) {
-
-    val song = music ?: EmptyMusic
+fun PlayScreen(song: Music) {
 
     Box(
         contentAlignment = Alignment.Center,

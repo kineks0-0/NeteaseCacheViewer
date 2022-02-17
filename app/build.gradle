@@ -11,10 +11,10 @@ android {
         applicationId "io.github.kineks.neteaseviewer"
         minSdk 21
         targetSdk 28
-        versionCode 18
-        versionName "Alpha 1.8"
+        versionCode 20
+        versionName "Alpha 2.0"
+        resConfigs 'en', 'zh', 'zh-rCN'
 
-        resConfigs "en", "zh", "zh-rCN"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -23,10 +23,10 @@ android {
 
     buildTypes {
         debug {
-            //zipAlignEnabled true
-            //minifyEnabled true
-            //shrinkResources true
-            //proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            /*zipAlignEnabled true
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'*/
         }
         release {
             zipAlignEnabled true
@@ -59,15 +59,17 @@ dependencies {
 
     // 默认库
     implementation 'androidx.core:core-ktx:1.7.0'
-    implementation "androidx.compose.ui:ui:1.2.0-alpha01"
+    implementation "androidx.compose.ui:ui:1.2.0-alpha03"
     implementation "androidx.compose.compiler:compiler:$compose_version"
-    implementation "androidx.compose.runtime:runtime:1.2.0-alpha01"
+    implementation "androidx.compose.runtime:runtime:1.2.0-alpha03"
     implementation "androidx.compose.material:material:$compose_version"
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.0'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
     implementation 'androidx.activity:activity-compose:1.4.0'
-    implementation 'androidx.fragment:fragment:1.4.0'
+    implementation 'androidx.activity:activity:1.4.0'
+    implementation 'androidx.fragment:fragment:1.4.1'
+    implementation "androidx.documentfile:documentfile:1.0.1"
 
     // compose 的额外扩展库(图标库和livedata)
     implementation "androidx.compose.material:material-icons-extended:$compose_version"
@@ -107,8 +109,10 @@ dependencies {
     implementation 'com.google.accompanist:accompanist-pager:0.24.0-alpha'
 
     // 音频文件标签处理
-    implementation 'com.github.Adonai:jaudiotagger:2.3.14'
-    //implementation 'net.jthink:jaudiotagger:2.2.3'
+    //implementation 'com.github.Adonai:jaudiotagger:2.3.14'
+    //implementation 'net.jthink:jaudiotagger:3.0.1'
+    implementation 'com.ealva:ealvatag:0.4.6'
+    implementation 'com.squareup.okio:okio:2.9.0'
 
     // 单元测试
     testImplementation 'junit:junit:4.13.2'

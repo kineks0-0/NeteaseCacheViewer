@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.ui
+package io.github.kineks.neteaseviewer.ui.setting
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

@@ -1,5 +1,6 @@
-package io.github.kineks.neteaseviewer.ui
+package io.github.kineks.neteaseviewer.ui.home
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -49,6 +50,38 @@ fun HomeScreen(
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
+    LaunchedEffect(model.isUpdating) {
+        if (model.isUpdating)
+            scope.launch {
+                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                scaffoldState.snackbarHostState
+                    .showSnackbar(
+                        message = "Working...",
+                        actionLabel = getString(R.string.snackbar_dismissed),
+                        duration = SnackbarDuration.Indefinite
+                    )
+            }
+    }
+
+    LaunchedEffect(model.isUpdateComplete) {
+        if (model.isUpdateComplete)
+            scope.launch {
+                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                scaffoldState.snackbarHostState
+                    .showSnackbar(
+                        message = getString(
+                            if (model.isFailure)
+                                R.string.list_update_failure
+                            else
+                                R.string.list_updated
+                        ),
+                        actionLabel = getString(R.string.snackbar_dismissed),
+                        duration = SnackbarDuration.Short
+                    )
+            }
+    }
+
+
     val refreshState: SwipeRefreshState = rememberSwipeRefreshState(false)
 
     SwipeRefresh(
@@ -68,7 +101,9 @@ fun HomeScreen(
     ) {
         SongsList(
             songs = model.songs,
-            clickable = clickable
+            clickable = clickable,
+            scope = scope,
+            scaffoldState = scaffoldState
         )
     }
 
@@ -80,6 +115,8 @@ fun HomeScreen(
 fun SongsList(
     songs: List<Music>,
     available: Boolean = !songs.isNullOrEmpty(),
+    scope: CoroutineScope,
+    scaffoldState: ScaffoldState,
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
     //Log.d("MainActivity", "Call once")
@@ -88,7 +125,13 @@ fun SongsList(
             contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp)
         ) {
             itemsIndexed(songs) { index, music ->
-                MusicItem(index, music, clickable)
+                MusicItem(
+                    index = index,
+                    music = music,
+                    clickable = clickable,
+                    scaffoldState = scaffoldState,
+                    scope = scope
+                )
             }
         }
     } else {
@@ -111,6 +154,8 @@ fun SongsList(
 fun MusicItem(
     index: Int = 0,
     music: Music = EmptyMusic,
+    scope: CoroutineScope = rememberCoroutineScope(),
+    scaffoldState: ScaffoldState = rememberScaffoldState(),
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
@@ -122,7 +167,10 @@ fun MusicItem(
         mutableStateOf(1f)
     }
 
-    alpha = if (music.deleted) 0.4f else 1f
+    LaunchedEffect(music.deleted) {
+        alpha = if (music.deleted) 0.4f else 1f
+    }
+
 
     Row(
         modifier = Modifier
@@ -143,7 +191,36 @@ fun MusicItem(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(onClick = {
                 GlobalScope.launch {
-                    music.decryptFile()
+                    expanded = false
+                    delay(250)
+                    scope.launch {
+                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                        scaffoldState.snackbarHostState
+                            .showSnackbar(
+                                message = "Saving: index $index Song : " + music.displayFileName,
+                                actionLabel = getString(R.string.snackbar_dismissed),
+                                duration = SnackbarDuration.Indefinite
+                            )
+                    }
+                    music.decryptFile { out, hasError, e ->
+                        val text =
+                            if (hasError) {
+                                Log.e("decrypt songs", e?.message, e)
+                                "Failure: DecryptSong was Failure : ${e?.message} ${out?.toString()}"
+                            } else
+                                "Saved: DecryptSong was Saved : ${music.displayFileName}"
+
+                        scope.launch {
+                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                            scaffoldState.snackbarHostState
+                                .showSnackbar(
+                                    message = text,
+                                    actionLabel = getString(R.string.snackbar_dismissed),
+                                    duration = SnackbarDuration.Short
+                                )
+                        }
+
+                    }
                 }
             }) {
                 Icon(
@@ -151,13 +228,20 @@ fun MusicItem(
                     contentDescription = "Delete"
                 )
                 Text("   ")
-                if (music.saved)
-                    Text("Saved -  ")
                 Text("Download to Music Library")
             }
             DropdownMenuItem(onClick = {
                 GlobalScope.launch {
                     music.delete()
+                    scope.launch {
+                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                        scaffoldState.snackbarHostState
+                            .showSnackbar(
+                                message = "Deleted: index $index Song was Deleted : " + music.file.name,
+                                actionLabel = getString(R.string.snackbar_dismissed),
+                                duration = SnackbarDuration.Short
+                            )
+                    }
                 }
             }) {
                 Icon(
@@ -165,8 +249,6 @@ fun MusicItem(
                     contentDescription = "Delete"
                 )
                 Text("   ")
-                if (music.deleted)
-                    Text("Deleted -  ")
                 Text("Delete the Cache File")
             }
         }

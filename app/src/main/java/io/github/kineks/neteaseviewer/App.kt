@@ -6,6 +6,7 @@ import android.content.Context
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.notification.INotification
 import com.lzx.starrysky.notification.NotificationConfig
+import ealvatag.tag.TagOptionSingleton
 import io.github.kineks.neteaseviewer.data.player.ExoPlayback
 
 class App : Application() {
@@ -47,6 +48,7 @@ class App : Application() {
                     SYSTEM_NOTIFICATION_FACTORY.build(context,config)
             }
         )*/
+        TagOptionSingleton.getInstance().isAndroid = true // Android - put in Application.onCreate()
     }
 
 }
