@@ -1,7 +1,6 @@
 package io.github.kineks.neteaseviewer.data.local
 
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +9,9 @@ import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.replaceIllegalChar
+import io.github.kineks.neteaseviewer.scanFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,8 +51,8 @@ data class Music(
 
     val displayFileName
         get() = when (bitrate) {
-            999000 -> "$artists - $name.".replaceIllegalChar()
-            else -> ("$artists - $name." + displayBitrate.replace(" ", ""))
+            999000 -> "$artists - $name".replaceIllegalChar()
+            else -> ("$artists - $name .$displayBitrate")
                 .replaceIllegalChar()
         }
 
@@ -86,38 +88,53 @@ data class Music(
          */
 
         var out: Uri? = null
-        try {
-            val isQ = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            //AudioInfoEdit.setInfo(this@Music, out)
-            val ext = FileType.getFileType(inputStream) ?: ""
-            val path = if (isQ) App.context.cacheDir else NeteaseCacheProvider.musicDirectory
-            val file = File(path, "$displayFileName$ext")
-            Log.d("Music", file.absolutePath)
-            inputStream.use { input ->
-                file.outputStream().use {
-                    input.buffered().copyTo(it.buffered())
+        withContext(Dispatchers.IO) {
+
+            try {
+
+                val ext = FileType.getFileType(inputStream) ?: "mp3"
+                val path =
+                    if (App.isAndroidQorAbove)
+                        App.context.cacheDir
+                    else
+                        NeteaseCacheProvider.musicDirectory
+                val file = File(path, "$displayFileName.$ext")
+
+                Log.d("Music", file.absolutePath)
+                inputStream.use { input ->
+                    file.outputStream().use {
+                        input.buffered().copyTo(it.buffered())
+                    }
                 }
-            }
-            Log.d("Music", file.length().toString())
-            MediaStoreProvider.setInfo(this, file)
-            if (isQ) {
-                out = MediaStoreProvider.insert2Music(file.inputStream(), this,ext)
-                    ?: throw Exception("")
-                Log.d("Music", out.toString())
-                file.delete()
-            }
-            saved = true
 
-        } catch (e: Exception) {
-            error = true
-            exception = e
-            Log.e("Music", e.message, e)
+                Log.d("Music", file.length().toString())
+                MediaStoreProvider.setInfo(this@Music, file)
+                if (App.isAndroidQorAbove) {
+                    out = MediaStoreProvider.insert2Music(
+                        file.inputStream(),
+                        this@Music,
+                        ext
+                    )
+                        ?: throw Exception("")
+                    Log.d("Music", out.toString())
+                    file.delete()
+                } else {
+                    file.scanFile()
+                }
+
+                saved = true
+
+            } catch (e: Exception) {
+                error = true
+                exception = e
+                Log.e("Music", e.message, e)
+            }
+
+            val costTime = System.currentTimeMillis() - begin
+            Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
+
+            callback.invoke(out, error, exception)
         }
-        //out.scanFile()
-        val costTime = System.currentTimeMillis() - begin
-        Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
-
-        callback.invoke(out, error, exception)
 
         return out != null
     }

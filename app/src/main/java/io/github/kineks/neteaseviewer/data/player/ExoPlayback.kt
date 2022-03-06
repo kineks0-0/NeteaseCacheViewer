@@ -21,7 +21,7 @@ import com.lzx.starrysky.utils.orDef
 /**
  * 类基于 https://github.com/EspoirX/StarrySky/blob/androidx/starrysky/src/main/java/com/lzx/starrysky/playback/ExoPlayback.kt 修改
  * 移除了对其他类型的支持，同时修改和移除已经弃用的 Api
- * isAutoManagerFocus 是否让播放器自动管理焦点
+ * isAutoManagerFocus: 是否让播放器自动管理焦点
  */
 const val TAG = "ExoPlayback"
 
@@ -176,7 +176,7 @@ class ExoPlayback(
     @Synchronized
     private fun createExoPlayer() {
         if (player == null) {
-            @DefaultRenderersFactory.ExtensionRendererMode val extensionRendererMode =
+            val extensionRendererMode =
                 DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
             val renderersFactory = DefaultRenderersFactory(context)
                 .setExtensionRendererMode(extensionRendererMode)

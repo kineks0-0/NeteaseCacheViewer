@@ -20,17 +20,17 @@ object NeteaseCacheProvider {
         add(
             NeteaseAppCache(
                 "Netease", listOf(
-                    RFileType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1"),
-                    // 部分版本在Q或者R上会用这个路径
-                    RFileType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1")
+                    RFile.RFileType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1"),
+                    // 部分修改版本会用这个路径
+                    RFile.RFileType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1")
                 )
             )
         )
         add(
             NeteaseAppCache(
                 "NeteaseLite", listOf(
-                    RFileType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1"),
-                    RFileType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1")
+                    RFile.RFileType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1"),
+                    RFile.RFileType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1")
                 )
             )
         )
@@ -196,95 +196,4 @@ object NeteaseCacheProvider {
         val rFiles: List<RFile>
     )
 
-    enum class RFileType(val type: String) {
-        // 目录
-        Uri("uri"),
-        File("file"),
-        // 单个文件
-        SingleUri("single uri"),
-        SingleFile("single file"),
-
-        ShareStorage("share storage"),
-        AndroidData("android data"),
-        Root("root")
-    }
-
-    data class RFile(val type: RFileType, val path: String) {
-
-        companion object {
-            var androidData: Uri = Uri.EMPTY
-        }
-        val uri: Uri
-            get() = when (type) {
-                RFileType.Uri, RFileType.SingleUri -> Uri.parse(path)
-                RFileType.ShareStorage ->
-                    File(Environment.getExternalStorageDirectory().path + path).toUri()
-                RFileType.File, RFileType.SingleFile -> File(path).toUri()
-                RFileType.AndroidData -> TODO()
-                RFileType.Root -> TODO()
-            }
-        val file: File
-            get() = uri.toFile()
-        val input : InputStream? get() = when(type) {
-            RFileType.Uri, RFileType.File -> null
-            RFileType.SingleUri ,RFileType.SingleFile ,RFileType.ShareStorage -> file.inputStream()
-            RFileType.AndroidData -> null
-            RFileType.Root -> TODO()
-        }
-        val output : OutputStream? get() =when(type) {
-            RFileType.Uri, RFileType.File -> null
-            RFileType.SingleUri ,RFileType.SingleFile ,RFileType.ShareStorage -> file.outputStream()
-            RFileType.AndroidData -> null
-            RFileType.Root -> TODO()
-        }
-
-        fun read2File(callback: (index: Int, file: File) -> Unit) {
-            when (type) {
-                RFileType.Uri -> {
-                    uri
-                        .toFile().walk().forEachIndexed { index, file ->
-                            callback.invoke(index, file)
-                        }
-                }
-                RFileType.File -> {
-                    File(path).walk().forEachIndexed { index, file ->
-                        callback.invoke(index, file)
-                    }
-                }
-                RFileType.SingleUri -> callback.invoke(0, file)
-                RFileType.SingleFile -> callback.invoke(0, file)
-                RFileType.ShareStorage -> {
-                    File(Environment.getExternalStorageDirectory().path + path)
-                        .walk().forEachIndexed { index, file ->
-                            callback.invoke(index, file)
-                        }
-                }
-                RFileType.AndroidData -> {
-
-                    /*val paths =
-                        path.split("/").toTypedArray()
-                    val stringBuilder =
-                        StringBuilder("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata/document/primary%3AAndroid%2Fdata")
-                    for (p in paths) {
-                        if (p.isEmpty()) continue
-                        stringBuilder.append("%2F").append(p)
-                    }*/
-                    /*if (androidData == Uri.EMPTY) return
-                    val uri = androidData//Uri.parse(stringBuilder.toString())
-                    DocumentFile.fromTreeUri(App.context, uri)?.listFiles()
-                        ?.forEachIndexed { index, documentFile ->
-                            callback.invoke(
-                                index,
-                                File(URI.create(documentFile.uri.toString()))
-                            )
-
-                            print(documentFile.name)
-                        }*/
-                }
-                RFileType.Root -> TODO()
-            }
-        }
-
-
-    }
 }

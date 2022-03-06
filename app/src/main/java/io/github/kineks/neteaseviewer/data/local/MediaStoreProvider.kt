@@ -13,6 +13,8 @@ import ealvatag.tag.NullTag
 import ealvatag.tag.Tag
 import ealvatag.tag.images.ArtworkFactory
 import io.github.kineks.neteaseviewer.App
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okio.IOException
 import java.io.File
@@ -22,10 +24,15 @@ import java.io.InputStream
 object MediaStoreProvider {
 
     lateinit var okHttpClient: OkHttpClient
+    private val parentFile: File = App.context.cacheDir
 
-    fun setInfo(music: Music, file: File) {
+    suspend fun setInfo(music: Music, file: File) {
         music.song ?: return
-        val audioFile = AudioFileIO.read(file)
+
+
+        val audioFile = withContext(Dispatchers.IO) {
+            AudioFileIO.read(file)
+        }
 
         val audioHeader = audioFile.audioHeader
         val channels = audioHeader.channelCount
@@ -64,92 +71,54 @@ object MediaStoreProvider {
 
                 if (!this::okHttpClient.isInitialized) okHttpClient = OkHttpClient()
                 val request: Request = Request.Builder().url(pic).build()
-                okHttpClient.newCall(request).enqueue(object : Callback {
-                    override fun onFailure(call: Call?, e: IOException?) {
-                        // 下载失败
-                        Log.e(this@MediaStoreProvider.javaClass.name, e?.message, e)
-                    }
 
-                    @Throws(IOException::class)
-                    override fun onResponse(call: Call?, response: Response) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val byteArray =
+                            okHttpClient.newCall(request).execute().body()?.byteStream() ?: TODO()
+
+                        val artwork = File(parentFile, music.displayFileName + ".image")
+                        artwork.delete()
+                        artwork.parentFile?.mkdirs()
+
+                        byteArray.use { input ->
+                            artwork.outputStream().use {
+                                input.copyTo(it)
+                            }
+                        }
+
+                        tag.setArtwork(ArtworkFactory.createArtworkFromFile(artwork))
                         try {
-                            val artwork = File(file.parentFile, music.displayFileName + ".image")
-                            artwork.delete()
-                            artwork.parentFile?.mkdirs()
-                            val byteArray = response.body()?.byteStream() ?: return
-                            byteArray.use { input ->
-                                artwork.outputStream().use {
-                                    input.copyTo(it)
-                                }
-                            }
-
-                            tag.setArtwork(ArtworkFactory.createArtworkFromFile(artwork))
-                            try {
-                                audioFile.save()
-                            } catch (e: Exception) {
-                                Log.e(this@MediaStoreProvider.javaClass.name, e.message, e)
-                            }
-
-                            artwork.delete()
+                            audioFile.save()
                         } catch (e: Exception) {
                             Log.e(this@MediaStoreProvider.javaClass.name, e.message, e)
+                            Log.e(this@MediaStoreProvider.javaClass.name, file.absolutePath)
                         }
+
+                        artwork.delete()
+                    } catch (e: Exception) {
+                        Log.e(this@MediaStoreProvider.javaClass.name, e.message, e)
+                        Log.e(this@MediaStoreProvider.javaClass.name, file.absolutePath)
                     }
-                })
+                }
                 //tag.setField(ArtworkFactory.createLinkedArtworkFromURL(pic))
             }
 
 
         }
-        audioFile.save()
+
+        withContext(Dispatchers.IO) {
+            audioFile.save()
+        }
 
 
     }
-
-    /*
-    fun setArtwork(music: Music, file: File) {
-        music.song ?: return
-        val audioFile = AudioFileIO.read(file)
-        val tag = audioFile.tag
-        val pic = music.getAlbumPicUrl()
-        if (!pic.isNullOrEmpty() && tag.) {
-            Log.d(this.javaClass.name, "下载专辑图 : $pic")
-            if (!this::okHttpClient.isInitialized) okHttpClient = OkHttpClient()
-            val request: Request = Request.Builder().url(pic).build()
-            okHttpClient.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call?, e: IOException?) {
-                    // 下载失败
-                    Log.e(this@MediaStoreProvider.javaClass.name, e?.message, e)
-                }
-
-                @Throws(IOException::class)
-                override fun onResponse(call: Call?, response: Response) {
-                    try {
-                        val artwork = File(file.parentFile, music.displayFileName + ".image")
-                        artwork.delete()
-                        artwork.parentFile?.mkdirs()
-                        val byteArray = response.body()?.byteStream() ?: return
-                        artwork.writeBytes(byteArray.readBytes())
-
-                        tag.setField(AndroidArtwork.createArtworkFromFile(artwork))
-                        audioFile.commit()
-                        artwork.delete()
-                    } catch (e: Exception) {
-                        Log.e(this@MediaStoreProvider.javaClass.name, e.message, e)
-                    }
-                }
-            })
-            //tag.setField(ArtworkFactory.createLinkedArtworkFromURL(pic))
-        }
-        audioFile.commit()
-
-    }*/
 
     //fileName为需要保存到媒体的文件名
     fun insert2Music(inputStream: InputStream, music: Music, ext: String = "mp3"): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
-        val fileName: String = "${music.displayFileName}$ext"
+        val fileName: String = music.displayFileName
         songDetails.apply {
             put(MediaStore.Audio.AudioColumns.DISPLAY_NAME, fileName)
             put(MediaStore.Audio.AudioColumns.TITLE, music.name)

@@ -43,3 +43,6 @@
 -dontwarn java.nio.file.Paths
 -dontwarn java.nio.file.OpenOption
 -dontwarn java.nio.file.Files
+
+-dontwarn com.tencent.bugly.**
+-keep public class com.tencent.bugly.**{*;}

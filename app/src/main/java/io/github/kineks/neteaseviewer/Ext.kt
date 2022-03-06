@@ -11,6 +11,7 @@ import android.provider.MediaStore
 import androidx.core.net.toFile
 import io.github.kineks.neteaseviewer.data.api.ArtistXX
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.RFile
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -107,4 +108,4 @@ fun File.mimeType() = URLConnection.getFileNameMap().getContentTypeFor(name)?:"m
 
 fun String.uriToFile() = Uri.parse(this).toFile()
 fun String.toFile() = File(this)
-fun NeteaseCacheProvider.RFileType.toRFile(path: String) = NeteaseCacheProvider.RFile(this,path)
+fun RFile.RFileType.toRFile(path: String) = RFile(this,path)

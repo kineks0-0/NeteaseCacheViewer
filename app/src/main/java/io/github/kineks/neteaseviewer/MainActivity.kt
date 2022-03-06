@@ -40,9 +40,7 @@ import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
-import io.github.kineks.neteaseviewer.data.local.EmptyMusic
-import io.github.kineks.neteaseviewer.data.local.Music
-import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.*
 import io.github.kineks.neteaseviewer.ui.home.HomeScreen
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
@@ -82,7 +80,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        lifecycleScope.launchWhenStarted {
+        lifecycleScope.launchWhenResumed {
             // 检查权限, 如果已授权读写权限就初始化数据
             PermissionX.init(this@MainActivity)
                 .permissions(
@@ -182,8 +180,8 @@ fun DefaultView(model: MainViewModel) {
                                     cacheDir = listOf(
                                         NeteaseCacheProvider.NeteaseAppCache(
                                             "", listOf(
-                                                NeteaseCacheProvider.RFile(
-                                                    NeteaseCacheProvider.RFileType.SingleUri,
+                                                RFile(
+                                                    RFile.RFileType.SingleUri,
                                                     stage.songInfo?.songUrl!!
                                                 )
                                             )
