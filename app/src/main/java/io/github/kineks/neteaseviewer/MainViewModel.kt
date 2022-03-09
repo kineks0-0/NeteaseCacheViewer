@@ -4,19 +4,20 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lzx.starrysky.OnPlayerEventListener
+import com.lzx.starrysky.StarrySky
+import com.lzx.starrysky.manager.PlaybackStage
 import io.github.kineks.neteaseviewer.data.api.Api
 import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.api.SongDetail
-import io.github.kineks.neteaseviewer.data.local.Music
-import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.data.local.Setting
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.InternalCoroutinesApi
+import io.github.kineks.neteaseviewer.data.local.*
+import io.github.kineks.neteaseviewer.data.local.update.Update
+import io.github.kineks.neteaseviewer.data.local.update.UpdateJSON
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -24,7 +25,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 
-@OptIn(InternalCoroutinesApi::class)
+@OptIn(InternalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class MainViewModel : ViewModel() {
 
     private val retrofit = Retrofit.Builder()
@@ -35,6 +36,11 @@ class MainViewModel : ViewModel() {
     private val api = retrofit.create(Api::class.java)
 
     var displayWelcomeScreen by mutableStateOf(false)
+    var updateJSON by mutableStateOf(UpdateJSON())
+    var hasUpdate by mutableStateOf(false)
+
+    var playOnError by mutableStateOf(false)
+    var selectedMusicItem: Music by mutableStateOf(EmptyMusic)
 
     var isUpdating by mutableStateOf(false)
     var isUpdateComplete by mutableStateOf(false)
@@ -51,6 +57,49 @@ class MainViewModel : ViewModel() {
                 displayWelcomeScreen = firstTimeLaunch
             }
         }
+        viewModelScope.launch {
+            Update.checkUpdateWithTime { json, hasUpdate ->
+                if (hasUpdate) {
+                    updateJSON = json ?: UpdateJSON()
+                    this@MainViewModel.hasUpdate = true
+                }
+            }
+        }
+        viewModelScope.launch {
+            StarrySky.with().addPlayerEventListener(
+                object : OnPlayerEventListener {
+                    override fun onPlaybackStageChange(stage: PlaybackStage) {
+                        when (stage.stage) {
+                            PlaybackStage.ERROR -> {
+                                playOnError = true
+                                print(playOnError)
+                            }
+                            PlaybackStage.SWITCH -> {
+                                if (stage.songInfo?.songUrl ==
+                                    selectedMusicItem.file.toUri().toString()
+                                ) return
+                                GlobalScope.launch {
+                                    val music = NeteaseCacheProvider.getCacheSongs(
+                                        cacheDir = listOf(
+                                            NeteaseCacheProvider.NeteaseAppCache(
+                                                "", listOf(
+                                                    RFile(
+                                                        RFile.RFileType.SingleUri,
+                                                        stage.songInfo?.songUrl!!
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )[0]
+                                    selectedMusicItem = updateSongsInfo(music)
+                                }
+                            }
+                        }
+                    }
+                }, "Main"
+            )
+        }
+
 
     }
 

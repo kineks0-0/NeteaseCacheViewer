@@ -148,27 +148,24 @@ fun updateSongsInfo(
 }
 
 @Composable
-fun checkUpdate() {
+fun checkUpdate(model: MainViewModel) {
 
-    var openDialog by remember { mutableStateOf(false) }
-    var updateJSON by remember { mutableStateOf(UpdateJSON()) }
-
-    if (openDialog) {
+    if (model.hasUpdate) {
         AlertDialog(
-            onDismissRequest = { openDialog = false },
-            title = { Text("发现新版本[" + updateJSON.versionName + "]") },
+            onDismissRequest = { model.hasUpdate = false },
+            title = { Text("发现新版本[" + model.updateJSON.versionName + "]") },
             text = {
                 Column(modifier = Modifier
                     .padding(2.dp)
                     .fillMaxWidth()) {
-                    Text(text = updateJSON.updateInfo)
+                    Text(text = model.updateJSON.updateInfo)
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        openDialog = false
-                        val uri: Uri = Uri.parse(updateJSON.updateLink)
+                        model.hasUpdate = false
+                        val uri: Uri = Uri.parse(model.updateJSON.updateLink)
                         val intent = Intent()
                         intent.action =
                             "android.intent.action.VIEW"
@@ -181,18 +178,9 @@ fun checkUpdate() {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { openDialog = false }) { Text("取消") }
+                TextButton(onClick = { model.hasUpdate = false }) { Text("取消") }
             }
         )
-    }
-
-    LaunchedEffect(Unit) {
-        Update.checkUpdateWithTime { json, hasUpdate ->
-            if (hasUpdate) {
-                updateJSON = json ?: UpdateJSON()
-                openDialog = true
-            }
-        }
     }
 
 }
@@ -205,11 +193,6 @@ fun checkUpdate() {
 )
 @Composable
 fun DefaultView(model: MainViewModel) {
-
-    var playOnError by remember {
-        mutableStateOf(false)
-    }
-
 
     // For Snackbar
     val scope = rememberCoroutineScope()
@@ -224,44 +207,6 @@ fun DefaultView(model: MainViewModel) {
     // use UI Controller in compose
     val systemUiController = rememberSystemUiController()
 
-    var selectedMusicItem: Music by remember { mutableStateOf(EmptyMusic) }
-
-
-    LaunchedEffect(Unit) {
-        StarrySky.with().addPlayerEventListener(
-            object : OnPlayerEventListener {
-                override fun onPlaybackStageChange(stage: PlaybackStage) {
-                    when (stage.stage) {
-                        PlaybackStage.ERROR -> {
-                            playOnError = true
-                            print(playOnError)
-                        }
-                        PlaybackStage.SWITCH -> {
-                            if (stage.songInfo?.songUrl ==
-                                selectedMusicItem.file.toUri().toString()
-                            ) return
-                            GlobalScope.launch {
-                                val music = NeteaseCacheProvider.getCacheSongs(
-                                    cacheDir = listOf(
-                                        NeteaseCacheProvider.NeteaseAppCache(
-                                            "", listOf(
-                                                RFile(
-                                                    RFile.RFileType.SingleUri,
-                                                    stage.songInfo?.songUrl!!
-                                                )
-                                            )
-                                        )
-                                    )
-                                )[0]
-                                selectedMusicItem = model.updateSongsInfo(music)
-                            }
-                        }
-                    }
-                }
-            }, "Main"
-        )
-
-    }
 
 
 
@@ -270,7 +215,7 @@ fun DefaultView(model: MainViewModel) {
         systemUiController.setStatusBarColor(MaterialTheme.colors.background)
         systemUiController.setNavigationBarColor(MaterialTheme.colors.background)
 
-        checkUpdate()
+        checkUpdate(model)
 
         Scaffold(
             scaffoldState = scaffoldState,
@@ -452,7 +397,7 @@ fun DefaultView(model: MainViewModel) {
                                 scope = scope,
                                 scaffoldState = scaffoldState,
                                 clickable = { index, song ->
-                                    selectedMusicItem = song
+                                    model.selectedMusicItem = song
 
                                     val info = SongInfo(
                                         songId = song.id.toString() + song.bitrate,
@@ -480,7 +425,7 @@ fun DefaultView(model: MainViewModel) {
                                             }
                                         }
                                     }
-                                    if (playOnError) {
+                                    if (model.playOnError) {
                                         scope.launch {
                                             scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                                             scaffoldState.snackbarHostState
@@ -490,14 +435,14 @@ fun DefaultView(model: MainViewModel) {
                                                     duration = SnackbarDuration.Short
                                                 )
                                         }
-                                        playOnError = false
+                                        model.playOnError = false
                                     }
 
                                 }
                             )
                         }
                         "play" -> {
-                            PlayScreen(selectedMusicItem)
+                            PlayScreen(model.selectedMusicItem)
                         }
                         "setting" -> {
                             SettingScreen()

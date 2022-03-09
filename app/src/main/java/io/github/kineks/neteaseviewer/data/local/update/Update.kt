@@ -45,7 +45,7 @@ object Update {
                 val timeMillis: Long = Calendar.getInstance().timeInMillis
                 Log.d("checkUpdateWithTime", "timeMillis: $timeMillis")
                 Log.d("checkUpdateWithTime", "day: ${timeMillis - it}")
-                if (timeMillis - it > Day || timeMillis - it < 5000) {
+                if (timeMillis - it > Day) {
                     checkUpdate(callback)
                 }
             }
