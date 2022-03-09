@@ -20,6 +20,7 @@ class App : Application() {
     companion object {
         @SuppressLint("StaticFieldLeak")
         lateinit var context: Context
+        val isAndroidPorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
         val isAndroidQorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         val isAndroidRorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
     }

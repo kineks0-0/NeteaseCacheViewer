@@ -1,6 +1,8 @@
 package io.github.kineks.neteaseviewer
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -39,6 +41,8 @@ import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.*
+import io.github.kineks.neteaseviewer.data.local.update.Update
+import io.github.kineks.neteaseviewer.data.local.update.UpdateJSON
 import io.github.kineks.neteaseviewer.ui.home.HomeScreen
 import io.github.kineks.neteaseviewer.ui.home.WelcomeScreen
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
@@ -173,6 +177,39 @@ fun DefaultView(model: MainViewModel) {
 
     var selectedMusicItem: Music by remember { mutableStateOf(EmptyMusic) }
 
+    var openDialog by remember { mutableStateOf(false) }
+    var updateJSON by remember { mutableStateOf(UpdateJSON()) }
+
+    if (openDialog) {
+        AlertDialog(
+            onDismissRequest = { openDialog = false },
+            title = { Text("发现新版本[" + updateJSON.versionName + "]") },
+            text = {
+                Column(modifier = Modifier.padding(2.dp).fillMaxWidth()) {
+                    Text(text = updateJSON.updateInfo)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog = false
+                        val uri: Uri = Uri.parse(updateJSON.updateLink)
+                        val intent = Intent()
+                        intent.action =
+                            "android.intent.action.VIEW"
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        intent.data = uri
+                        App.context.startActivity(intent)
+                    }
+                ) {
+                    Text("更新")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { openDialog = false }) { Text("取消") }
+            }
+        )
+    }
     LaunchedEffect(Unit) {
         StarrySky.with().addPlayerEventListener(
             object : OnPlayerEventListener {
@@ -206,6 +243,14 @@ fun DefaultView(model: MainViewModel) {
                 }
             }, "Main"
         )
+
+        Update.checkUpdate { json, hasUpdate ->
+            if (hasUpdate) {
+                updateJSON = json ?: UpdateJSON()
+                openDialog = true
+            }
+        }
+
     }
 
     NeteaseViewerTheme {
