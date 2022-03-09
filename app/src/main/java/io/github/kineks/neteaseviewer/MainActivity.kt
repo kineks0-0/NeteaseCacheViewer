@@ -16,11 +16,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,20 +35,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.lzx.starrysky.OnPlayerEventListener
 import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
-import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
-import io.github.kineks.neteaseviewer.data.local.*
-import io.github.kineks.neteaseviewer.data.local.update.Update
-import io.github.kineks.neteaseviewer.data.local.update.UpdateJSON
+import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.Setting
 import io.github.kineks.neteaseviewer.ui.home.HomeScreen
 import io.github.kineks.neteaseviewer.ui.home.WelcomeScreen
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 
@@ -155,9 +151,11 @@ fun checkUpdate(model: MainViewModel) {
             onDismissRequest = { model.hasUpdate = false },
             title = { Text("发现新版本[" + model.updateJSON.versionName + "]") },
             text = {
-                Column(modifier = Modifier
-                    .padding(2.dp)
-                    .fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .padding(2.dp)
+                        .fillMaxWidth()
+                ) {
                     Text(text = model.updateJSON.updateInfo)
                 }
             },
@@ -229,7 +227,7 @@ fun DefaultView(model: MainViewModel) {
                             updateSongsInfo(model)
                         }) {
                             Icon(
-                                Icons.Filled.CloudDownload, contentDescription = stringResource(
+                                Icons.Rounded.CloudDownload, contentDescription = stringResource(
                                     id = R.string.list_update
                                 )
                             )
@@ -332,7 +330,7 @@ fun DefaultView(model: MainViewModel) {
                         IconButton(onClick = {
                             openDialog = true
                         }) {
-                            Icon(Icons.Filled.SaveAlt, contentDescription = "Save All File")
+                            Icon(Icons.Rounded.SaveAlt, contentDescription = "Save All File")
                         }
                     }
                 )

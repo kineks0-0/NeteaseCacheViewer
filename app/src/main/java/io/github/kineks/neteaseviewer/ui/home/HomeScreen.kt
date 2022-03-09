@@ -10,8 +10,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Feed
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -184,6 +185,55 @@ fun MusicItem(
     }
 
 
+    var openDialog by remember { mutableStateOf(false) }
+    if (openDialog) {
+        AlertDialog(
+            onDismissRequest = { openDialog = false },
+            title = { Text("缓存文件详细[${music.neteaseAppCache?.type ?: "Netease"},${music.id}]") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .padding(2.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        buildAnnotatedString {
+                            append("歌曲名称: " + music.name + "\n")
+                            append("歌曲专辑: " + music.album + "\n")
+                            append("歌曲歌手: " + music.artists + "\n")
+                            append("导出文件名: " + music.displayFileName + "\n")
+                            append("\n")
+
+                            append("完整缓存大小: " + (music.info?.fileSize ?: -1) + "\n")
+                            append("完整缓存流派: " + music.displayBitrate + "\n")
+                            append("完整缓存时长: " + (music.info?.duration ?: -1) + "\n")
+                            append("完整缓存MD5: " + (music.info?.fileMD5 ?: -1) + "\n")
+                            append("\n")
+
+                            append("文件名称: " + music.file.name + "\n")
+                            append("文件大小: " + music.file.length() + "\n")
+                            append("文件路径: " + music.file.canonicalPath + "\n")
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog = false
+
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { openDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+
     Row(
         modifier = Modifier
             .height(64.dp)
@@ -238,7 +288,7 @@ fun MusicItem(
                 }
             }) {
                 Icon(
-                    Icons.Filled.CloudDownload,
+                    Icons.Rounded.CloudDownload,
                     contentDescription = "Delete"
                 )
                 Text("   ")
@@ -259,11 +309,21 @@ fun MusicItem(
                 }
             }) {
                 Icon(
-                    Icons.Filled.Delete,
+                    Icons.Rounded.Delete,
                     contentDescription = "Delete"
                 )
                 Text("   ")
                 Text("删除缓存文件")
+            }
+            DropdownMenuItem(onClick = {
+                openDialog = true
+            }) {
+                Icon(
+                    Icons.Rounded.Feed,
+                    contentDescription = "Info"
+                )
+                Text("   ")
+                Text("查看缓存详细")
             }
         }
 
