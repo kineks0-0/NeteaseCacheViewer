@@ -147,6 +147,56 @@ fun updateSongsInfo(
     )
 }
 
+@Composable
+fun checkUpdate() {
+
+    var openDialog by remember { mutableStateOf(false) }
+    var updateJSON by remember { mutableStateOf(UpdateJSON()) }
+
+    if (openDialog) {
+        AlertDialog(
+            onDismissRequest = { openDialog = false },
+            title = { Text("发现新版本[" + updateJSON.versionName + "]") },
+            text = {
+                Column(modifier = Modifier
+                    .padding(2.dp)
+                    .fillMaxWidth()) {
+                    Text(text = updateJSON.updateInfo)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog = false
+                        val uri: Uri = Uri.parse(updateJSON.updateLink)
+                        val intent = Intent()
+                        intent.action =
+                            "android.intent.action.VIEW"
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        intent.data = uri
+                        App.context.startActivity(intent)
+                    }
+                ) {
+                    Text("更新")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { openDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        Update.checkUpdateWithTime { json, hasUpdate ->
+            if (hasUpdate) {
+                updateJSON = json ?: UpdateJSON()
+                openDialog = true
+            }
+        }
+    }
+
+}
+
 /*    DefView    */
 
 @OptIn(
@@ -174,42 +224,9 @@ fun DefaultView(model: MainViewModel) {
     // use UI Controller in compose
     val systemUiController = rememberSystemUiController()
 
-
     var selectedMusicItem: Music by remember { mutableStateOf(EmptyMusic) }
 
-    var openDialog by remember { mutableStateOf(false) }
-    var updateJSON by remember { mutableStateOf(UpdateJSON()) }
 
-    if (openDialog) {
-        AlertDialog(
-            onDismissRequest = { openDialog = false },
-            title = { Text("发现新版本[" + updateJSON.versionName + "]") },
-            text = {
-                Column(modifier = Modifier.padding(2.dp).fillMaxWidth()) {
-                    Text(text = updateJSON.updateInfo)
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        openDialog = false
-                        val uri: Uri = Uri.parse(updateJSON.updateLink)
-                        val intent = Intent()
-                        intent.action =
-                            "android.intent.action.VIEW"
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        intent.data = uri
-                        App.context.startActivity(intent)
-                    }
-                ) {
-                    Text("更新")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { openDialog = false }) { Text("取消") }
-            }
-        )
-    }
     LaunchedEffect(Unit) {
         StarrySky.with().addPlayerEventListener(
             object : OnPlayerEventListener {
@@ -244,20 +261,16 @@ fun DefaultView(model: MainViewModel) {
             }, "Main"
         )
 
-        Update.checkUpdate { json, hasUpdate ->
-            if (hasUpdate) {
-                updateJSON = json ?: UpdateJSON()
-                openDialog = true
-            }
-        }
-
     }
+
+
 
     NeteaseViewerTheme {
 
         systemUiController.setStatusBarColor(MaterialTheme.colors.background)
         systemUiController.setNavigationBarColor(MaterialTheme.colors.background)
 
+        checkUpdate()
 
         Scaffold(
             scaffoldState = scaffoldState,
