@@ -50,7 +50,7 @@ object NeteaseCacheProvider {
         File(Environment.getExternalStorageDirectory().path + "/Music/NeteaseViewer/")
 
 
-    private suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<File> {
+    suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<File> {
         val begin = System.currentTimeMillis()
         val files = ArrayList<File>()
 
@@ -79,7 +79,7 @@ object NeteaseCacheProvider {
         return files
     }
 
-    private suspend fun getCachesFiles(): List<File> {
+    suspend fun getCachesFiles(): List<File> {
         val begin = System.currentTimeMillis()
         val files = ArrayList<File>()
 

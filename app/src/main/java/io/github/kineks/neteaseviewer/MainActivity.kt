@@ -1,7 +1,5 @@
 package io.github.kineks.neteaseviewer
 
-//import androidx.navigation.compose.composable
-
 import android.Manifest
 import android.os.Bundle
 import android.util.Log
@@ -42,6 +40,7 @@ import com.lzx.starrysky.manager.PlaybackStage
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.*
 import io.github.kineks.neteaseviewer.ui.home.HomeScreen
+import io.github.kineks.neteaseviewer.ui.home.WelcomeScreen
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
@@ -56,50 +55,27 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            DefaultView(model)
-        }
-
-        /*myActivityLauncher.launch(
-            Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata"),
-            ActivityOptionsCompat.makeBasic()
-        )*/
-    }
-
-    /*private val myActivityLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocumentTree()
-    ) { activityResult ->
-        if (activityResult != null) {
-            NeteaseCacheProvider.RFile.androidData = activityResult
-            lifecycleScope.launchWhenCreated {
-                model.reloadSongsList(
-                    NeteaseCacheProvider.getCacheSongs()
+            if (model.displayWelcomeScreen) {
+                WelcomeScreen(
+                    callback = {
+                        model.displayWelcomeScreen = false
+                        lifecycleScope.launchWhenCreated {
+                            Setting.setFirstTimeLaunch(false)
+                        }
+                    },
+                    checkPermission = {
+                        checkPermission { allGranted, _, _ ->
+                            it.invoke(allGranted)
+                        }
+                    },
+                    display = model.displayWelcomeScreen
                 )
-            }
-        }
-    }*/
-
-    override fun onStart() {
-        super.onStart()
-        lifecycleScope.launchWhenResumed {
-            // 检查权限, 如果已授权读写权限就初始化数据
-            PermissionX.init(this@MainActivity)
-                .permissions(
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    //, Manifest.permission.MANAGE_EXTERNAL_STORAGE
-                )
-                .onExplainRequestReason { scope, deniedList ->
-                    val message = getString(R.string.permission_request_description)
-                    scope.showRequestReasonDialog(
-                        deniedList, message,
-                        getString(R.string.permission_allow),
-                        getString(R.string.permission_deny)
-                    )
-                }
-                .request { allGranted, grantedList, deniedList ->
+            } else {
+                DefaultView(model)
+                checkPermission { allGranted, grantedList, deniedList ->
                     if (allGranted) {
                         // 注: 该函数仅在第一次调用会重新加载数据
                         // 重载数据请用 model.reload()
-
                         model.initList(
                             callback = {
                                 model.updateSongsInfo()
@@ -110,10 +86,45 @@ class MainActivity : FragmentActivity() {
                         // todo: 提示用户
                     }
                 }
+            }
         }
+    }
 
+    override fun onStart() {
+        super.onStart()
+        model.displayWelcomeScreen = true
 
     }
+
+
+    private fun checkPermission(
+        callback: (
+            allGranted: Boolean, grantedList: List<String>, deniedList: List<String>
+        ) -> Unit
+    ) {
+        lifecycleScope.launchWhenResumed {
+            // 检查权限, 如果已授权读写权限就初始化数据
+            PermissionX.init(this@MainActivity)
+                .permissions(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    //, Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                )
+                .onExplainRequestReason { scope, deniedList ->
+                    val message =
+                        io.github.kineks.neteaseviewer.getString(R.string.permission_request_description)
+                    scope.showRequestReasonDialog(
+                        deniedList, message,
+                        io.github.kineks.neteaseviewer.getString(R.string.permission_allow),
+                        io.github.kineks.neteaseviewer.getString(R.string.permission_deny)
+                    )
+                }
+                .request { allGranted, grantedList, deniedList ->
+                    callback.invoke(allGranted, grantedList, deniedList)
+                }
+        }
+    }
+
+
 }
 
 
@@ -234,7 +245,7 @@ fun DefaultView(model: MainViewModel) {
                                     openDialog = false
                                 },
                                 title = {
-                                    Text(text = "DecryptSongList")
+                                    Text(text = "批量导出缓存文件")
                                 },
                                 text = {
                                     Column(
@@ -243,31 +254,30 @@ fun DefaultView(model: MainViewModel) {
                                             .fillMaxWidth()
                                     ) {
                                         Text(
-                                            "FileSize: " + model.songs.size
+                                            "总缓存文件数: " + model.songs.size
                                         )
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .padding(top = 50.dp)
-                                                .height(20.dp)
-                                                .fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Row {
+                                        Column {
+                                            Row(
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
                                                 Checkbox(
                                                     checked = skipIncomplete,
                                                     onCheckedChange = { skipIncomplete = it }
                                                 )
-                                                Text("Skip Incomplete", textAlign = TextAlign.Start)
+                                                Text("跳过不完整缓存文件", textAlign = TextAlign.Start)
                                             }
 
-                                            Row {
+                                            Row(
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
                                                 Checkbox(
                                                     checked = skipMissingInfo,
                                                     onCheckedChange = { skipMissingInfo = it }
                                                 )
                                                 Text(
-                                                    "Skip MissingInfo",
+                                                    "跳过丢失info文件缓存",
                                                     textAlign = TextAlign.Start
                                                 )
                                             }
@@ -302,7 +312,7 @@ fun DefaultView(model: MainViewModel) {
                                             )
                                         }
                                     ) {
-                                        Text("Start")
+                                        Text("开始导出")
                                     }
                                 },
                                 dismissButton = {
@@ -311,7 +321,7 @@ fun DefaultView(model: MainViewModel) {
                                             openDialog = false
                                         }
                                     ) {
-                                        Text("Dismiss")
+                                        Text("取消")
                                     }
                                 }
                             )

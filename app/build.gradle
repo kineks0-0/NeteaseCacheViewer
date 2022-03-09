@@ -70,6 +70,7 @@ dependencies {
     implementation 'androidx.activity:activity:1.4.0'
     implementation 'androidx.fragment:fragment:1.4.1'
     implementation "androidx.documentfile:documentfile:1.0.1"
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
 
     // compose 的额外扩展库(图标库和livedata)
     implementation "androidx.compose.material:material-icons-extended:$compose_version"

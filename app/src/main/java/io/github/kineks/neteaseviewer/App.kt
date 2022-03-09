@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.os.Build
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.notification.INotification
 import com.lzx.starrysky.notification.NotificationConfig
@@ -12,6 +15,7 @@ import ealvatag.tag.TagOptionSingleton
 import io.github.kineks.neteaseviewer.data.player.ExoPlayback
 
 class App : Application() {
+
 
     companion object {
         @SuppressLint("StaticFieldLeak")
@@ -33,27 +37,11 @@ class App : Application() {
             .setOpenCache(false)
             .apply()
         StarrySky.bindService()
-        //StarrySky.openNotification()
         StarrySky.setNotificationConfig(
             NotificationConfig.create {
                 this.targetClass { MainActivity::javaClass.toString() }
             }
         )
-        /*
-        StarrySky.setNotificationFactory(
-            object : NotificationManager.NotificationFactory {
-                val SYSTEM_NOTIFICATION_FACTORY: NotificationManager.NotificationFactory = object :
-                    NotificationManager.NotificationFactory {
-                    override fun build(
-                        context: Context, config: NotificationConfig?
-                    ): INotification {
-                        return if (config == null) SystemNotification(context) else SystemNotification(context, config)
-                    }
-                }
-                override fun build(context: Context, config: NotificationConfig?): INotification =
-                    SYSTEM_NOTIFICATION_FACTORY.build(context,config)
-            }
-        )*/
 
         // 标记 jaudiotagger 的目标平台为安卓
         TagOptionSingleton.getInstance().isAndroid = true

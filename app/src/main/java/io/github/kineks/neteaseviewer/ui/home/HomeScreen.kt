@@ -41,6 +41,8 @@ import io.github.kineks.neteaseviewer.getString
 import io.github.kineks.neteaseviewer.updateSongsInfo
 import kotlinx.coroutines.*
 
+var working by mutableStateOf(false)
+
 @OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun HomeScreen(
@@ -49,6 +51,16 @@ fun HomeScreen(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
+    if (working) {
+        LinearProgressIndicator(
+            modifier = Modifier
+                .padding(
+                    top = 8.dp,
+                    bottom = 8.dp
+                )
+                .fillMaxWidth()
+        )
+    }
 
     LaunchedEffect(model.isUpdating) {
         if (model.isUpdating)
@@ -192,23 +204,25 @@ fun MusicItem(
             DropdownMenuItem(onClick = {
                 GlobalScope.launch {
                     expanded = false
+                    working = true
                     delay(250)
                     scope.launch {
                         scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                         scaffoldState.snackbarHostState
                             .showSnackbar(
-                                message = "Saving: index $index Song : " + music.displayFileName,
+                                message = "导出中: index $index Song : " + music.displayFileName,
                                 actionLabel = getString(R.string.snackbar_dismissed),
                                 duration = SnackbarDuration.Indefinite
                             )
                     }
                     music.decryptFile { out, hasError, e ->
+                        working = false
                         val text =
                             if (hasError) {
                                 Log.e("decrypt songs", e?.message, e)
-                                "Failure: DecryptSong was Failure : ${e?.message} ${out?.toString()}"
+                                "保存失败! : DecryptSong was Failure : ${e?.message} ${out?.toString()}"
                             } else
-                                "Saved: DecryptSong was Saved : ${music.displayFileName}"
+                                "保存成功: DecryptSong was Saved : ${music.displayFileName}"
 
                         scope.launch {
                             scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
@@ -228,7 +242,7 @@ fun MusicItem(
                     contentDescription = "Delete"
                 )
                 Text("   ")
-                Text("Download to Music Library")
+                Text("导出到音乐媒体库")
             }
             DropdownMenuItem(onClick = {
                 GlobalScope.launch {
@@ -237,7 +251,7 @@ fun MusicItem(
                         scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                         scaffoldState.snackbarHostState
                             .showSnackbar(
-                                message = "Deleted: index $index Song was Deleted : " + music.file.name,
+                                message = "删除: index $index Song was Deleted : " + music.file.name,
                                 actionLabel = getString(R.string.snackbar_dismissed),
                                 duration = SnackbarDuration.Short
                             )
@@ -249,7 +263,7 @@ fun MusicItem(
                     contentDescription = "Delete"
                 )
                 Text("   ")
-                Text("Delete the Cache File")
+                Text("删除缓存文件")
             }
         }
 

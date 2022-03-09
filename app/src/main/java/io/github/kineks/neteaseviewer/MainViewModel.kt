@@ -11,7 +11,10 @@ import io.github.kineks.neteaseviewer.data.api.Song
 import io.github.kineks.neteaseviewer.data.api.SongDetail
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.Setting
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Call
@@ -21,6 +24,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 
+@OptIn(InternalCoroutinesApi::class)
 class MainViewModel : ViewModel() {
 
     private val retrofit = Retrofit.Builder()
@@ -30,6 +34,8 @@ class MainViewModel : ViewModel() {
 
     private val api = retrofit.create(Api::class.java)
 
+    var displayWelcomeScreen by mutableStateOf(false)
+
     var isUpdating by mutableStateOf(false)
     var isUpdateComplete by mutableStateOf(false)
     var isFailure by mutableStateOf(false)
@@ -38,6 +44,15 @@ class MainViewModel : ViewModel() {
     private var initList = false
     var songs by mutableStateOf(ArrayList<Music>().toList())
         private set
+
+    init {
+        viewModelScope.launch {
+            Setting.firstTimeLaunch.collect { firstTimeLaunch ->
+                displayWelcomeScreen = firstTimeLaunch
+            }
+        }
+
+    }
 
     fun initList(init: Boolean = initList, callback: () -> Unit = {}) {
         if (!init) {
@@ -50,7 +65,7 @@ class MainViewModel : ViewModel() {
     }
 
     suspend fun reloadSongsList(list: List<Music>? = null): List<Music> {
-
+        initList = true
         //songs.clear()
         //songs.addAll(list ?: NeteaseCacheProvider.getCacheSongs())
         songs = list?.toArrayList() ?: NeteaseCacheProvider.getCacheSongs()
@@ -63,14 +78,15 @@ class MainViewModel : ViewModel() {
         music: Music
     ): Music {
         return withContext(Dispatchers.IO) {
-            return@withContext api.getSongDetail(music.id).execute().body()?.songs?.get(0)?.let { song ->
-                music.copy(
-                    song = song,
-                    name = song.name,
-                    artists = song.artists.getArtists(),
-                    id = song.id
-                )
-            } ?: music
+            return@withContext api.getSongDetail(music.id).execute().body()?.songs?.get(0)
+                ?.let { song ->
+                    music.copy(
+                        song = song,
+                        name = song.name,
+                        artists = song.artists.getArtists(),
+                        id = song.id
+                    )
+                } ?: music
         }
     }
 
