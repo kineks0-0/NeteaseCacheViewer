@@ -2,14 +2,17 @@
 一个管理网易云音乐缓存的应用[第四次重构中]
 
 
+![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-03-09_45.png)
+
 
 ## 目前进度:
-- 查看缓存列表[完成]
-- 获取缓存歌曲信息[完成]
-- 预览播放缓存[完成]
-- 导出缓存[完成]
-- 批量导出[完成]
-- 适配 Android Q+ 的存储框架 api [完成]
+- 查看缓存列表[✅ 完成]
+- 获取缓存歌曲信息[✅ 完成]
+- 预览播放缓存[✅ 完成]
+- 导出缓存[✅完成]
+- 批量导出[✅完成]
+- 适配 Android Q+ 的存储框架 api [✅完成]
+
 
 - 查看缓存具体信息
 - 批量操作缓存
@@ -60,7 +63,7 @@
 2. 请求访问所有文件权限,AndroidR+的设备中读取第三方应用缓存需要申请该权限.
 3. 请求网络权限,用于检查应用情况和更新缓存消息.
 ### 第三方SDK
-- Bugly: 用于统计和上报崩溃消息,《Bugly收集信息范围》https://bugly.qq.com/docs/user-guide/faq-android/?v=1.0.0#1-bugly
+- Bugly: 用于统计和上报崩溃消息,[《Bugly收集信息范围》](https://bugly.qq.com/docs/user-guide/faq-android/?v=1.0.0#1-bugly)
 
 ## 开源库使用
 - Compose
