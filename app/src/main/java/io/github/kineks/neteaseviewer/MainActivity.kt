@@ -58,10 +58,10 @@ class MainActivity : FragmentActivity() {
             if (model.displayWelcomeScreen) {
                 WelcomeScreen(
                     callback = {
-                        model.displayWelcomeScreen = false
                         lifecycleScope.launchWhenCreated {
                             Setting.setFirstTimeLaunch(false)
                         }
+                        model.displayWelcomeScreen = false
                     },
                     checkPermission = {
                         checkPermission { allGranted, _, _ ->
@@ -88,12 +88,6 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        model.displayWelcomeScreen = true
-
     }
 
 

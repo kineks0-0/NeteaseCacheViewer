@@ -68,6 +68,11 @@ fun WelcomeScreen(
             mutableStateOf("下一步")
         }
 
+        val nextPage: () -> Unit = {
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            }
+        }
         val needAgreeAgreementToast: () -> Unit = {
             scope.launch {
                 scaffoldState.snackbarHostState
@@ -76,12 +81,8 @@ fun WelcomeScreen(
                     .showSnackbar("需要同意隐私协议才能继续", actionLabel = "同意")
                 if (result == SnackbarResult.ActionPerformed) {
                     agreeAgreement = true
+                    nextPage.invoke()
                 }
-            }
-        }
-        val nextPage: () -> Unit = {
-            coroutineScope.launch {
-                pagerState.animateScrollToPage(pagerState.currentPage + 1)
             }
         }
         val onNextClick: () -> Unit = {
@@ -132,7 +133,7 @@ fun WelcomeScreen(
                 ) { page ->
 
                     floatingActionText = when (pagerState.currentPage) {
-                        pagerState.pageCount - 1 -> "我同意"
+                        pagerState.pageCount - 1 -> "完成"
                         else -> "下一步"
                     }
 
@@ -221,7 +222,7 @@ fun WelcomeScreen(
                                                     )
                                                     withStyle(
                                                         style = SpanStyle(
-                                                            color = Color.Blue,
+                                                            color = MaterialTheme.colors.primary,
                                                             fontWeight = FontWeight.Medium,
                                                             textDecoration = TextDecoration.Underline
                                                         )
@@ -265,7 +266,7 @@ fun WelcomeScreen(
                                                     onNextClick.invoke()
                                                 } else nextPage.invoke()
                                             }) {
-                                                Text(text = "完成")
+                                                Text(text = "我同意")
                                             }
                                         }
                                     }
@@ -448,5 +449,5 @@ fun InfoCard(
 @Composable
 @Preview
 fun Preview() {
-    WelcomeScreen(callback = {}, checkPermission = { false }, display = true)
+    WelcomeScreen(callback = { }, checkPermission = { }, display = true)
 }
