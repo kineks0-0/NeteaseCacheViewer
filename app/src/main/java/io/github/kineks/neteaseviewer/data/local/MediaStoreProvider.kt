@@ -35,9 +35,9 @@ object MediaStoreProvider {
         }
 
         val audioHeader = audioFile.audioHeader
-        val channels = audioHeader.channelCount
+        /*val channels = audioHeader.channelCount
         val bitRate = audioHeader.bitRate
-        val encodingType = audioHeader.encodingType
+        val encodingType = audioHeader.encodingType*/
 
         var tag: Tag = audioFile.tag.or(NullTag.INSTANCE)
         val title: String = tag.getValue(FieldKey.TITLE).or("")
@@ -86,8 +86,10 @@ object MediaStoreProvider {
                                 input.copyTo(it)
                             }
                         }
-
-                        tag.setArtwork(ArtworkFactory.createArtworkFromFile(artwork))
+                        val art = ArtworkFactory.createArtworkFromFile(artwork)
+                        // 部分flac文件不这么写会报错
+                        tag.deleteArtwork().createArtwork(art)
+                        tag.setArtwork(art)
                         try {
                             audioFile.save()
                         } catch (e: Exception) {
