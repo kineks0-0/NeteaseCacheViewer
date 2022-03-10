@@ -59,7 +59,7 @@ fun HomeScreen(
                     top = 8.dp,
                     bottom = 8.dp
                 )
-                .fillMaxWidth()
+                .fillMaxWidth().offset(y = -10.dp)
         )
     }
 
@@ -101,6 +101,7 @@ fun HomeScreen(
         state = refreshState,
         onRefresh = {
             refreshState.isRefreshing = true
+            working = true
             GlobalScope.launch {
                 val list = NeteaseCacheProvider.getCacheSongs()
                 if (list != model.songs) {
@@ -109,6 +110,7 @@ fun HomeScreen(
                 }
                 delay(1500)
                 refreshState.isRefreshing = false
+                working = false
             }
         }
     ) {
@@ -161,34 +163,107 @@ fun SongsList(
 
 }
 
-@OptIn(DelicateCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Preview(showBackground = true)
+@OptIn(DelicateCoroutinesApi::class)
 @Composable
-fun MusicItem(
-    index: Int = 0,
-    music: Music = EmptyMusic,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    scaffoldState: ScaffoldState = rememberScaffoldState(),
-    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
+fun MusicItemDropdownMenu(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onOpenDialog: (Boolean) -> Unit,
+    index: Int,
+    music: Music,
+    scope: CoroutineScope,
+    scaffoldState: ScaffoldState,
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange.invoke(false) }) {
+        DropdownMenuItem(onClick = {
+            GlobalScope.launch {
+                onExpandedChange.invoke(false)
+                working = true
+                delay(250)
+                scope.launch {
+                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                    scaffoldState.snackbarHostState
+                        .showSnackbar(
+                            message = "导出中: index $index Song " + music.displayFileName,
+                            actionLabel = getString(R.string.snackbar_dismissed),
+                            duration = SnackbarDuration.Indefinite
+                        )
+                }
+                music.decryptFile { out, hasError, e ->
+                    working = false
+                    val text =
+                        if (hasError) {
+                            Log.e("decrypt songs", e?.message, e)
+                            "保存失败! : ${e?.message} ${out?.toString()}"
+                        } else
+                            "保存成功:  ${music.displayFileName}"
+
+                    scope.launch {
+                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                        scaffoldState.snackbarHostState
+                            .showSnackbar(
+                                message = text,
+                                actionLabel = getString(R.string.snackbar_dismissed),
+                                duration = SnackbarDuration.Short
+                            )
+                    }
+
+                }
+            }
+        }) {
+            Icon(
+                Icons.Rounded.CloudDownload,
+                contentDescription = "Delete",
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            Text("导出到音乐媒体库")
+        }
+        DropdownMenuItem(onClick = {
+            GlobalScope.launch {
+                onExpandedChange.invoke(false)
+                music.delete()
+                scope.launch {
+                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                    scaffoldState.snackbarHostState
+                        .showSnackbar(
+                            message = "已删除: index $index  " + music.file.name,
+                            actionLabel = getString(R.string.snackbar_dismissed),
+                            duration = SnackbarDuration.Short
+                        )
+                }
+            }
+        }) {
+            Icon(
+                Icons.Rounded.Delete,
+                contentDescription = "Delete",
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            Text("删除缓存文件")
+        }
+        DropdownMenuItem(onClick = {
+            onOpenDialog.invoke(true)
+        }) {
+            Icon(
+                Icons.Rounded.Feed,
+                contentDescription = "Info",
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            Text("查看缓存详细")
+        }
+    }
+}
+
+@OptIn(DelicateCoroutinesApi::class)
+@Composable
+fun MusicItemAlertDialog(
+    openDialog: Boolean,
+    onOpenDialog: (Boolean) -> Unit,
+    music: Music,
 ) {
 
-    //Log.d("SongListItem", "Call once")
-    var expanded by remember {
-        mutableStateOf(false)
-    }
-    var alpha by remember {
-        mutableStateOf(1f)
-    }
-
-    LaunchedEffect(music.deleted) {
-        alpha = if (music.deleted) 0.4f else 1f
-    }
-
-
-    var openDialog by remember { mutableStateOf(false) }
     if (openDialog) {
         AlertDialog(
-            onDismissRequest = { openDialog = false },
+            onDismissRequest = { onOpenDialog.invoke(false) },
             title = { Text("缓存文件详细[${music.neteaseAppCache?.type ?: "Netease"},${music.id}]") },
             text = {
                 Column(
@@ -220,7 +295,7 @@ fun MusicItem(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        openDialog = false
+                        onOpenDialog.invoke(false)
 
                     }
                 ) {
@@ -228,11 +303,38 @@ fun MusicItem(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { openDialog = false }) { Text("取消") }
+                TextButton(onClick = { onOpenDialog.invoke(false) }) { Text("取消") }
             }
         )
     }
+}
 
+@OptIn(DelicateCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Preview(showBackground = true)
+@Composable
+fun MusicItem(
+    index: Int = 0,
+    music: Music = EmptyMusic,
+    scope: CoroutineScope = rememberCoroutineScope(),
+    scaffoldState: ScaffoldState = rememberScaffoldState(),
+    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
+) {
+
+    //Log.d("SongListItem", "Call once")
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+    var alpha by remember {
+        mutableStateOf(1f)
+    }
+
+    LaunchedEffect(music.deleted) {
+        alpha = if (music.deleted) 0.4f else 1f
+    }
+
+
+    var openDialog by remember { mutableStateOf(false) }
+    MusicItemAlertDialog(openDialog = openDialog, onOpenDialog = { openDialog = it }, music = music)
 
     Row(
         modifier = Modifier
@@ -243,89 +345,31 @@ fun MusicItem(
                     expanded = true
                 },
                 onClick = {
-                    clickable.invoke(index, music)
+                    if (music.deleted) {
+                        scope.launch {
+                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                            scaffoldState.snackbarHostState
+                                .showSnackbar(
+                                    message = "该文件已被删除",
+                                    actionLabel = getString(R.string.snackbar_dismissed),
+                                    duration = SnackbarDuration.Short
+                                )
+                        }
+                    } else {
+                        clickable.invoke(index, music)
+                    }
                 })
             .padding(top = 7.dp, bottom = 7.dp)
             .padding(start = 15.dp, end = 15.dp)
             .alpha(alpha)
     ) {
 
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(onClick = {
-                GlobalScope.launch {
-                    expanded = false
-                    working = true
-                    delay(250)
-                    scope.launch {
-                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                        scaffoldState.snackbarHostState
-                            .showSnackbar(
-                                message = "导出中: index $index Song : " + music.displayFileName,
-                                actionLabel = getString(R.string.snackbar_dismissed),
-                                duration = SnackbarDuration.Indefinite
-                            )
-                    }
-                    music.decryptFile { out, hasError, e ->
-                        working = false
-                        val text =
-                            if (hasError) {
-                                Log.e("decrypt songs", e?.message, e)
-                                "保存失败! : DecryptSong was Failure : ${e?.message} ${out?.toString()}"
-                            } else
-                                "保存成功: DecryptSong was Saved : ${music.displayFileName}"
-
-                        scope.launch {
-                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                            scaffoldState.snackbarHostState
-                                .showSnackbar(
-                                    message = text,
-                                    actionLabel = getString(R.string.snackbar_dismissed),
-                                    duration = SnackbarDuration.Short
-                                )
-                        }
-
-                    }
-                }
-            }) {
-                Icon(
-                    Icons.Rounded.CloudDownload,
-                    contentDescription = "Delete"
-                )
-                Text("   ")
-                Text("导出到音乐媒体库")
-            }
-            DropdownMenuItem(onClick = {
-                GlobalScope.launch {
-                    music.delete()
-                    scope.launch {
-                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                        scaffoldState.snackbarHostState
-                            .showSnackbar(
-                                message = "删除: index $index Song was Deleted : " + music.file.name,
-                                actionLabel = getString(R.string.snackbar_dismissed),
-                                duration = SnackbarDuration.Short
-                            )
-                    }
-                }
-            }) {
-                Icon(
-                    Icons.Rounded.Delete,
-                    contentDescription = "Delete"
-                )
-                Text("   ")
-                Text("删除缓存文件")
-            }
-            DropdownMenuItem(onClick = {
-                openDialog = true
-            }) {
-                Icon(
-                    Icons.Rounded.Feed,
-                    contentDescription = "Info"
-                )
-                Text("   ")
-                Text("查看缓存详细")
-            }
-        }
+        MusicItemDropdownMenu(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            onOpenDialog = { openDialog = it },
+            index, music, scope, scaffoldState
+        )
 
         Surface(
             shape = MaterialTheme.shapes.medium,
@@ -416,7 +460,7 @@ fun MusicItem(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(0.7f)
+                            //.weight(0.7f)
                     )
                 }
 
@@ -436,7 +480,7 @@ fun MusicItem(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(0.7f)
+                            //.weight(0.7f)
                             .padding(end = 2.dp)
                     )
                 }
@@ -474,7 +518,7 @@ fun MusicItem(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(0.7f)
+                            //.weight(0.7f)
                             .padding(end = 2.dp)
                     )
                 }
@@ -483,7 +527,6 @@ fun MusicItem(
                     text = buildAnnotatedString {
                         withStyle(
                             style = SpanStyle(
-                                //fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colors.primary.copy(alpha = 0.6f)
                             )
                         ) {
@@ -491,7 +534,7 @@ fun MusicItem(
                         }
                     }, modifier = Modifier
                         .fillMaxHeight()
-                        .weight(0.7f)
+                        //.weight(0.7f)
                         .padding(bottom = 0.dp, end = 10.dp)
                 )
 
@@ -516,7 +559,7 @@ fun InfoText(
     fontFamily: FontFamily? = null,
     letterSpacing: TextUnit = TextUnit.Unspecified,
     textDecoration: TextDecoration? = null,
-    textAlign: TextAlign? = TextAlign.End,
+    textAlign: TextAlign? = TextAlign.Center,
     lineHeight: TextUnit = TextUnit.Unspecified,
     overflow: TextOverflow = TextOverflow.Ellipsis,
     softWrap: Boolean = true,
@@ -527,7 +570,7 @@ fun InfoText(
 ) {
     Text(
         text = text,
-        modifier = modifier,
+        modifier = modifier.padding(start = 2.dp,end = 2.dp),
         color = color,
         fontSize = fontSize,
         fontFamily = fontFamily,

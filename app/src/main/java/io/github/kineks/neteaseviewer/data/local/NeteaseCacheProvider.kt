@@ -178,14 +178,16 @@ object NeteaseCacheProvider {
         list: List<Music>,
         skipIncomplete: Boolean = true,
         skipMissingInfo: Boolean = true,
-        callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
+        callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> },
+        isLastOne: (Boolean) -> Unit = {},
     ) {
         GlobalScope.launch {
             withContext(Dispatchers.IO) {
-                list.forEach {
-                    if (skipIncomplete && it.incomplete) return@forEach
-                    if (skipMissingInfo && it.info == null) return@forEach
-                    it.decryptFile(callback)
+                list.forEachIndexed { index, music ->
+                    if (index == list.lastIndex) isLastOne.invoke(true)
+                    if (skipIncomplete && music.incomplete) return@forEachIndexed
+                    if (skipMissingInfo && music.info == null) return@forEachIndexed
+                    music.decryptFile(callback)
                 }
             }
         }

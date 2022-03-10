@@ -42,6 +42,7 @@ import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.Setting
 import io.github.kineks.neteaseviewer.ui.home.HomeScreen
 import io.github.kineks.neteaseviewer.ui.home.WelcomeScreen
+import io.github.kineks.neteaseviewer.ui.home.working
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
@@ -72,13 +73,18 @@ class MainActivity : FragmentActivity() {
                 )
             } else {
                 DefaultView(model)
+                working = true
                 checkPermission { allGranted, grantedList, deniedList ->
                     if (allGranted) {
                         // 注: 该函数仅在第一次调用会重新加载数据
                         // 重载数据请用 model.reload()
+                        if (model.initList) {
+                            working = false
+                        }
                         model.initList(
                             callback = {
                                 model.updateSongsInfo()
+                                working = false
                             }
                         )
 
@@ -138,7 +144,7 @@ fun updateSongsInfo(
 }
 
 @Composable
-fun checkUpdate(model: MainViewModel) {
+fun CheckUpdate(model: MainViewModel) {
 
     if (model.hasUpdate) {
         AlertDialog(
@@ -207,7 +213,7 @@ fun DefaultView(model: MainViewModel) {
         systemUiController.setStatusBarColor(MaterialTheme.colors.background)
         systemUiController.setNavigationBarColor(MaterialTheme.colors.background)
 
-        checkUpdate(model)
+        CheckUpdate(model)
 
         Scaffold(
             scaffoldState = scaffoldState,
@@ -233,12 +239,7 @@ fun DefaultView(model: MainViewModel) {
 
                         if (openDialog) {
                             AlertDialog(
-                                onDismissRequest = {
-                                    // Dismiss the dialog when the user clicks outside the dialog or on the back
-                                    // button. If you want to disable that functionality, simply use an empty
-                                    // onCloseRequest.
-                                    openDialog = false
-                                },
+                                onDismissRequest = { openDialog = false },
                                 title = {
                                     Text(text = "批量导出缓存文件")
                                 },
@@ -285,25 +286,25 @@ fun DefaultView(model: MainViewModel) {
                                     TextButton(
                                         onClick = {
                                             openDialog = false
+                                            working = true
                                             NeteaseCacheProvider.decryptSongList(
-                                                model.songs,
-                                                skipIncomplete,
-                                                skipMissingInfo,
+                                                model.songs, skipIncomplete, skipMissingInfo,
                                                 callback = { out, hasError, e ->
                                                     if (hasError) {
                                                         Log.e("decrypt songs", e?.message, e)
                                                         scope.launch {
-                                                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                                            scaffoldState.snackbarHostState
+                                                                .currentSnackbarData?.dismiss()
                                                             scaffoldState.snackbarHostState
                                                                 .showSnackbar(
-                                                                    message = "DecryptSong was Failure : ${e?.message} ${out?.toString()}",
+                                                                    message = "导出歌曲失败 : ${e?.message} ${out?.toString()}",
                                                                     actionLabel = getString(R.string.snackbar_dismissed),
                                                                     duration = SnackbarDuration.Short
                                                                 )
                                                         }
                                                     }
-
-                                                }
+                                                },
+                                                isLastOne = { working = false }
                                             )
                                         }
                                     ) {
@@ -368,77 +369,71 @@ fun DefaultView(model: MainViewModel) {
 
             HorizontalPager(
                 state = state,
-                modifier = Modifier.fillMaxWidth(),
-                count = navItemList.size
+                count = navItemList.size,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colors.background)
+                    .padding(bottom = paddingValues.calculateBottomPadding())
             ) { page ->
-                selectedItem = currentPage
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colors.background)
-                        .padding(bottom = paddingValues.calculateBottomPadding())
-                ) {
+                LaunchedEffect(currentPage) {
+                    selectedItem = currentPage
+                }
+                when (navItemList[page]) {
+                    "home" -> {
+                        HomeScreen(
+                            model = model,
+                            scope = scope,
+                            scaffoldState = scaffoldState,
+                            clickable = { index, song ->
+                                model.selectedMusicItem = song
 
-                    /*val currentPageOffset = currentPageOffset
+                                val info = SongInfo(
+                                    songId = song.id.toString() + song.bitrate,
+                                    songUrl = song.file.toUri().toString(),
+                                    songName = song.name,
+                                    songCover = song.getAlbumPicUrl(200, 200) ?: "",
+                                    artist = song.artists + " - " + song.album
+                                )
+                                StarrySky.with().playMusicByInfo(info)
 
-                    Log.e("NaN", "currentPage: $page  currentPageOffset: $currentPageOffset", null)*/
-                    when (navItemList[page]) {
-                        "home" -> {
-                            HomeScreen(
-                                model = model,
-                                scope = scope,
-                                scaffoldState = scaffoldState,
-                                clickable = { index, song ->
-                                    model.selectedMusicItem = song
+                                scope.launch {
+                                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                    val result = scaffoldState.snackbarHostState
+                                        .showSnackbar(
+                                            message = "$index  ${song.name}",
+                                            actionLabel = getString(R.string.snackbar_dismissed),
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    when (result) {
+                                        SnackbarResult.ActionPerformed -> {
 
-                                    val info = SongInfo(
-                                        songId = song.id.toString() + song.bitrate,
-                                        songUrl = song.file.toUri().toString(),
-                                        songName = song.name,
-                                        songCover = song.getAlbumPicUrl(200, 200) ?: "",
-                                        artist = song.artists + " - " + song.album
-                                    )
-                                    StarrySky.with().playMusicByInfo(info)
+                                        }
+                                        SnackbarResult.Dismissed -> {
 
+                                        }
+                                    }
+                                }
+                                if (model.playOnError) {
                                     scope.launch {
                                         scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                        val result = scaffoldState.snackbarHostState
+                                        scaffoldState.snackbarHostState
                                             .showSnackbar(
-                                                message = "$index  ${song.name}",
+                                                message = "Play On Error : $index  ${song.name}",
                                                 actionLabel = getString(R.string.snackbar_dismissed),
                                                 duration = SnackbarDuration.Short
                                             )
-                                        when (result) {
-                                            SnackbarResult.ActionPerformed -> {
-
-                                            }
-                                            SnackbarResult.Dismissed -> {
-
-                                            }
-                                        }
                                     }
-                                    if (model.playOnError) {
-                                        scope.launch {
-                                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                            scaffoldState.snackbarHostState
-                                                .showSnackbar(
-                                                    message = "Play On Error : $index  ${song.name}",
-                                                    actionLabel = getString(R.string.snackbar_dismissed),
-                                                    duration = SnackbarDuration.Short
-                                                )
-                                        }
-                                        model.playOnError = false
-                                    }
-
+                                    model.playOnError = false
                                 }
-                            )
-                        }
-                        "play" -> {
-                            PlayScreen(model.selectedMusicItem)
-                        }
-                        "setting" -> {
-                            SettingScreen()
-                        }
+
+                            }
+                        )
+                    }
+                    "play" -> {
+                        PlayScreen(model.selectedMusicItem)
+                    }
+                    "setting" -> {
+                        SettingScreen()
                     }
                 }
 

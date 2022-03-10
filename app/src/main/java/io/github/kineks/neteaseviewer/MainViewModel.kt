@@ -47,7 +47,7 @@ class MainViewModel : ViewModel() {
     var isFailure by mutableStateOf(false)
 
     // todo: 状态保持与恢复
-    private var initList = false
+    var initList = false
     var songs by mutableStateOf(ArrayList<Music>().toList())
         private set
 

@@ -1,8 +1,8 @@
 
 
 {
-  "versionCode": 24,
-  "versionName": "Alpha 2.42",
-  "updateInfo": "NaN",
+  "versionCode": 25,
+  "versionName": "Alpha 2.5",
+  "updateInfo": "fix: 修复点小bug\nfeat: 加载或者批量导出支持显示进度条\nrefactor: UI细节调整",
   "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/"
 }
