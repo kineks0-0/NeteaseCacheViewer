@@ -1,6 +1,7 @@
 package io.github.kineks.neteaseviewer
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -31,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
@@ -105,6 +105,7 @@ class MainActivity : FragmentActivity() {
     }
 
 
+    @SuppressLint("InlinedApi")
     private fun checkPermission(
         callback: (
             allGranted: Boolean, grantedList: List<String>, deniedList: List<String>
@@ -113,10 +114,17 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launchWhenResumed {
             // 检查权限, 如果已授权读写权限就初始化数据
             PermissionX.init(this@MainActivity)
-                .permissions(
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    //, Manifest.permission.MANAGE_EXTERNAL_STORAGE
-                )
+                .run {
+                    if (App.isAndroidRorAbove)
+                        permissions(
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                            ,Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                        )
+                    else
+                        permissions(
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        )
+                }
                 .onExplainRequestReason { scope, deniedList ->
                     val message =
                         io.github.kineks.neteaseviewer.getString(R.string.permission_request_description)
@@ -406,27 +414,19 @@ fun DefaultView(model: MainViewModel) {
 
                                 scope.launch {
                                     scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                    val result = scaffoldState.snackbarHostState
+                                    scaffoldState.snackbarHostState
                                         .showSnackbar(
                                             message = "$index  ${song.name}",
                                             actionLabel = getString(R.string.snackbar_dismissed),
                                             duration = SnackbarDuration.Short
                                         )
-                                    when (result) {
-                                        SnackbarResult.ActionPerformed -> {
-
-                                        }
-                                        SnackbarResult.Dismissed -> {
-
-                                        }
-                                    }
                                 }
                                 if (model.playOnError) {
                                     scope.launch {
                                         scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
                                         scaffoldState.snackbarHostState
                                             .showSnackbar(
-                                                message = "Play On Error : $index  ${song.name}",
+                                                message = "播放出错 : $index  ${song.name}",
                                                 actionLabel = getString(R.string.snackbar_dismissed),
                                                 duration = SnackbarDuration.Short
                                             )

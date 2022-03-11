@@ -26,16 +26,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil.compose.rememberImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.R
-import io.github.kineks.neteaseviewer.data.local.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.getString
@@ -59,8 +58,11 @@ fun HomeScreen(
                     top = 8.dp,
                     bottom = 8.dp
                 )
-                .fillMaxWidth().offset(y = -8.dp)
+                .fillMaxWidth()
+                .offset(y = -8.dp)
+                .zIndex(1f)
         )
+
     }
 
     LaunchedEffect(model.isUpdating) {
@@ -310,13 +312,12 @@ fun MusicItemAlertDialog(
 }
 
 @OptIn(DelicateCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Preview(showBackground = true)
 @Composable
 fun MusicItem(
-    index: Int = 0,
-    music: Music = EmptyMusic,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    scaffoldState: ScaffoldState = rememberScaffoldState(),
+    index: Int,
+    music: Music,
+    scope: CoroutineScope,
+    scaffoldState: ScaffoldState,
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
@@ -334,7 +335,12 @@ fun MusicItem(
 
 
     var openDialog by remember { mutableStateOf(false) }
-    MusicItemAlertDialog(openDialog = openDialog, onOpenDialog = { openDialog = it }, music = music)
+    if (openDialog)
+        MusicItemAlertDialog(
+            openDialog = openDialog,
+            onOpenDialog = { openDialog = it },
+            music = music
+        )
 
     Row(
         modifier = Modifier
@@ -364,12 +370,6 @@ fun MusicItem(
             .alpha(alpha)
     ) {
 
-        MusicItemDropdownMenu(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            onOpenDialog = { openDialog = it },
-            index, music, scope, scaffoldState
-        )
 
         Surface(
             shape = MaterialTheme.shapes.medium,
@@ -388,6 +388,14 @@ fun MusicItem(
                     .size(50.dp)
                     .background(MaterialTheme.colors.onBackground.copy(alpha = 0.6f))
             )
+
+            if (expanded)
+                MusicItemDropdownMenu(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    onOpenDialog = { openDialog = it },
+                    index, music, scope, scaffoldState
+                )
         }
 
 
@@ -460,42 +468,24 @@ fun MusicItem(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
-                            //.weight(0.7f)
                     )
                 }
 
                 if (!NeteaseCacheProvider.fastReader && music.info == null) {
                     InfoText(
-                        buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colors.error.copy(alpha = 0.6f)
-                                )
-                            ) {
-                                append(getString(id = R.string.list_missing_info_file))
-                                append(" ")
-                                append(NeteaseCacheProvider.infoExt)
-                            }
-                        },
+                        text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
+                        color = MaterialTheme.colors.error.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
-                            //.weight(0.7f)
                             .padding(end = 2.dp)
                     )
                 }
 
                 if (music.deleted) {
                     InfoText(
-                        buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colors.error.copy(alpha = 0.7f)
-                                )
-                            ) {
-                                append(getString(id = R.string.list_deleted))
-                            }
-                        },
+                        text = getString(id = R.string.list_deleted),
+                        color = MaterialTheme.colors.error.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
@@ -506,35 +496,20 @@ fun MusicItem(
 
                 if (music.saved) {
                     InfoText(
-                        buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colors.primary.copy(alpha = 0.7f)
-                                )
-                            ) {
-                                append(getString(id = R.string.list_saved))
-                            }
-                        },
+                        text = getString(id = R.string.list_saved),
+                        color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxHeight()
-                            //.weight(0.7f)
                             .padding(end = 2.dp)
                     )
                 }
 
                 InfoText(
-                    text = buildAnnotatedString {
-                        withStyle(
-                            style = SpanStyle(
-                                color = MaterialTheme.colors.primary.copy(alpha = 0.6f)
-                            )
-                        ) {
-                            append(music.displayBitrate)
-                        }
-                    }, modifier = Modifier
+                    text = music.displayBitrate,
+                    color = MaterialTheme.colors.primary.copy(alpha = 0.6f),
+                    modifier = Modifier
                         .fillMaxHeight()
-                        //.weight(0.7f)
                         .padding(bottom = 0.dp, end = 10.dp)
                 )
 
@@ -570,7 +545,7 @@ fun InfoText(
 ) {
     Text(
         text = text,
-        modifier = modifier.padding(start = 2.dp,end = 2.dp),
+        modifier = modifier.padding(start = 2.dp, end = 2.dp),
         color = color,
         fontSize = fontSize,
         fontFamily = fontFamily,
@@ -584,6 +559,45 @@ fun InfoText(
         softWrap = softWrap,
         maxLines = maxLines,
         inlineContent = inlineContent,
+        onTextLayout = onTextLayout,
+        style = style
+    )
+}
+
+@Composable
+fun InfoText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = TextAlign.Center,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
+    softWrap: Boolean = true,
+    maxLines: Int = 1,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
+    style: TextStyle = MaterialTheme.typography.body2
+) {
+    Text(
+        text = text,
+        modifier = modifier.padding(start = 2.dp, end = 2.dp),
+        color = color,
+        fontSize = fontSize,
+        fontFamily = fontFamily,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
         onTextLayout = onTextLayout,
         style = style
     )

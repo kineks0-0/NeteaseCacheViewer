@@ -43,6 +43,8 @@ class App : Application() {
                 this.targetClass { MainActivity::javaClass.toString() }
             }
         )
+        StarrySky.setIsOpenNotification(true)
+        StarrySky.openNotification()
 
         // 标记 jaudiotagger 的目标平台为安卓
         TagOptionSingleton.getInstance().isAndroid = true
