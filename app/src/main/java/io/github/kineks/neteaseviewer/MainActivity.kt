@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
@@ -46,6 +47,7 @@ import io.github.kineks.neteaseviewer.ui.home.working
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 
@@ -74,22 +76,28 @@ class MainActivity : FragmentActivity() {
             } else {
                 DefaultView(model)
                 working = true
-                checkPermission { allGranted, grantedList, deniedList ->
-                    if (allGranted) {
-                        // 注: 该函数仅在第一次调用会重新加载数据
-                        // 重载数据请用 model.reload()
-                        if (model.initList) {
-                            working = false
-                        }
-                        model.initList(
-                            callback = {
-                                model.updateSongsInfo()
-                                working = false
-                            }
-                        )
+                // 避免在进入引导页时先申请权限
+                lifecycleScope.launchWhenStarted {
+                    Setting.firstTimeLaunch.collect { firstTimeLaunch ->
+                        if (firstTimeLaunch) return@collect
+                        checkPermission { allGranted, _, _ ->
+                            if (allGranted) {
+                                // 注: 该函数仅在第一次调用会重新加载数据
+                                // 重载数据请用 model.reload()
+                                if (model.initList) {
+                                    working = false
+                                }
+                                model.initList(
+                                    callback = {
+                                        model.updateSongsInfo()
+                                        working = false
+                                    }
+                                )
 
-                    } else {
-                        // todo: 提示用户
+                            } else {
+                                model.displayWelcomeScreen = true
+                            }
+                        }
                     }
                 }
             }

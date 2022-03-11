@@ -22,11 +22,16 @@
 
 # api包下的类混淆会导致无法正常反射
 -keep class io.github.kineks.neteaseviewer.data.api.** {*;}
--dontwarn io.github.kineks.neteaseviewer.**
--keep interface io.github.kineks.neteaseviewer.api.** { *; }
+-keep interface io.github.kineks.neteaseviewer.data.api.** { *; }
 
+-keep class io.github.kineks.neteaseviewer.data.** {*;}
+-keep interface io.github.kineks.neteaseviewer.data.** { *; }
 
 -keepnames class io.github.kineks.neteaseviewer.data.** {*;}
+-keepnames class io.github.kineks.neteaseviewer.** {*;}
+
+-dontwarn io.github.kineks.neteaseviewer.**
+
 -dontwarn com.google.android.exoplayer2.**
 
 -keep class ealvatag.tag.id3.framebody.** { *; }
@@ -46,3 +51,11 @@
 
 -dontwarn com.tencent.bugly.**
 -keep public class com.tencent.bugly.**{*;}
+
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int i(...);
+    public static int w(...);
+    public static int d(...);
+    public static int e(...);
+}

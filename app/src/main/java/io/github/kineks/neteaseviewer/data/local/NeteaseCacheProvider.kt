@@ -16,7 +16,7 @@ object NeteaseCacheProvider {
 
     // todo: 从应用配置读取而不是硬编码
     // todo: 修复 Android R 上无法访问 Android Data 的问题
-    var cacheDir: List<NeteaseAppCache> = ArrayList<NeteaseAppCache>().apply {
+    val cacheDir: List<NeteaseAppCache> = ArrayList<NeteaseAppCache>().apply {
         add(
             NeteaseAppCache(
                 "Netease", listOf(
@@ -46,6 +46,7 @@ object NeteaseCacheProvider {
     var fastReader = !true
     private val gson by lazy { Gson() }
 
+    // 在 Android P 及以下的使用的导出路径
     val musicDirectory =
         File(Environment.getExternalStorageDirectory().path + "/Music/NeteaseViewer/")
 

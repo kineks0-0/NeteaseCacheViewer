@@ -143,6 +143,6 @@ data class Music(
         deleted = this
     }
 
-    val inputStream get() = XorByteInputStream(file)
+    private val inputStream get() = XorByteInputStream(file)
 
 }

@@ -59,7 +59,7 @@ fun HomeScreen(
                     top = 8.dp,
                     bottom = 8.dp
                 )
-                .fillMaxWidth().offset(y = -10.dp)
+                .fillMaxWidth().offset(y = -8.dp)
         )
     }
 
@@ -137,7 +137,7 @@ fun SongsList(
     //Log.d("MainActivity", "Call once")
     if (available && songs.isNotEmpty()) {
         LazyColumn(
-            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp)
+            contentPadding = PaddingValues(top = 6.dp, bottom = 8.dp)
         ) {
             itemsIndexed(songs) { index, music ->
                 MusicItem(
