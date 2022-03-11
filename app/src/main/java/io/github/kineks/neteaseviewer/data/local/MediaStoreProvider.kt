@@ -25,6 +25,7 @@ object MediaStoreProvider {
 
     private lateinit var okHttpClient: OkHttpClient
     private val parentFile: File = App.context.cacheDir
+    private const val TAG = "MediaStoreProvider"
 
     suspend fun setInfo(music: Music, file: File) {
         music.song ?: return
@@ -33,11 +34,6 @@ object MediaStoreProvider {
         val audioFile = withContext(Dispatchers.IO) {
             AudioFileIO.read(file)
         }
-
-        /*val audioHeader = audioFile.audioHeader
-        val channels = audioHeader.channelCount
-        val bitRate = audioHeader.bitRate
-        val encodingType = audioHeader.encodingType*/
 
         var tag: Tag = audioFile.tag.or(NullTag.INSTANCE)
         val title: String = tag.getValue(FieldKey.TITLE).or("")
@@ -62,12 +58,7 @@ object MediaStoreProvider {
 
             val supportedFields: ImmutableSet<FieldKey> = tag.supportedFields
             if (supportedFields.contains(FieldKey.COVER_ART)) {
-                println("File type supports Artwork")
-                /*tag.setArtwork(
-                    ArtworkFactory.createLinkedArtworkFromURL(
-                        pic
-                    )
-                )*/
+                Log.d(TAG,"File type supports Artwork")
 
                 if (!this::okHttpClient.isInitialized) okHttpClient = OkHttpClient()
                 val request: Request = Request.Builder().url(pic).build()
@@ -117,10 +108,10 @@ object MediaStoreProvider {
     }
 
     //fileName为需要保存到媒体的文件名
-    fun insert2Music(inputStream: InputStream, music: Music): Uri? {
+    fun insert2Music(inputStream: InputStream, music: Music,ext:String = "mp3"): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
-        val fileName: String = music.displayFileName
+        val fileName: String = "${music.displayFileName}.$ext"
         songDetails.apply {
             put(MediaStore.Audio.AudioColumns.DISPLAY_NAME, fileName)
             put(MediaStore.Audio.AudioColumns.TITLE, music.name)

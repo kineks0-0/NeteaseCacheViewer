@@ -72,7 +72,6 @@ class MainViewModel : ViewModel() {
                         when (stage.stage) {
                             PlaybackStage.ERROR -> {
                                 playOnError = true
-                                print(playOnError)
                             }
                             PlaybackStage.SWITCH -> {
                                 if (stage.songInfo?.songUrl ==

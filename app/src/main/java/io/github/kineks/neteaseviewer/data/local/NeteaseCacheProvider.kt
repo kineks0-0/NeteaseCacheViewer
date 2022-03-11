@@ -56,7 +56,6 @@ object NeteaseCacheProvider {
             neteaseAppCache.rFiles.forEach {
                 var size = -1
                 it.read2File { index, file ->
-                    print(file.absolutePath)
                     if (file.extension == playExt) {
                         files.add(file)
                     }
@@ -85,7 +84,6 @@ object NeteaseCacheProvider {
                 it.rFiles.forEach { rFile ->
                     var size = -1
                     rFile.read2File { index, file ->
-                        print(file.absolutePath)
                         if (file.extension == playExt) {
                             files.add(file)
                         }

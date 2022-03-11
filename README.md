@@ -5,7 +5,7 @@
 [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.6.10-blue.svg)](https://kotlinlang.org)
 [![GitHub Releases](https://img.shields.io/github/downloads/kineks0-0/NeteaseCacheViewer/latest/total?logo=github)](https://github.com/kineks0-0/NeteaseCacheViewer/releases)
 
-![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-03-09_45.png)
+![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-03-11_41.webp)
 
 ## ✨ 特性
 - 查看来自多个网易云音乐版本的缓存

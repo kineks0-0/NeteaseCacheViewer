@@ -112,7 +112,8 @@ data class Music(
                 if (App.isAndroidQorAbove) {
                     out = MediaStoreProvider.insert2Music(
                         file.inputStream(),
-                        this@Music
+                        this@Music,
+                        ext
                     )
                         ?: throw Exception("")
                     Log.d("Music", out.toString())
