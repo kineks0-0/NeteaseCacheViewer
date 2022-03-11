@@ -59,7 +59,7 @@ fun HomeScreen(
                     bottom = 8.dp
                 )
                 .fillMaxWidth()
-                .offset(y = -8.dp)
+                .offset(y = (-8).dp)
                 .zIndex(1f)
         )
 

@@ -15,15 +15,15 @@ import ealvatag.tag.images.ArtworkFactory
 import io.github.kineks.neteaseviewer.App
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.*
-import okio.IOException
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.InputStream
 
 
 object MediaStoreProvider {
 
-    lateinit var okHttpClient: OkHttpClient
+    private lateinit var okHttpClient: OkHttpClient
     private val parentFile: File = App.context.cacheDir
 
     suspend fun setInfo(music: Music, file: File) {
@@ -34,8 +34,8 @@ object MediaStoreProvider {
             AudioFileIO.read(file)
         }
 
-        val audioHeader = audioFile.audioHeader
-        /*val channels = audioHeader.channelCount
+        /*val audioHeader = audioFile.audioHeader
+        val channels = audioHeader.channelCount
         val bitRate = audioHeader.bitRate
         val encodingType = audioHeader.encodingType*/
 
@@ -117,7 +117,7 @@ object MediaStoreProvider {
     }
 
     //fileName为需要保存到媒体的文件名
-    fun insert2Music(inputStream: InputStream, music: Music, ext: String = "mp3"): Uri? {
+    fun insert2Music(inputStream: InputStream, music: Music): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
         val fileName: String = music.displayFileName

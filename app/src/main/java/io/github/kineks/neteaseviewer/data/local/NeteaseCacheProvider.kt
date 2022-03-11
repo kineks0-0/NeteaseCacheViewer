@@ -3,14 +3,10 @@ package io.github.kineks.neteaseviewer.data.local
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
-import androidx.core.net.toFile
-import androidx.core.net.toUri
 import com.google.gson.Gson
 import io.github.kineks.neteaseviewer.toRFile
 import kotlinx.coroutines.*
 import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
 
 object NeteaseCacheProvider {
 
@@ -86,9 +82,9 @@ object NeteaseCacheProvider {
 
         withContext(Dispatchers.IO) {
             cacheDir.forEach {
-                it.rFiles.forEach {
+                it.rFiles.forEach { rFile ->
                     var size = -1
-                    it.read2File { index, file ->
+                    rFile.read2File { index, file ->
                         print(file.absolutePath)
                         if (file.extension == playExt) {
                             files.add(file)
@@ -98,7 +94,7 @@ object NeteaseCacheProvider {
                     size++
                     Log.d(
                         this.javaClass.name,
-                        "load file : ${it.type}://${it.path}  size : " + size//files.size
+                        "load file : ${rFile.type}://${rFile.path}  size : " + size//files.size
                     )
                 }
             }
