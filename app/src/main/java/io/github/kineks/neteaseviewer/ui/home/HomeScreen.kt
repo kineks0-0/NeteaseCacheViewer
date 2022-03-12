@@ -437,7 +437,7 @@ fun MusicItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(start = 11.dp, top = 1.dp, bottom = 2.dp, end = 5.dp)
+                    .padding(start = 9.dp, top = 1.dp, bottom = 2.dp, end = 5.dp)
             ) {
 
                 InfoText(
@@ -447,8 +447,8 @@ fun MusicItem(
                     },
                     textAlign = TextAlign.Start,
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .weight(2.8f)
+                        .fillMaxWidth()
+                        //.weight(3f)
                 )
 
                 if (music.incomplete) {
@@ -467,7 +467,7 @@ fun MusicItem(
                         },
                         textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .fillMaxHeight()
+                            //.fillMaxHeight()
                     )
                 }
 
@@ -477,7 +477,7 @@ fun MusicItem(
                         color = MaterialTheme.colors.error.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .fillMaxHeight()
+                            //.fillMaxHeight()
                             .padding(end = 2.dp)
                     )
                 }
@@ -488,8 +488,7 @@ fun MusicItem(
                         color = MaterialTheme.colors.error.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .weight(0.7f)
+                            //.fillMaxHeight()
                             .padding(end = 2.dp)
                     )
                 }
@@ -500,17 +499,20 @@ fun MusicItem(
                         color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .fillMaxHeight()
+                            //.fillMaxHeight()
                             .padding(end = 2.dp)
                     )
                 }
 
                 InfoText(
                     text = music.displayBitrate,
+                    textAlign= TextAlign.End,
                     color = MaterialTheme.colors.primary.copy(alpha = 0.6f),
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(bottom = 0.dp, end = 10.dp)
+                        //.fillMaxHeight()
+                        //.weight(0.8f)
+                        //.width(20.dp)
+                        .padding(end = 8.dp)
                 )
 
 

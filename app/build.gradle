@@ -93,7 +93,7 @@ dependencies {
     implementation 'com.guolindev.permissionx:permissionx:1.6.1'
 
     // 播放控制
-    implementation 'com.github.EspoirX:StarrySky:v2.6.4'
+    implementation 'com.github.EspoirX:StarrySky:v2.6.5'
     implementation 'com.google.android.exoplayer:exoplayer-core:2.17.0'
     implementation 'com.google.android.exoplayer:exoplayer-ui:2.17.0'
     configurations.all {

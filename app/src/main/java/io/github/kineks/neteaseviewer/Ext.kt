@@ -8,7 +8,6 @@ import android.os.Build
 import android.os.Environment
 import android.os.FileUtils
 import android.provider.MediaStore
-import androidx.core.net.toFile
 import io.github.kineks.neteaseviewer.data.api.ArtistXX
 import io.github.kineks.neteaseviewer.data.local.RFile
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,12 +20,12 @@ import kotlin.experimental.and
 
 fun Array<Int>.toURLArray(): String {
     val str = StringBuilder()
-    this.forEachIndexed { index, i ->
+    this.forEachIndexed { index, id ->
         str.append(
             when (index) {
-                0 -> "[$i,"
-                this.lastIndex -> "$i]"
-                else -> "$i,"
+                0 -> "[$id,"
+                this.lastIndex -> "$id]"
+                else -> "$id,"
             }
         )
     }
