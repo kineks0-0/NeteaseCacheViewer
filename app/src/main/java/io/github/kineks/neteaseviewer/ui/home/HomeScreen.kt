@@ -19,7 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.*
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -353,23 +356,13 @@ fun MusicItem(
                     expanded = true
                 },
                 onClick = {
-                    if (music.deleted) {
-                        scope.launch {
-                            scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                            scaffoldState.snackbarHostState
-                                .showSnackbar(
-                                    message = "该文件已被删除",
-                                    actionLabel = getString(R.string.snackbar_dismissed),
-                                    duration = SnackbarDuration.Short
-                                )
-                        }
-                    } else {
-                        clickable.invoke(index, music)
-                    }
+                    clickable.invoke(index, music)
                 })
             .padding(top = 7.dp, bottom = 7.dp)
             .padding(start = 15.dp, end = 15.dp)
-            .alpha(alpha)
+            .alpha(alpha),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
 
 
@@ -382,7 +375,8 @@ fun MusicItem(
                     // 添加 250y250 参数限制宽高来优化加载大小,避免原图加载
                     data = music.smallAlbumArt ?: "",
                     builder = {
-                        crossfade(true)
+                        // 加载完淡入图片
+                        //crossfade(true)
                     }
                 ),
                 contentDescription = "Song Album Art",
@@ -401,32 +395,28 @@ fun MusicItem(
         }
 
 
-        Column {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 10.dp, top = 2.dp, bottom = 1.dp, end = 6.dp)
+                    .padding(start = 10.dp, end = 6.dp,bottom = 4.dp)
             ) {
                 Text(
-                    buildAnnotatedString {
-                        withStyle(
-                            style = SpanStyle(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colors.primary.copy(alpha = 0.7f)
-                            )
-                        ) {
-                            val indexDisplay = index + 1
-                            append("$indexDisplay")
-                        }
-                    },
+                    text = (index + 1).toString(),
+                    color = MaterialTheme.colors.primary,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1,
                     modifier = Modifier
-                        //.width(18.dp)
-                        .padding(end = 10.dp)
+                        .padding(end = 8.dp)
+                        .alpha(0.85f)
                 )
                 Text(
                     text = music.name,
@@ -439,8 +429,7 @@ fun MusicItem(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(start = 9.dp, top = 1.dp, bottom = 2.dp, end = 8.dp)
+                    .padding(start = 9.dp, end = 8.dp,top = 3.dp, bottom = 1.dp)
             ) {
 
                 InfoText(
@@ -450,43 +439,31 @@ fun MusicItem(
                     },
                     textAlign = TextAlign.Start,
                     modifier = Modifier
-                    //.fillMaxWidth()
-                    //.weight(3f)
+                        .weight(0.75f)
                 )
 
                 Row(
                     horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .weight(0.25f)
+                        .alpha(0.85f)
                 ) {
 
                     if (music.incomplete) {
-
                         InfoText(
-                            buildAnnotatedString {
-                                withStyle(
-                                    style = SpanStyle(
-                                        //fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colors.error.copy(alpha = 0.6f)
-                                    )
-                                ) {
-                                    append(
-                                        getString(id = R.string.list_incomplete)
-                                    )
-                                }
-                            },
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                            //.fillMaxHeight()
+                            text = getString(id = R.string.list_incomplete),
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colors.error,
+                            textAlign = TextAlign.Center
                         )
                     }
 
                     if (!NeteaseCacheProvider.fastReader && music.info == null) {
                         InfoText(
                             text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
-                            color = MaterialTheme.colors.error.copy(alpha = 0.6f),
+                            color = MaterialTheme.colors.error,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
-                                //.fillMaxHeight()
                                 .padding(end = 2.dp)
                         )
                     }
@@ -494,10 +471,9 @@ fun MusicItem(
                     if (music.deleted) {
                         InfoText(
                             text = getString(id = R.string.list_deleted),
-                            color = MaterialTheme.colors.error.copy(alpha = 0.7f),
+                            color = MaterialTheme.colors.error,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
-                                //.fillMaxHeight()
                                 .padding(end = 2.dp)
                         )
                     }
@@ -505,10 +481,9 @@ fun MusicItem(
                     if (music.saved) {
                         InfoText(
                             text = getString(id = R.string.list_saved),
-                            color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
+                            color = MaterialTheme.colors.primary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
-                                //.fillMaxHeight()
                                 .padding(end = 2.dp)
                         )
                     }
@@ -516,12 +491,9 @@ fun MusicItem(
                     InfoText(
                         text = music.displayBitrate,
                         textAlign = TextAlign.End,
-                        color = MaterialTheme.colors.primary.copy(alpha = 0.6f),
+                        color = MaterialTheme.colors.primary,
                         modifier = Modifier
-                            //.fillMaxHeight()
-                            //.weight(0.8f)
-                            .width(55.dp)
-                        /*.padding(end = 8.dp)*/
+                            .width(40.dp)
                     )
                 }
 

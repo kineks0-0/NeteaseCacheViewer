@@ -69,12 +69,12 @@ fun Byte.toHex(): String {
 
 fun String.replaceIllegalChar() =
     this.replace("/", "／")
-        .replace("*", Char(10034).toString())
-        .replace("?", "？")
-        .replace("|", "｜")
-        .replace(":", ":")
-        .replace("<", "＜")
-        .replace(">", "＞")
+        //.replace("*", Char(10034).toString())
+        //.replace("?", "？")
+        //.replace("|", "｜")
+        //.replace(":", ":")
+        //.replace("<", "＜")
+        //.replace(">", "＞")
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun File.scanFile(context: Context = App.context) = suspendCancellableCoroutine<Uri?>{ cont->

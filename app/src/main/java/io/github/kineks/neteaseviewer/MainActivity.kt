@@ -401,6 +401,20 @@ fun DefaultView(model: MainViewModel) {
                             scope = scope,
                             scaffoldState = scaffoldState,
                             clickable = { index, song ->
+
+                                if (song.deleted) {
+                                    scope.launch {
+                                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                                        scaffoldState.snackbarHostState
+                                            .showSnackbar(
+                                                message = "该文件已被删除",
+                                                actionLabel = getString(R.string.snackbar_dismissed),
+                                                duration = SnackbarDuration.Short
+                                            )
+                                    }
+                                    return@HomeScreen
+                                }
+
                                 model.selectedMusicItem = song
 
                                 val info = SongInfo(

@@ -49,27 +49,36 @@ data class Music(
             }
         }
 
-    val displayFileName
-        get() = when (bitrate) {
-            999000 -> "$artists - $name".replaceIllegalChar()
-            else -> ("$artists - $name .$displayBitrate")
-                .replaceIllegalChar()
+    val displayFileName: String
+        get() {
+            var name = "$artists - $name"
+            // 避免极端情况导致文件名过长
+            if (name.length > 80)
+                name = if (this.name.length > 80)
+                    this.name.substring(0, 80)
+                else
+                    this.name
+
+            // 无损文件不需要添加比特率避免重名
+            if (bitrate != 999000)
+                name += " .${displayBitrate.replace(" ", "")}"
+            return name.replaceIllegalChar()
         }
 
 
     val displayBitrate = when (bitrate) {
         1000 -> {
-            "N/A kbps"//试听
+            "trial"//试听
         }
         999000 -> {
-            "FLAC"//无损
+            "flac"//无损
         }
-        else -> "${bitrate / 1000} kb/s"
+        else -> "${bitrate / 1000} k"
     }
 
-    val smallAlbumArt by lazy { getAlbumPicUrl(80,80) }
+    val smallAlbumArt by lazy { getAlbumPicUrl(80, 80) }
     fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? {
-        Log.d("Music","$id - $width $height")
+        Log.d("Music", "$id - $width $height")
         if (song?.album?.picUrl != null) {
             // api 如果不同时限定宽高参数就会默认返回原图
             if (width != -1 && height != -1) {
