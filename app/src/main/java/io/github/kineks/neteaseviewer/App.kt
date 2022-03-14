@@ -17,6 +17,7 @@ class App : Application() {
     companion object {
         @SuppressLint("StaticFieldLeak")
         lateinit var context: Context
+        // 当前系统版本 等于或大于 “X” 版本
         val isAndroidPorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
         val isAndroidQorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         val isAndroidRorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
@@ -33,20 +34,19 @@ class App : Application() {
             .setNotificationType(INotification.SYSTEM_NOTIFICATION)
             .setNotificationSwitch(true)
             .setOpenCache(false)
+            .isStartService(false)
             .apply()
         StarrySky.bindService()
         StarrySky.setNotificationConfig(
             NotificationConfig.create {
-                this.targetClass { MainActivity::javaClass.toString() }
+                targetClass { "io.github.kineks.neteaseviewer.MainActivity" }
             }
         )
-        StarrySky.setIsOpenNotification(true)
-        StarrySky.openNotification()
 
         // 标记 jaudiotagger 的目标平台为安卓
         TagOptionSingleton.getInstance().isAndroid = true
 
-        // 设置 bugly 信息
+        // 设置 bugly 配置信息
         CrashReport.initCrashReport(applicationContext, "47b671f209", BuildConfig.DEBUG)
 
     }

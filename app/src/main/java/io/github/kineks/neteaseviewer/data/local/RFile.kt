@@ -22,6 +22,7 @@ data class RFile(val type: RFileType, val path: String) {
         SingleUri("single uri"),
         SingleFile("single file"),
 
+        // 某个存储域下的目录或文件
         ShareStorage("share storage"),
         AndroidData("android data"),
         Root("root")

@@ -139,7 +139,8 @@ fun SongsList(
     //Log.d("MainActivity", "Call once")
     if (available && songs.isNotEmpty()) {
         LazyColumn(
-            contentPadding = PaddingValues(top = 6.dp, bottom = 8.dp)
+            contentPadding = PaddingValues(top = 6.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
             itemsIndexed(songs) { index, music ->
                 MusicItem(
@@ -275,21 +276,22 @@ fun MusicItemAlertDialog(
                 ) {
                     Text(
                         buildAnnotatedString {
-                            append("歌曲名称: " + music.name + "\n")
-                            append("歌曲专辑: " + music.album + "\n")
-                            append("歌曲歌手: " + music.artists + "\n")
-                            append("导出文件名: " + music.displayFileName + "\n")
                             append("\n")
+                            append("歌曲名称: " + music.name + "\n\n")
+                            append("歌曲专辑: " + music.album + "\n\n")
+                            append("歌曲歌手: " + music.artists + "\n\n")
+                            append("导出文件名: " + music.displayFileName + "\n\n")
+                            append("\n\n")
 
-                            append("完整缓存大小: " + (music.info?.fileSize ?: -1) + "\n")
-                            append("完整缓存流派: " + music.displayBitrate + "\n")
-                            append("完整缓存时长: " + (music.info?.duration ?: -1) + "\n")
-                            append("完整缓存MD5: " + (music.info?.fileMD5 ?: -1) + "\n")
-                            append("\n")
+                            append("完整缓存大小: " + (music.info?.fileSize ?: -1) + "\n\n")
+                            append("该缓存比特率: " + music.displayBitrate + "\n\n")
+                            append("完整缓存时长: " + (music.info?.duration ?: -1) + "\n\n")
+                            append("完整缓存MD5: " + (music.info?.fileMD5 ?: -1) + "\n\n")
+                            append("\n\n")
 
-                            append("文件名称: " + music.file.name + "\n")
-                            append("文件大小: " + music.file.length() + "\n")
-                            append("文件路径: " + music.file.canonicalPath + "\n")
+                            append("文件大小: " + music.file.length() + "\n\n")
+                            append("文件名称: " + music.file.name + "\n\n")
+                            append("文件路径: " + music.file.canonicalPath + "\n\n")
                         }
                     )
                 }
@@ -378,7 +380,7 @@ fun MusicItem(
             Image(
                 painter = rememberImagePainter(
                     // 添加 250y250 参数限制宽高来优化加载大小,避免原图加载
-                    data = music.getAlbumPicUrl(80, 80) ?: "",
+                    data = music.smallAlbumArt ?: "",
                     builder = {
                         crossfade(true)
                     }
@@ -401,43 +403,44 @@ fun MusicItem(
 
         Column {
 
-            Text(
-                buildAnnotatedString {
-                    withStyle(
-                        style = SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colors.primary.copy(alpha = 0.7f)
-                        )
-                    ) {
-                        val indexDisplay = index + 1
-                        append("$indexDisplay ")
-                        when (true) {
-                            indexDisplay < 10 -> {
-                                append("  ")
-                            }
-                            indexDisplay < 100 -> {
-                                append(" ")
-                            }
-                            else -> {}
-                        }
-                    }
-                    append(music.name)
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Start,
-                style = MaterialTheme.typography.subtitle1,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1.2f)
-                    .padding(start = 10.dp, top = 2.dp, bottom = 1.dp, end = 5.dp)
-            )
-
+                    .padding(start = 10.dp, top = 2.dp, bottom = 1.dp, end = 6.dp)
+            ) {
+                Text(
+                    buildAnnotatedString {
+                        withStyle(
+                            style = SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colors.primary.copy(alpha = 0.7f)
+                            )
+                        ) {
+                            val indexDisplay = index + 1
+                            append("$indexDisplay")
+                        }
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Start,
+                    style = MaterialTheme.typography.subtitle1,
+                    modifier = Modifier
+                        //.width(18.dp)
+                        .padding(end = 10.dp)
+                )
+                Text(
+                    text = music.name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Start,
+                    style = MaterialTheme.typography.subtitle1
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(start = 9.dp, top = 1.dp, bottom = 2.dp, end = 5.dp)
+                    .padding(start = 9.dp, top = 1.dp, bottom = 2.dp, end = 8.dp)
             ) {
 
                 InfoText(
@@ -447,73 +450,80 @@ fun MusicItem(
                     },
                     textAlign = TextAlign.Start,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        //.weight(3f)
+                    //.fillMaxWidth()
+                    //.weight(3f)
                 )
 
-                if (music.incomplete) {
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    if (music.incomplete) {
+
+                        InfoText(
+                            buildAnnotatedString {
+                                withStyle(
+                                    style = SpanStyle(
+                                        //fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colors.error.copy(alpha = 0.6f)
+                                    )
+                                ) {
+                                    append(
+                                        getString(id = R.string.list_incomplete)
+                                    )
+                                }
+                            },
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                            //.fillMaxHeight()
+                        )
+                    }
+
+                    if (!NeteaseCacheProvider.fastReader && music.info == null) {
+                        InfoText(
+                            text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
+                            color = MaterialTheme.colors.error.copy(alpha = 0.6f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                //.fillMaxHeight()
+                                .padding(end = 2.dp)
+                        )
+                    }
+
+                    if (music.deleted) {
+                        InfoText(
+                            text = getString(id = R.string.list_deleted),
+                            color = MaterialTheme.colors.error.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                //.fillMaxHeight()
+                                .padding(end = 2.dp)
+                        )
+                    }
+
+                    if (music.saved) {
+                        InfoText(
+                            text = getString(id = R.string.list_saved),
+                            color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                //.fillMaxHeight()
+                                .padding(end = 2.dp)
+                        )
+                    }
+
                     InfoText(
-                        buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    //fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colors.error.copy(alpha = 0.6f)
-                                )
-                            ) {
-                                append(
-                                    getString(id = R.string.list_incomplete)
-                                )
-                            }
-                        },
-                        textAlign = TextAlign.Center,
+                        text = music.displayBitrate,
+                        textAlign = TextAlign.End,
+                        color = MaterialTheme.colors.primary.copy(alpha = 0.6f),
                         modifier = Modifier
                             //.fillMaxHeight()
+                            //.weight(0.8f)
+                            .width(55.dp)
+                        /*.padding(end = 8.dp)*/
                     )
                 }
-
-                if (!NeteaseCacheProvider.fastReader && music.info == null) {
-                    InfoText(
-                        text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
-                        color = MaterialTheme.colors.error.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            //.fillMaxHeight()
-                            .padding(end = 2.dp)
-                    )
-                }
-
-                if (music.deleted) {
-                    InfoText(
-                        text = getString(id = R.string.list_deleted),
-                        color = MaterialTheme.colors.error.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            //.fillMaxHeight()
-                            .padding(end = 2.dp)
-                    )
-                }
-
-                if (music.saved) {
-                    InfoText(
-                        text = getString(id = R.string.list_saved),
-                        color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            //.fillMaxHeight()
-                            .padding(end = 2.dp)
-                    )
-                }
-
-                InfoText(
-                    text = music.displayBitrate,
-                    textAlign= TextAlign.End,
-                    color = MaterialTheme.colors.primary.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        //.fillMaxHeight()
-                        //.weight(0.8f)
-                        //.width(20.dp)
-                        .padding(end = 8.dp)
-                )
 
 
             }

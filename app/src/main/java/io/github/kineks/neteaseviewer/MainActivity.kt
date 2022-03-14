@@ -341,7 +341,7 @@ fun DefaultView(model: MainViewModel) {
                         IconButton(onClick = {
                             openDialog = true
                         }) {
-                            Icon(Icons.Rounded.SaveAlt, contentDescription = "Save All File")
+                            Icon(Icons.Rounded.SaveAlt, contentDescription = "导出所有文件")
                         }
                     }
                 )
