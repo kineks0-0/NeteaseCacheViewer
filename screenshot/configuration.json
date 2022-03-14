@@ -1,8 +1,8 @@
 
 
 {
-  "versionCode": 27,
-  "versionName": "Alpha 2.7",
+  "versionCode": 28,
+  "versionName": "Alpha 2.8",
   "updateInfo": "修复：首次启动时没有同意授权就申请权限的情况\n修复：媒体控制在WSA概率不显示\n功能：将 targetSdk 上升到 32 (AndroidSv2)\n重构：UI 细节调整，性能优化",
   "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/"
 }

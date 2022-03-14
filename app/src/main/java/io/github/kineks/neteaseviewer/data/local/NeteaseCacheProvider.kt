@@ -44,7 +44,7 @@ object NeteaseCacheProvider {
 
     // 在 Android P 及以下的使用的导出路径
     val musicDirectory =
-        File(Environment.getExternalStorageDirectory().path + "/Music/NeteaseViewer/")
+        File(Environment.getExternalStorageDirectory().path + "/" + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/")
 
 
     suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<File> {
