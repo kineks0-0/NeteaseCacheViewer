@@ -44,7 +44,6 @@ import io.github.kineks.neteaseviewer.ui.home.working
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 
@@ -53,7 +52,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        working = true
         setContent {
             if (model.displayWelcomeScreen) {
                 WelcomeScreen(
@@ -71,7 +70,6 @@ class MainActivity : FragmentActivity() {
             } else DefaultView(model)
         }
     }
-
 
     @SuppressLint("InlinedApi")
     private fun checkPermission(
@@ -110,7 +108,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        working = true
         // 避免在进入引导页时先申请权限
         lifecycleScope.launchWhenStarted {
             Setting.firstTimeLaunch.collect { firstTimeLaunch ->

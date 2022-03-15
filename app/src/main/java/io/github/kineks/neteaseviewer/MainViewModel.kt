@@ -21,7 +21,6 @@ import io.github.kineks.neteaseviewer.data.update.Update
 import io.github.kineks.neteaseviewer.data.update.UpdateJSON
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Call
@@ -78,7 +77,7 @@ class MainViewModel : ViewModel() {
                                             NeteaseCacheProvider.NeteaseAppCache(
                                                 "", listOf(
                                                     RFile(
-                                                        RFile.RFileType.SingleUri,
+                                                        RFile.RType.SingleUri,
                                                         stage.songInfo?.songUrl!!
                                                     )
                                                 )
@@ -129,6 +128,7 @@ class MainViewModel : ViewModel() {
             try {
                 NeteaseService.instance.getSongDetail(music.id).songs[0].let {
                     return@let it.run {
+                        val name: String = (name ?: lMusic.name ?: bMusic.name).toString()
                         music.copy(name = name, artists = artists.getArtists(), song = this)
                     }
                 }
@@ -147,7 +147,7 @@ class MainViewModel : ViewModel() {
 
         isUpdating = true
 
-        val _onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit =
+        val updateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit =
             { songs, isFailure ->
                 isUpdating = false
                 this.isUpdateComplete = true
@@ -157,7 +157,7 @@ class MainViewModel : ViewModel() {
 
         // 如果列表为空
         if (songs.isEmpty()) {
-            _onUpdateComplete.invoke(songs, true)
+            updateComplete.invoke(songs, true)
             return
         }
 
@@ -210,17 +210,19 @@ class MainViewModel : ViewModel() {
                                 this.javaClass.name,
                                 "update Song $index : " + song.name
                             )
+                            val name: String =
+                                (song.name ?: song.lMusic.name ?: song.bMusic.name).toString()
                             songs[index] = songs[index].copy(
                                 song = song,
-                                name = song.name,
-                                artists = song.artists.getArtists(),
+                                name = name,
+                                artists = song.artists.getArtists() ?: "null",
                                 id = song.id
                             )
                             onUpdate.invoke(songDetail, song)
                         }
                         // 如果加载完最后一页
                         if (i == pages)
-                            _onUpdateComplete.invoke(songs, false)
+                            updateComplete.invoke(songs, false)
 
 
                     } catch (e: Exception) {
@@ -228,7 +230,7 @@ class MainViewModel : ViewModel() {
                         Log.e(this.javaClass.name, get.request().url().toString())
                         Log.e(this.javaClass.name, e.message, e)
                         if (i == pages)
-                            _onUpdateComplete.invoke(songs, true)
+                            updateComplete.invoke(songs, true)
 
                     }
 

@@ -18,17 +18,17 @@ object NeteaseCacheProvider {
         add(
             NeteaseAppCache(
                 "Netease", listOf(
-                    RFile.RFileType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1"),
+                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1"),
                     // 部分修改版本会用这个路径
-                    RFile.RFileType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1")
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1")
                 )
             )
         )
         add(
             NeteaseAppCache(
                 "NeteaseLite", listOf(
-                    RFile.RFileType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1"),
-                    RFile.RFileType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1")
+                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1"),
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1")
                 )
             )
         )
@@ -45,8 +45,11 @@ object NeteaseCacheProvider {
     private val gson by lazy { Gson() }
 
     // 在 Android P 及以下的使用的导出路径
-    val musicDirectory =
-        File(Environment.getExternalStorageDirectory().path + "/" + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/")
+    private val musicDirectory =
+        File(
+            Environment.getExternalStorageDirectory().path + "/"
+                    + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
+        )
 
 
     suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<File> {

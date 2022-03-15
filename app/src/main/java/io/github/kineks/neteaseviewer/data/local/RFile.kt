@@ -1,5 +1,6 @@
 package io.github.kineks.neteaseviewer.data.local
 
+import ando.file.core.FileUri
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
@@ -12,9 +13,9 @@ import java.io.OutputStream
 
 const val TAG = "RFile"
 
-data class RFile(val type: RFileType, val path: String) {
+data class RFile(val type: RType, val path: String) {
 
-    enum class RFileType(val type: String) {
+    enum class RType(val type: String) {
         // 目录
         Uri("uri"),
         File("file"),
@@ -35,52 +36,54 @@ data class RFile(val type: RFileType, val path: String) {
 
     val uri: Uri
         get() = when (type) {
-            RFileType.Uri, RFileType.SingleUri -> Uri.parse(path)
-            RFileType.ShareStorage ->
+            RType.Uri, RType.SingleUri -> Uri.parse(path)
+            RType.ShareStorage ->
                 File(Environment.getExternalStorageDirectory().path + path).toUri()
-            RFileType.File, RFileType.SingleFile -> File(path).toUri()
-            RFileType.AndroidData -> TODO()
-            RFileType.Root -> TODO()
+            RType.File, RType.SingleFile -> FileUri.getUriByPath(path)!!
+            RType.AndroidData -> TODO()
+            RType.Root -> TODO()
         }
     val file: File
-        get() = uri.toFile()
+        get() = when (type) {
+            RType.File, RType.SingleFile -> File(path)
+            else -> uri.toFile()
+        }
     val input: InputStream?
         get() = when (type) {
-            RFileType.Uri, RFileType.File -> null
-            RFileType.SingleUri, RFileType.SingleFile, RFileType.ShareStorage -> file.inputStream()
-            RFileType.AndroidData -> TODO()
-            RFileType.Root -> TODO()
+            RType.Uri, RType.File -> null
+            RType.SingleUri, RType.SingleFile, RType.ShareStorage -> file.inputStream()
+            RType.AndroidData -> TODO()
+            RType.Root -> TODO()
         }
     val output: OutputStream?
         get() = when (type) {
-            RFileType.Uri, RFileType.File -> null
-            RFileType.SingleUri, RFileType.SingleFile, RFileType.ShareStorage -> file.outputStream()
-            RFileType.AndroidData -> TODO()
-            RFileType.Root -> TODO()
+            RType.Uri, RType.File -> null
+            RType.SingleUri, RType.SingleFile, RType.ShareStorage -> file.outputStream()
+            RType.AndroidData -> TODO()
+            RType.Root -> TODO()
         }
 
     fun read2File(callback: (index: Int, file: File) -> Unit) {
         when (type) {
-            RFileType.Uri -> {
-                uri
-                    .toFile().walk().forEachIndexed { index, file ->
-                        callback.invoke(index, file)
-                    }
-            }
-            RFileType.File -> {
-                File(path).walk().forEachIndexed { index, file ->
+            RType.Uri -> {
+                uri.toFile().walk().forEachIndexed { index, file ->
                     callback.invoke(index, file)
                 }
             }
-            RFileType.SingleUri -> callback.invoke(0, file)
-            RFileType.SingleFile -> callback.invoke(0, file)
-            RFileType.ShareStorage -> {
+            RType.File -> {
+                file.walk().forEachIndexed { index, file ->
+                    callback.invoke(index, file)
+                }
+            }
+            RType.SingleUri -> callback.invoke(0, file)
+            RType.SingleFile -> callback.invoke(0, file)
+            RType.ShareStorage -> {
                 File(Environment.getExternalStorageDirectory().path + path)
                     .walk().forEachIndexed { index, file ->
                         callback.invoke(index, file)
                     }
             }
-            RFileType.AndroidData -> {
+            RType.AndroidData -> {
                 if (!App.isAndroidRorAbove)
                     File(Environment.getExternalStorageDirectory().path + "/Android/Data/" + path)
                         .walk().forEachIndexed { index, file ->
@@ -89,7 +92,7 @@ data class RFile(val type: RFileType, val path: String) {
                 else
                     Log.e(TAG, "RFileType.AndroidData not support on Android R+")
             }
-            RFileType.Root -> TODO()
+            RType.Root -> TODO()
         }
     }
 

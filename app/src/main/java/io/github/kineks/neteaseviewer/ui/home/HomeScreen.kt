@@ -38,6 +38,7 @@ import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.formatFileSize
 import io.github.kineks.neteaseviewer.getString
 import kotlinx.coroutines.*
 
@@ -245,7 +246,7 @@ fun MusicItemAlertDialog(
     if (openDialog) {
         AlertDialog(
             onDismissRequest = { onOpenDialog.invoke(false) },
-            title = { Text("缓存文件详细[${music.neteaseAppCache?.type ?: "Netease"},${music.id}]") },
+            title = { Text("缓存文件详细 [${music.neteaseAppCache?.type ?: "Netease"},${music.id}]") },
             text = {
                 Column(
                     modifier = Modifier
@@ -254,22 +255,24 @@ fun MusicItemAlertDialog(
                 ) {
                     Text(
                         buildAnnotatedString {
-                            append("\n")
-                            append("歌曲名称: " + music.name + "\n\n")
-                            append("歌曲专辑: " + music.album + "\n\n")
-                            append("歌曲歌手: " + music.artists + "\n\n")
-                            append("导出文件名: " + music.displayFileName + "\n\n")
-                            append("\n\n")
+                            music.run {
+                                append("\n")
+                                append("歌曲名称: $name\n\n")
+                                append("歌曲专辑: $album\n\n")
+                                append("歌曲歌手: $artists\n\n")
+                                append("导出文件名: $displayFileName\n\n")
+                                append("\n\n")
 
-                            append("完整缓存大小: " + (music.info?.fileSize ?: -1) + "\n\n")
-                            append("该缓存比特率: " + music.displayBitrate + "\n\n")
-                            append("完整缓存时长: " + (music.info?.duration ?: -1) + "\n\n")
-                            append("完整缓存MD5: " + (music.info?.fileMD5 ?: -1) + "\n\n")
-                            append("\n\n")
+                                append("完整缓存大小:  ${(info?.fileSize ?: -1).formatFileSize()}\n\n")
+                                append("该缓存比特率: $displayBitrate\n\n")
+                                append("完整缓存时长: ${(info?.duration ?: -1)}\n\n")
+                                append("完整缓存MD5: ${(info?.fileMD5 ?: -1)}\n\n")
+                                append("\n\n")
 
-                            append("文件大小: " + music.file.length() + "\n\n")
-                            append("文件名称: " + music.file.name + "\n\n")
-                            append("文件路径: " + music.file.canonicalPath + "\n\n")
+                                append("文件大小:  ${file.length().formatFileSize()}\n\n")
+                                append("文件名称: ${file.name}\n\n")
+                                append("文件路径: ${file.canonicalPath}\n\n")
+                            }
                         }
                     )
                 }
@@ -378,7 +381,6 @@ fun MusicItem(
                     text = (index + 1).toString(),
                     color = MaterialTheme.colors.primary,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1,
                     modifier = Modifier
@@ -388,7 +390,6 @@ fun MusicItem(
                 Text(
                     text = music.name,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1
                 )

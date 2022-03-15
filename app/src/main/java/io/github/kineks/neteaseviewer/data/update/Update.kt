@@ -6,7 +6,6 @@ import android.util.Log
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.local.Setting
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Retrofit

@@ -1,5 +1,7 @@
 package io.github.kineks.neteaseviewer
 
+import ando.file.core.FileOpener
+import ando.file.core.FileSizeUtils
 import android.content.ContentValues
 import android.content.Context
 import android.media.MediaScannerConnection
@@ -65,6 +67,7 @@ fun Byte.toHex(): String {
     return hex
 }
 
+fun Number.formatFileSize() = FileSizeUtils.formatFileSize(this.toLong(), 2, true)
 
 fun String.replaceIllegalChar() =
     this.replace("/", "／")
@@ -74,6 +77,8 @@ fun String.replaceIllegalChar() =
 //.replace(":", ":")
 //.replace("<", "＜")
 //.replace(">", "＞")
+
+fun String.openBrowser() = FileOpener.openBrowser(App.context, this)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun File.scanFile(context: Context = App.context) =
@@ -106,4 +111,4 @@ suspend fun File.scanFile(context: Context = App.context) =
 fun File.mimeType() =
     URLConnection.getFileNameMap().getContentTypeFor(name) ?: "multipart/form-data"
 
-fun RFile.RFileType.toRFile(path: String) = RFile(this, path)
+fun RFile.RType.toRFile(path: String) = RFile(this, path)
