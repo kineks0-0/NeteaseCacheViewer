@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.data.api
+package io.github.kineks.neteaseviewer.data.network
 
 val emptySong = Song(
     Album(

@@ -7,7 +7,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudDownload
@@ -20,18 +19,17 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewModelScope
 import coil.compose.rememberImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshState
@@ -41,12 +39,10 @@ import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.getString
-import io.github.kineks.neteaseviewer.updateSongsInfo
 import kotlinx.coroutines.*
 
 var working by mutableStateOf(false)
 
-@OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun HomeScreen(
     model: MainViewModel,
@@ -54,6 +50,20 @@ fun HomeScreen(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
+
+    val snackbar: (message: String) -> Unit = {
+        scope.launch {
+            scaffoldState.snackbarHostState
+                .currentSnackbarData?.dismiss()
+            scaffoldState.snackbarHostState
+                .showSnackbar(
+                    message = it,
+                    actionLabel = getString(R.string.snackbar_dismissed),
+                    duration = SnackbarDuration.Short
+                )
+        }
+    }
+
     if (working) {
         LinearProgressIndicator(
             modifier = Modifier
@@ -65,7 +75,6 @@ fun HomeScreen(
                 .offset(y = (-8).dp)
                 .zIndex(1f)
         )
-
     }
 
     LaunchedEffect(model.isUpdating) {
@@ -107,12 +116,8 @@ fun HomeScreen(
         onRefresh = {
             refreshState.isRefreshing = true
             working = true
-            GlobalScope.launch {
-                val list = NeteaseCacheProvider.getCacheSongs()
-                if (list != model.songs) {
-                    model.reloadSongsList(list)
-                    updateSongsInfo(model)
-                }
+            model.viewModelScope.launch {
+                model.reloadSongsList(updateInfo = true)
                 delay(1500)
                 refreshState.isRefreshing = false
                 working = false
@@ -122,8 +127,7 @@ fun HomeScreen(
         SongsList(
             songs = model.songs,
             clickable = clickable,
-            scope = scope,
-            scaffoldState = scaffoldState
+            snackbar = snackbar
         )
     }
 
@@ -135,11 +139,9 @@ fun HomeScreen(
 fun SongsList(
     songs: List<Music>,
     available: Boolean = !songs.isNullOrEmpty(),
-    scope: CoroutineScope,
-    scaffoldState: ScaffoldState,
+    snackbar: (message: String) -> Unit,
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
-    //Log.d("MainActivity", "Call once")
     if (available && songs.isNotEmpty()) {
         LazyColumn(
             contentPadding = PaddingValues(top = 6.dp, bottom = 8.dp),
@@ -150,8 +152,7 @@ fun SongsList(
                     index = index,
                     music = music,
                     clickable = clickable,
-                    scaffoldState = scaffoldState,
-                    scope = scope
+                    snackbar = snackbar
                 )
             }
         }
@@ -172,13 +173,12 @@ fun SongsList(
 @OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun MusicItemDropdownMenu(
+    index: Int,
+    music: Music,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onOpenDialog: (Boolean) -> Unit,
-    index: Int,
-    music: Music,
-    scope: CoroutineScope,
-    scaffoldState: ScaffoldState,
+    snackbar: (message: String) -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange.invoke(false) }) {
         DropdownMenuItem(onClick = {
@@ -186,15 +186,7 @@ fun MusicItemDropdownMenu(
                 onExpandedChange.invoke(false)
                 working = true
                 delay(250)
-                scope.launch {
-                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                    scaffoldState.snackbarHostState
-                        .showSnackbar(
-                            message = "导出中: index $index Song " + music.displayFileName,
-                            actionLabel = getString(R.string.snackbar_dismissed),
-                            duration = SnackbarDuration.Indefinite
-                        )
-                }
+                snackbar.invoke("导出中: index $index Song " + music.displayFileName)
                 music.decryptFile { out, hasError, e ->
                     working = false
                     val text =
@@ -204,16 +196,7 @@ fun MusicItemDropdownMenu(
                         } else
                             "保存成功:  ${music.displayFileName}"
 
-                    scope.launch {
-                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                        scaffoldState.snackbarHostState
-                            .showSnackbar(
-                                message = text,
-                                actionLabel = getString(R.string.snackbar_dismissed),
-                                duration = SnackbarDuration.Short
-                            )
-                    }
-
+                    snackbar.invoke(text)
                 }
             }
         }) {
@@ -228,15 +211,7 @@ fun MusicItemDropdownMenu(
             GlobalScope.launch {
                 onExpandedChange.invoke(false)
                 music.delete()
-                scope.launch {
-                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                    scaffoldState.snackbarHostState
-                        .showSnackbar(
-                            message = "已删除: index $index  " + music.file.name,
-                            actionLabel = getString(R.string.snackbar_dismissed),
-                            duration = SnackbarDuration.Short
-                        )
-                }
+                snackbar.invoke("已删除: index $index  " + music.file.name)
             }
         }) {
             Icon(
@@ -300,12 +275,7 @@ fun MusicItemAlertDialog(
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        onOpenDialog.invoke(false)
-
-                    }
-                ) {
+                TextButton(onClick = { onOpenDialog.invoke(false) }) {
                     Text("确定")
                 }
             },
@@ -321,8 +291,7 @@ fun MusicItemAlertDialog(
 fun MusicItem(
     index: Int,
     music: Music,
-    scope: CoroutineScope,
-    scaffoldState: ScaffoldState,
+    snackbar: (message: String) -> Unit,
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
@@ -340,12 +309,11 @@ fun MusicItem(
 
 
     var openDialog by remember { mutableStateOf(false) }
-    if (openDialog)
-        MusicItemAlertDialog(
-            openDialog = openDialog,
-            onOpenDialog = { openDialog = it },
-            music = music
-        )
+    MusicItemAlertDialog(
+        openDialog = openDialog,
+        onOpenDialog = { openDialog = it },
+        music = music
+    )
 
     Row(
         modifier = Modifier
@@ -385,15 +353,15 @@ fun MusicItem(
                     .background(MaterialTheme.colors.onBackground.copy(alpha = 0.6f))
             )
 
-            if (expanded)
-                MusicItemDropdownMenu(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    onOpenDialog = { openDialog = it },
-                    index, music, scope, scaffoldState
-                )
+            MusicItemDropdownMenu(
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                onOpenDialog = { openDialog = it },
+                index = index,
+                music = music,
+                snackbar = snackbar
+            )
         }
-
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -404,14 +372,13 @@ fun MusicItem(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 10.dp, end = 6.dp,bottom = 4.dp)
+                    .padding(start = 10.dp, end = 6.dp, bottom = 4.dp)
             ) {
                 Text(
                     text = (index + 1).toString(),
                     color = MaterialTheme.colors.primary,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1,
                     modifier = Modifier
@@ -426,10 +393,11 @@ fun MusicItem(
                     style = MaterialTheme.typography.subtitle1
                 )
             }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 9.dp, end = 8.dp,top = 3.dp, bottom = 1.dp)
+                    .padding(start = 9.dp, end = 8.dp, top = 3.dp, bottom = 1.dp)
             ) {
 
                 InfoText(
@@ -454,7 +422,6 @@ fun MusicItem(
                             text = getString(id = R.string.list_incomplete),
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colors.error,
-                            textAlign = TextAlign.Center
                         )
                     }
 
@@ -462,7 +429,6 @@ fun MusicItem(
                         InfoText(
                             text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
                             color = MaterialTheme.colors.error,
-                            textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .padding(end = 2.dp)
                         )
@@ -472,7 +438,6 @@ fun MusicItem(
                         InfoText(
                             text = getString(id = R.string.list_deleted),
                             color = MaterialTheme.colors.error,
-                            textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .padding(end = 2.dp)
                         )
@@ -482,7 +447,6 @@ fun MusicItem(
                         InfoText(
                             text = getString(id = R.string.list_saved),
                             color = MaterialTheme.colors.primary,
-                            textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .padding(end = 2.dp)
                         )
@@ -514,17 +478,10 @@ fun InfoText(
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     fontStyle: FontStyle? = null,
-    fontWeight: FontWeight? = null,
     fontFamily: FontFamily? = null,
-    letterSpacing: TextUnit = TextUnit.Unspecified,
-    textDecoration: TextDecoration? = null,
     textAlign: TextAlign? = TextAlign.Center,
-    lineHeight: TextUnit = TextUnit.Unspecified,
     overflow: TextOverflow = TextOverflow.Ellipsis,
-    softWrap: Boolean = true,
     maxLines: Int = 1,
-    inlineContent: Map<String, InlineTextContent> = mapOf(),
-    onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = MaterialTheme.typography.body2
 ) {
     Text(
@@ -534,16 +491,9 @@ fun InfoText(
         fontSize = fontSize,
         fontFamily = fontFamily,
         fontStyle = fontStyle,
-        fontWeight = fontWeight,
-        letterSpacing = letterSpacing,
-        textDecoration = textDecoration,
         textAlign = textAlign,
-        lineHeight = lineHeight,
         overflow = overflow,
-        softWrap = softWrap,
         maxLines = maxLines,
-        inlineContent = inlineContent,
-        onTextLayout = onTextLayout,
         style = style
     )
 }
@@ -557,14 +507,9 @@ fun InfoText(
     fontStyle: FontStyle? = null,
     fontWeight: FontWeight? = null,
     fontFamily: FontFamily? = null,
-    letterSpacing: TextUnit = TextUnit.Unspecified,
-    textDecoration: TextDecoration? = null,
     textAlign: TextAlign? = TextAlign.Center,
-    lineHeight: TextUnit = TextUnit.Unspecified,
     overflow: TextOverflow = TextOverflow.Ellipsis,
-    softWrap: Boolean = true,
     maxLines: Int = 1,
-    onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = MaterialTheme.typography.body2
 ) {
     Text(
@@ -573,16 +518,11 @@ fun InfoText(
         color = color,
         fontSize = fontSize,
         fontFamily = fontFamily,
-        fontStyle = fontStyle,
         fontWeight = fontWeight,
-        letterSpacing = letterSpacing,
-        textDecoration = textDecoration,
+        fontStyle = fontStyle,
         textAlign = textAlign,
-        lineHeight = lineHeight,
         overflow = overflow,
-        softWrap = softWrap,
         maxLines = maxLines,
-        onTextLayout = onTextLayout,
         style = style
     )
 }

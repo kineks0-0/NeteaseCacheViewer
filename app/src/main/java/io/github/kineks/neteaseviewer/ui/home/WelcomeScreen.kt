@@ -1,6 +1,5 @@
 package io.github.kineks.neteaseviewer.ui.home
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -36,8 +35,6 @@ import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-
-@SuppressLint("CoroutineCreationDuringComposition")
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun WelcomeScreen(

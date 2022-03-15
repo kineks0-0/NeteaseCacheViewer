@@ -24,6 +24,7 @@ object Setting {
         .map { preferences ->
             preferences[FIRST_TIME_LAUNCH] ?: true
         }
+
     suspend fun setFirstTimeLaunch(value: Boolean) {
         context.dataStore.edit { settings ->
             settings[FIRST_TIME_LAUNCH] = value
@@ -35,6 +36,7 @@ object Setting {
         .map { preferences ->
             preferences[LAST_CHECK_UPDATES] ?: -1L
         }
+
     suspend fun setLastCheckUpdates(value: Long = Calendar.getInstance().timeInMillis) {
         context.dataStore.edit { settings ->
             settings[LAST_CHECK_UPDATES] = value

@@ -5,18 +5,14 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import io.github.kineks.neteaseviewer.App
-import io.github.kineks.neteaseviewer.data.api.Song
+import io.github.kineks.neteaseviewer.data.network.Song
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.replaceIllegalChar
-import io.github.kineks.neteaseviewer.scanFile
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-val EmptyMusic = Music(-1, "Name", "N/A", -1, File(""))
+val EmptyMusic = Music(-1, "Name", "N/A", -1, "", File(""))
 const val EmptyAlbum = "N/A"
 
 data class Music(
@@ -24,6 +20,7 @@ data class Music(
     val name: String,
     val artists: String,
     val bitrate: Int = -1,
+    val md5: String,
     val file: File,
     val song: Song? = null,
     val info: CacheFileInfo? = null,
@@ -77,6 +74,7 @@ data class Music(
     }
 
     val smallAlbumArt by lazy { getAlbumPicUrl(80, 80) }
+
     fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? {
         Log.d("Music", "$id - $width $height")
         if (song?.album?.picUrl != null) {
@@ -91,76 +89,12 @@ data class Music(
 
     suspend fun decryptFile(
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
-    ): Boolean {
-        val begin = System.currentTimeMillis()
-
-        var error: Boolean = false
-        var exception: Exception? = null
-        /*
-        saved = true// 标记文件导出过,但不保证已经成功导出
-        //error = !out.exists()// 文件不存在就说明导出失败
-         */
-
-        var out: Uri? = null
-        withContext(Dispatchers.IO) {
-
-            try {
-                // 从输入流获取文件头判断,获取失败则默认 mp3
-                val ext = FileType.getFileType(inputStream) ?: "mp3"
-                val path =
-                    if (App.isAndroidQorAbove)
-                        App.context.cacheDir
-                    else
-                        NeteaseCacheProvider.musicDirectory
-                val file = File(path, "$displayFileName.$ext")
-                // 在 Android Q 之后的先放在私有目录, P 及以下的则直接写出
-                // 避免文件父目录不存在
-                path.mkdirs()
-
-                Log.d("Music", file.absolutePath)
-                inputStream.use { input ->
-                    file.outputStream().use {
-                        input.buffered().copyTo(it.buffered())
-                    }
-                }
-
-                Log.d("Music", file.length().toString())
-                MediaStoreProvider.setInfo(this@Music, file)
-                // 在 Android Q 之后的用 MediaStore 导出文件,然后清理私有目录的源副本文件
-                if (App.isAndroidQorAbove) {
-                    out = MediaStoreProvider.insert2Music(
-                        file.inputStream(),
-                        this@Music,
-                        ext
-                    )
-                        ?: throw Exception("")
-                    Log.d("Music", out.toString())
-                    file.delete()
-                } else {
-                    file.scanFile()
-                }
-
-                saved = true
-
-            } catch (e: Exception) {
-                error = true
-                exception = e
-                Log.e("Music", e.message, e)
-            }
-
-            val costTime = System.currentTimeMillis() - begin
-            Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
-
-            callback.invoke(out, error, exception)
-        }
-
-        return out != null
-    }
+    ): Boolean = NeteaseCacheProvider.decryptCacheFile(this, callback)
 
     fun delete() = NeteaseCacheProvider.removeCacheFile(this).apply {
         deleted = this
     }
 
-    private val inputStream get() = XorByteInputStream(file)
+    val inputStream get() = XorByteInputStream(file)
 
 }

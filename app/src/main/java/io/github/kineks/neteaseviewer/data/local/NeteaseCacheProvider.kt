@@ -4,6 +4,8 @@ import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import com.google.gson.Gson
+import io.github.kineks.neteaseviewer.App
+import io.github.kineks.neteaseviewer.scanFile
 import io.github.kineks.neteaseviewer.toRFile
 import kotlinx.coroutines.*
 import java.io.File
@@ -52,7 +54,6 @@ object NeteaseCacheProvider {
         val files = ArrayList<File>()
 
         withContext(Dispatchers.IO) {
-
             neteaseAppCache.rFiles.forEach {
                 var size = -1
                 it.read2File { index, file ->
@@ -69,35 +70,6 @@ object NeteaseCacheProvider {
             }
         }
 
-
-        val costTime = System.currentTimeMillis() - begin
-        Log.d(this::javaClass.name, "加载文件列表耗时: ${costTime}ms")
-        return files
-    }
-
-    suspend fun getCachesFiles(): List<File> {
-        val begin = System.currentTimeMillis()
-        val files = ArrayList<File>()
-
-        withContext(Dispatchers.IO) {
-            cacheDir.forEach {
-                it.rFiles.forEach { rFile ->
-                    var size = -1
-                    rFile.read2File { index, file ->
-                        if (file.extension == playExt) {
-                            files.add(file)
-                        }
-                        size = index
-                    }
-                    size++
-                    Log.d(
-                        this.javaClass.name,
-                        "load file : ${rFile.type}://${rFile.path}  size : " + size//files.size
-                    )
-                }
-            }
-        }
-
         val costTime = System.currentTimeMillis() - begin
         Log.d(this::javaClass.name, "加载文件列表耗时: ${costTime}ms")
         return files
@@ -108,10 +80,10 @@ object NeteaseCacheProvider {
         val songs = ArrayList<Music>()
 
         withContext(Dispatchers.IO) {
-            val begin = System.currentTimeMillis()
+            val begin1 = System.currentTimeMillis()
             cacheDir.forEach { neteaseAppCache ->
                 getCacheFiles(neteaseAppCache).forEach {
-                    val begin = System.currentTimeMillis()
+                    val begin2 = System.currentTimeMillis()
 
                     if (fastReader ||
                         !File(it.parentFile, it.nameWithoutExtension + ".$infoExt").exists()
@@ -125,6 +97,7 @@ object NeteaseCacheProvider {
                                     name = str[2],
                                     artists = "N/A - ${str[0].toInt()}",
                                     bitrate = str[1].toInt(),
+                                    md5 = str[2].substring(0, 31),
                                     song = null,
                                     file = it,
                                     info = null,
@@ -142,6 +115,7 @@ object NeteaseCacheProvider {
                                 name = idx.fileMD5,
                                 artists = "N/A",
                                 bitrate = idx.bitrate,
+                                md5 = idx.fileMD5,
                                 file = it,
                                 song = null,
                                 info = idx,
@@ -150,10 +124,10 @@ object NeteaseCacheProvider {
                         )
                     }
 
-                    val costTime = System.currentTimeMillis() - begin
+                    val costTime = System.currentTimeMillis() - begin2
                     Log.d(this.javaClass.name, "加载单个耗时: ${costTime}ms")
                 }
-                val costTime = System.currentTimeMillis() - begin
+                val costTime = System.currentTimeMillis() - begin1
                 Log.d(this.javaClass.name, "加载缓存信息耗时: ${costTime}ms")
             }
         }
@@ -166,6 +140,74 @@ object NeteaseCacheProvider {
     fun removeCacheFile(music: Music): Boolean {
         val infoFile = File(music.file.parentFile, music.file.nameWithoutExtension + ".$infoExt")
         return music.file.delete() || infoFile.delete()
+    }
+
+    suspend fun decryptCacheFile(
+        music: Music,
+        callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
+    ): Boolean {
+        val begin = System.currentTimeMillis()
+
+        var error = false
+        var exception: Exception? = null
+
+        var out: Uri? = null
+        withContext(Dispatchers.IO) {
+
+            music.run {
+
+                try {
+                    // 从输入流获取文件头判断,获取失败则默认 mp3
+                    val ext = FileType.getFileType(inputStream) ?: "mp3"
+                    val path =
+                        if (App.isAndroidQorAbove)
+                            App.context.cacheDir
+                        else
+                            NeteaseCacheProvider.musicDirectory
+                    val file = File(path, "$displayFileName.$ext")
+                    // 在 Android Q 之后的先放在私有目录, P 及以下的则直接写出
+                    // 避免文件父目录不存在
+                    path.mkdirs()
+
+                    Log.d("Music", file.absolutePath)
+                    inputStream.use { input ->
+                        file.outputStream().use {
+                            input.buffered().copyTo(it.buffered())
+                        }
+                    }
+
+                    Log.d("Music", file.length().toString())
+                    MediaStoreProvider.setInfo(this, file)
+                    // 在 Android Q 之后的用 MediaStore 导出文件,然后清理私有目录的源副本文件
+                    if (App.isAndroidQorAbove) {
+                        out = MediaStoreProvider.insert2Music(
+                            file.inputStream(),
+                            this,
+                            ext
+                        )
+                            ?: throw Exception("")
+                        Log.d("Music", out.toString())
+                        file.delete()
+                    } else {
+                        file.scanFile()
+                    }
+
+                    saved = true
+
+                } catch (e: Exception) {
+                    error = true
+                    exception = e
+                    Log.e("Music", e.message, e)
+                }
+            }
+
+            val costTime = System.currentTimeMillis() - begin
+            Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
+
+            callback.invoke(out, error, exception)
+        }
+
+        return out != null
     }
 
     @OptIn(DelicateCoroutinesApi::class)

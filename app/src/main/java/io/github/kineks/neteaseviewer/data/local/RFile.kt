@@ -11,6 +11,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 const val TAG = "RFile"
+
 data class RFile(val type: RFileType, val path: String) {
 
     enum class RFileType(val type: String) {

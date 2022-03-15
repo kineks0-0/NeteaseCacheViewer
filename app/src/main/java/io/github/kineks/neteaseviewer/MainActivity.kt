@@ -29,15 +29,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.lzx.starrysky.SongInfo
-import com.lzx.starrysky.StarrySky
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.Setting
@@ -67,40 +64,11 @@ class MainActivity : FragmentActivity() {
                         model.displayWelcomeScreen = false
                     },
                     checkPermission = {
-                        checkPermission { allGranted, _, _ ->
-                            it.invoke(allGranted)
-                        }
+                        checkPermission { allGranted, _, _ -> it.invoke(allGranted) }
                     },
                     display = model.displayWelcomeScreen
                 )
-            } else {
-                DefaultView(model)
-                working = true
-                // 避免在进入引导页时先申请权限
-                lifecycleScope.launchWhenStarted {
-                    Setting.firstTimeLaunch.collect { firstTimeLaunch ->
-                        if (firstTimeLaunch) return@collect
-                        checkPermission { allGranted, _, _ ->
-                            if (allGranted) {
-                                // 注: 该函数仅在第一次调用会重新加载数据
-                                // 重载数据请用 model.reload()
-                                if (model.initList) {
-                                    working = false
-                                }
-                                model.initList(
-                                    callback = {
-                                        model.updateSongsInfo()
-                                        working = false
-                                    }
-                                )
-
-                            } else {
-                                model.displayWelcomeScreen = true
-                            }
-                        }
-                    }
-                }
-            }
+            } else DefaultView(model)
         }
     }
 
@@ -117,8 +85,8 @@ class MainActivity : FragmentActivity() {
                 .run {
                     if (App.isAndroidRorAbove)
                         permissions(
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            ,Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                            Manifest.permission.MANAGE_EXTERNAL_STORAGE
                         )
                     else
                         permissions(
@@ -140,23 +108,117 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        working = true
+        // 避免在进入引导页时先申请权限
+        lifecycleScope.launchWhenStarted {
+            Setting.firstTimeLaunch.collect { firstTimeLaunch ->
+                if (firstTimeLaunch) return@collect
+                checkPermission { allGranted, _, _ ->
+                    if (allGranted) {
+                        // 注: 该函数仅在第一次调用会重新加载数据
+                        // 重载数据请用 model.reload()
+                        if (model.hadListInited) {
+                            working = false
+                        }
+                        model.initList(
+                            callback = {
+                                model.updateSongsInfo()
+                                working = false
+                            }
+                        )
+                    } else {
+                        model.displayWelcomeScreen = true
+                    }
+                }
+            }
+        }
+    }
+
 
 }
 
-
-fun updateSongsInfo(
-    model: MainViewModel
+@Composable
+fun SaveFilesAlertDialog(
+    model: MainViewModel,
+    openDialog: Boolean,
+    onValueChange: (Boolean) -> Unit,
+    snackbar: (message: String) -> Unit
 ) {
-    model.updateSongsInfo(
-        onUpdateComplete = { _, isFailure ->
-            if (isFailure) {
-                Log.d("MainActivity", "All data was update failure")
-            } else {
-                Log.d("MainActivity", "All data updated")
-            }
+    var skipIncomplete by remember { mutableStateOf(true) }
+    var skipMissingInfo by remember { mutableStateOf(true) }
 
-        }
-    )
+    if (openDialog) {
+        AlertDialog(
+            onDismissRequest = { onValueChange.invoke(false) },
+            title = {
+                Text(text = "批量导出缓存文件")
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .padding(2.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        "总缓存文件数: " + model.songs.size
+                    )
+                    Column {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = skipIncomplete,
+                                onCheckedChange = { skipIncomplete = it }
+                            )
+                            Text("跳过不完整缓存文件", textAlign = TextAlign.Start)
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = skipMissingInfo,
+                                onCheckedChange = { skipMissingInfo = it }
+                            )
+                            Text(
+                                "跳过丢失info文件缓存",
+                                textAlign = TextAlign.Start
+                            )
+                        }
+                    }
+                }
+
+
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onValueChange.invoke(false)
+                        working = true
+                        NeteaseCacheProvider.decryptSongList(
+                            model.songs, skipIncomplete, skipMissingInfo,
+                            callback = { out, hasError, e ->
+                                if (hasError) {
+                                    Log.e("decrypt songs", e?.message, e)
+                                    snackbar.invoke("导出歌曲失败 : ${e?.message} ${out?.toString()}")
+                                }
+                            },
+                            isLastOne = { working = false }
+                        )
+                    }
+                ) {
+                    Text("开始导出")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onValueChange.invoke(false) }) { Text("取消") }
+            }
+        )
+    }
 }
 
 @Composable
@@ -221,7 +283,18 @@ fun DefaultView(model: MainViewModel) {
     // use UI Controller in compose
     val systemUiController = rememberSystemUiController()
 
-
+    val snackbar: (message: String) -> Unit = {
+        scope.launch {
+            scaffoldState.snackbarHostState
+                .currentSnackbarData?.dismiss()
+            scaffoldState.snackbarHostState
+                .showSnackbar(
+                    message = it,
+                    actionLabel = getString(R.string.snackbar_dismissed),
+                    duration = SnackbarDuration.Short
+                )
+        }
+    }
 
 
     NeteaseViewerTheme {
@@ -240,7 +313,7 @@ fun DefaultView(model: MainViewModel) {
                     elevation = 0.dp,
                     actions = {
                         IconButton(onClick = {
-                            updateSongsInfo(model)
+                            model.updateSongsInfo()
                         }) {
                             Icon(
                                 Icons.Rounded.CloudDownload, contentDescription = stringResource(
@@ -249,95 +322,16 @@ fun DefaultView(model: MainViewModel) {
                             )
                         }
 
-                        var skipIncomplete by remember { mutableStateOf(true) }
-                        var skipMissingInfo by remember { mutableStateOf(true) }
-                        var openDialog by remember { mutableStateOf(false) }
-
-                        if (openDialog) {
-                            AlertDialog(
-                                onDismissRequest = { openDialog = false },
-                                title = {
-                                    Text(text = "批量导出缓存文件")
-                                },
-                                text = {
-                                    Column(
-                                        modifier = Modifier
-                                            .padding(2.dp)
-                                            .fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            "总缓存文件数: " + model.songs.size
-                                        )
-                                        Column {
-                                            Row(
-                                                horizontalArrangement = Arrangement.Center,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Checkbox(
-                                                    checked = skipIncomplete,
-                                                    onCheckedChange = { skipIncomplete = it }
-                                                )
-                                                Text("跳过不完整缓存文件", textAlign = TextAlign.Start)
-                                            }
-
-                                            Row(
-                                                horizontalArrangement = Arrangement.Center,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Checkbox(
-                                                    checked = skipMissingInfo,
-                                                    onCheckedChange = { skipMissingInfo = it }
-                                                )
-                                                Text(
-                                                    "跳过丢失info文件缓存",
-                                                    textAlign = TextAlign.Start
-                                                )
-                                            }
-                                        }
-                                    }
-
-
-                                },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            openDialog = false
-                                            working = true
-                                            NeteaseCacheProvider.decryptSongList(
-                                                model.songs, skipIncomplete, skipMissingInfo,
-                                                callback = { out, hasError, e ->
-                                                    if (hasError) {
-                                                        Log.e("decrypt songs", e?.message, e)
-                                                        scope.launch {
-                                                            scaffoldState.snackbarHostState
-                                                                .currentSnackbarData?.dismiss()
-                                                            scaffoldState.snackbarHostState
-                                                                .showSnackbar(
-                                                                    message = "导出歌曲失败 : ${e?.message} ${out?.toString()}",
-                                                                    actionLabel = getString(R.string.snackbar_dismissed),
-                                                                    duration = SnackbarDuration.Short
-                                                                )
-                                                        }
-                                                    }
-                                                },
-                                                isLastOne = { working = false }
-                                            )
-                                        }
-                                    ) {
-                                        Text("开始导出")
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(
-                                        onClick = {
-                                            openDialog = false
-                                        }
-                                    ) {
-                                        Text("取消")
-                                    }
-                                }
-                            )
+                        var openDialog by remember {
+                            mutableStateOf(false)
                         }
+                        SaveFilesAlertDialog(
+                            model = model,
+                            openDialog = openDialog,
+                            onValueChange = { openDialog = it },
+                            snackbar = snackbar
+                        )
+
                         IconButton(onClick = {
                             openDialog = true
                         }) {
@@ -401,53 +395,16 @@ fun DefaultView(model: MainViewModel) {
                             scope = scope,
                             scaffoldState = scaffoldState,
                             clickable = { index, song ->
-
                                 if (song.deleted) {
-                                    scope.launch {
-                                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                        scaffoldState.snackbarHostState
-                                            .showSnackbar(
-                                                message = "该文件已被删除",
-                                                actionLabel = getString(R.string.snackbar_dismissed),
-                                                duration = SnackbarDuration.Short
-                                            )
-                                    }
+                                    snackbar.invoke("该文件已被删除")
                                     return@HomeScreen
                                 }
-
-                                model.selectedMusicItem = song
-
-                                val info = SongInfo(
-                                    songId = song.id.toString() + song.bitrate,
-                                    songUrl = song.file.toUri().toString(),
-                                    songName = song.name,
-                                    songCover = song.getAlbumPicUrl(200, 200) ?: "",
-                                    artist = song.artists + " - " + song.album
-                                )
-                                StarrySky.with().playMusicByInfo(info)
-
-                                scope.launch {
-                                    scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                    scaffoldState.snackbarHostState
-                                        .showSnackbar(
-                                            message = "$index  ${song.name}",
-                                            actionLabel = getString(R.string.snackbar_dismissed),
-                                            duration = SnackbarDuration.Short
-                                        )
+                                model.playMusic(song)
+                                snackbar.invoke("$index  ${song.name}")
+                                if (model.errorWhenPlaying) {
+                                    snackbar.invoke("播放出错 : $index  ${song.name}")
+                                    model.errorWhenPlaying = false
                                 }
-                                if (model.playOnError) {
-                                    scope.launch {
-                                        scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                                        scaffoldState.snackbarHostState
-                                            .showSnackbar(
-                                                message = "播放出错 : $index  ${song.name}",
-                                                actionLabel = getString(R.string.snackbar_dismissed),
-                                                duration = SnackbarDuration.Short
-                                            )
-                                    }
-                                    model.playOnError = false
-                                }
-
                             }
                         )
                     }

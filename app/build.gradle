@@ -94,8 +94,8 @@ dependencies {
 
     // 播放控制
     implementation 'com.github.EspoirX:StarrySky:v2.6.5'
-    implementation 'com.google.android.exoplayer:exoplayer-core:2.17.0'
-    implementation 'com.google.android.exoplayer:exoplayer-ui:2.17.0'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.17.1'
+    implementation 'com.google.android.exoplayer:exoplayer-ui:2.17.1'
     configurations.all {
         implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
     }

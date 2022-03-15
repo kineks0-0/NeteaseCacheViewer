@@ -2,61 +2,55 @@ package io.github.kineks.neteaseviewer
 
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lzx.starrysky.OnPlayerEventListener
+import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
-import io.github.kineks.neteaseviewer.data.api.Api
-import io.github.kineks.neteaseviewer.data.api.Song
-import io.github.kineks.neteaseviewer.data.api.SongDetail
 import io.github.kineks.neteaseviewer.data.local.*
-import io.github.kineks.neteaseviewer.data.local.update.Update
-import io.github.kineks.neteaseviewer.data.local.update.UpdateJSON
-import kotlinx.coroutines.*
+import io.github.kineks.neteaseviewer.data.network.Network
+import io.github.kineks.neteaseviewer.data.network.Song
+import io.github.kineks.neteaseviewer.data.network.SongDetail
+import io.github.kineks.neteaseviewer.data.network.service.NeteaseService
+import io.github.kineks.neteaseviewer.data.update.Update
+import io.github.kineks.neteaseviewer.data.update.UpdateJSON
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.await
 
-
-@OptIn(InternalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class MainViewModel : ViewModel() {
-
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://music.163.com/")
-        .addConverterFactory(GsonConverterFactory.create())//设置数据解析器
-        .build()
-
-    private val api = retrofit.create(Api::class.java)
-
     var displayWelcomeScreen by mutableStateOf(false)
     var updateJSON by mutableStateOf(UpdateJSON())
     var hasUpdate by mutableStateOf(false)
 
-    var playOnError by mutableStateOf(false)
+    var errorWhenPlaying by mutableStateOf(false)
     var selectedMusicItem: Music by mutableStateOf(EmptyMusic)
 
+    var isFailure by mutableStateOf(false)
     var isUpdating by mutableStateOf(false)
     var isUpdateComplete by mutableStateOf(false)
-    var isFailure by mutableStateOf(false)
 
     // todo: 状态保持与恢复
-    var initList = false
-    var songs by mutableStateOf(ArrayList<Music>().toList())
-        private set
+    var hadListInited = false
+    val songs = mutableStateListOf<Music>()
 
     init {
+
         viewModelScope.launch {
             Setting.firstTimeLaunch.collect { firstTimeLaunch ->
                 displayWelcomeScreen = firstTimeLaunch
             }
         }
+
         viewModelScope.launch {
             Update.checkUpdateWithTime { json, hasUpdate ->
                 if (hasUpdate) {
@@ -65,19 +59,20 @@ class MainViewModel : ViewModel() {
                 }
             }
         }
+
         viewModelScope.launch {
             StarrySky.with().addPlayerEventListener(
                 object : OnPlayerEventListener {
                     override fun onPlaybackStageChange(stage: PlaybackStage) {
                         when (stage.stage) {
                             PlaybackStage.ERROR -> {
-                                playOnError = true
+                                errorWhenPlaying = true
                             }
                             PlaybackStage.SWITCH -> {
                                 if (stage.songInfo?.songUrl ==
                                     selectedMusicItem.file.toUri().toString()
                                 ) return
-                                GlobalScope.launch {
+                                viewModelScope.launch {
                                     val music = NeteaseCacheProvider.getCacheSongs(
                                         cacheDir = listOf(
                                             NeteaseCacheProvider.NeteaseAppCache(
@@ -99,62 +94,70 @@ class MainViewModel : ViewModel() {
             )
         }
 
-
     }
 
-    fun initList(init: Boolean = initList, callback: () -> Unit = {}) {
+    fun initList(init: Boolean = hadListInited, callback: () -> Unit = {}) {
         if (!init) {
             viewModelScope.launch {
                 reloadSongsList()
-                initList = true
-                callback.invoke()
+                hadListInited = true
+                callback()
             }
         }
     }
 
-    suspend fun reloadSongsList(list: List<Music>? = null): List<Music> {
-        initList = true
-        //songs.clear()
-        //songs.addAll(list ?: NeteaseCacheProvider.getCacheSongs())
-        songs = list?.toArrayList() ?: NeteaseCacheProvider.getCacheSongs()
-        return songs
+    suspend fun reloadSongsList(list: List<Music>? = null, updateInfo: Boolean = false) {
+        if (songs.isNotEmpty())
+            songs.clear()
 
+        if (list != null && list.isNotEmpty()) {
+            songs.addAll(list)
+        } else {
+            songs.addAll(NeteaseCacheProvider.getCacheSongs())
+        }
+
+        if (updateInfo)
+            updateSongsInfo()
+
+        hadListInited = true
     }
 
-    private fun <T> List<T>.toArrayList() = ArrayList<T>(this)
     suspend fun updateSongsInfo(
         music: Music
-    ): Music {
-        return withContext(Dispatchers.IO) {
-            return@withContext api.getSongDetail(music.id).execute().body()?.songs?.get(0)
-                ?.let { song ->
-                    music.copy(
-                        song = song,
-                        name = song.name,
-                        artists = song.artists.getArtists(),
-                        id = song.id
-                    )
-                } ?: music
+    ): Music =
+        withContext(Dispatchers.IO) {
+            try {
+                NeteaseService.instance.getSongDetail(music.id).songs[0].let {
+                    return@let it.run {
+                        music.copy(name = name, artists = artists.getArtists(), song = this)
+                    }
+                }
+            } catch (e: CancellationException) {
+                music
+            }
         }
-    }
 
     fun updateSongsInfo(
         quantity: Int = 50,
         onUpdate: (songDetail: SongDetail, song: Song) -> Unit = { _, _ -> },
         onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit = { _, _ -> }
     ) {
-
-        isUpdating = false
         isUpdateComplete = false
+        isFailure = false
 
         isUpdating = true
-        // ?
-        val songs = this.songs.toArrayList()
 
+        val _onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit =
+            { songs, isFailure ->
+                isUpdating = false
+                this.isUpdateComplete = true
+                this.isFailure = isFailure
+                onUpdateComplete.invoke(songs, isFailure)
+            }
+
+        // 如果列表为空
         if (songs.isEmpty()) {
-            isFailure = true
-            onUpdateComplete.invoke(songs, isFailure)
-            isUpdateComplete = true
+            _onUpdateComplete.invoke(songs, true)
             return
         }
 
@@ -165,7 +168,6 @@ class MainViewModel : ViewModel() {
 
 
         for (i in 1..pages) {
-
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {
 
@@ -174,85 +176,62 @@ class MainViewModel : ViewModel() {
                     // 该页的数量
                     val size =
                         when (true) {
+                            // 单页加载,但列表数量小于单页加载数量
                             quantity > songs.size -> songs.size
+
+                            // 最后一页,计算剩下多少
                             i == pages -> songs.size - offset
+
+                            // 其余情况都是单页加载数量
                             else -> quantity
                         }
 
                     // 对于该页 只有一个 的情况下的分支处理
                     val get: Call<SongDetail> =
                         when (size) {
-                            1 -> {
-                                api.getSongDetail(songs[offset].id)
-                            }
+                            1 -> Network.api.getSongDetail(songs[offset].id)
                             else -> {
-
                                 val ids = Array(size) { 0 }
                                 repeat(size) {
                                     ids[it] = songs[offset + it].id
                                 }
-                                api.getSongsDetail(ids.toURLArray())
+                                Network.api.getSongsDetail(ids.toURLArray())
                             }
                         }
 
                     Log.d(this.toString(), get.request().url().toString())
-                    get.enqueue(object : Callback<SongDetail> {
-                        override fun onResponse(
-                            call: Call<SongDetail>,
-                            response: Response<SongDetail>
-                        ) {
 
-                            Log.d(this.javaClass.name, response.message())
-                            //Log.d(this.javaClass.name, response.errorBody()?.string() ?: "")
-
-                            if (response.isSuccessful && response.body()?.songs != null) {
-
-                                response.body()!!.songs.forEachIndexed { x, song ->
-                                    val index = (i - 1) * quantity + x
-                                    Log.d(
-                                        this.javaClass.name,
-                                        "update Song $index : " + song.name
-                                    )
-                                    songs[index] = songs[index].copy(
-                                        song = song,
-                                        name = song.name,
-                                        artists = song.artists.getArtists(),
-                                        id = song.id
-                                    )
-                                    onUpdate.invoke(response.body()!!, song)
-                                }
-
-                                viewModelScope.launch {
-                                    reloadSongsList(songs)
-                                }
-                                if (i == pages) {
-                                    isUpdateComplete = true
-                                    isFailure = false
-                                    onUpdateComplete.invoke(songs, isFailure)
-                                }
-
-                            } else {
-                                Log.e(this.javaClass.name, "GetSongDetail Failure")
-                                if (i == pages) {
-                                    isUpdateComplete = true
-                                    isFailure = true
-                                    onUpdateComplete.invoke(songs, isFailure)
-                                }
-                            }
-
+                    try {
+                        val songDetail = get.await()
+                        songDetail.songs.forEachIndexed { x, song ->
+                            // 计算该对象对应列表索引
+                            val index = (i - 1) * quantity + x
+                            Log.d(
+                                this.javaClass.name,
+                                "update Song $index : " + song.name
+                            )
+                            songs[index] = songs[index].copy(
+                                song = song,
+                                name = song.name,
+                                artists = song.artists.getArtists(),
+                                id = song.id
+                            )
+                            onUpdate.invoke(songDetail, song)
                         }
+                        // 如果加载完最后一页
+                        if (i == pages)
+                            _onUpdateComplete.invoke(songs, false)
 
-                        override fun onFailure(call: Call<SongDetail>, t: Throwable) {
-                            Log.e(this.javaClass.name, call.request().url().toString())
-                            Log.e(this.javaClass.name, t.message, t)
-                            if (i == pages) {
-                                isUpdateComplete = true
-                                isFailure = true
-                                onUpdateComplete.invoke(songs, isFailure)
-                            }
-                        }
 
-                    })
+                    } catch (e: Exception) {
+
+                        Log.e(this.javaClass.name, get.request().url().toString())
+                        Log.e(this.javaClass.name, e.message, e)
+                        if (i == pages)
+                            _onUpdateComplete.invoke(songs, true)
+
+                    }
+
                 }
             }
         }
@@ -260,5 +239,16 @@ class MainViewModel : ViewModel() {
 
     }
 
+    fun playMusic(song: Music) {
+        selectedMusicItem = song
+        val info = SongInfo(
+            songId = song.md5,
+            songUrl = song.file.toUri().toString(),
+            songName = song.name,
+            songCover = song.getAlbumPicUrl(200, 200) ?: "",
+            artist = song.artists + " - " + song.album
+        )
+        StarrySky.with().playMusicByInfo(info)
+    }
 
 }

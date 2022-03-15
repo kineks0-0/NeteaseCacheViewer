@@ -21,8 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 # api包下的类混淆会导致无法正常反射
--keep class io.github.kineks.neteaseviewer.data.api.** {*;}
--keep interface io.github.kineks.neteaseviewer.data.api.** { *; }
+-keep class io.github.kineks.neteaseviewer.data.network.** {*;}
+-keep interface io.github.kineks.neteaseviewer.data.network.** { *; }
 
 -keep class io.github.kineks.neteaseviewer.data.** {*;}
 -keep interface io.github.kineks.neteaseviewer.data.** { *; }

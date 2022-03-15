@@ -58,7 +58,7 @@ object MediaStoreProvider {
 
             val supportedFields: ImmutableSet<FieldKey> = tag.supportedFields
             if (supportedFields.contains(FieldKey.COVER_ART)) {
-                Log.d(TAG,"File type supports Artwork")
+                Log.d(TAG, "File type supports Artwork")
 
                 if (!this::okHttpClient.isInitialized) okHttpClient = OkHttpClient()
                 val request: Request = Request.Builder().url(pic).build()
@@ -108,7 +108,7 @@ object MediaStoreProvider {
     }
 
     //fileName为需要保存到媒体的文件名
-    fun insert2Music(inputStream: InputStream, music: Music,ext:String = "mp3"): Uri? {
+    fun insert2Music(inputStream: InputStream, music: Music, ext: String = "mp3"): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
         val fileName: String = "${music.displayFileName}.$ext"

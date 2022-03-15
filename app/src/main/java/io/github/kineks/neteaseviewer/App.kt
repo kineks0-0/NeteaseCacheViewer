@@ -12,11 +12,10 @@ import ealvatag.tag.TagOptionSingleton
 import io.github.kineks.neteaseviewer.data.player.ExoPlayback
 
 class App : Application() {
-
-
     companion object {
         @SuppressLint("StaticFieldLeak")
         lateinit var context: Context
+
         // 当前系统版本 等于或大于 “X” 版本
         val isAndroidPorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
         val isAndroidQorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
@@ -48,7 +47,5 @@ class App : Application() {
 
         // 设置 bugly 配置信息
         CrashReport.initCrashReport(applicationContext, "47b671f209", BuildConfig.DEBUG)
-
     }
-
 }

@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.data.local.update
+package io.github.kineks.neteaseviewer.data.update
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageInfo
@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Retrofit
+import retrofit2.await
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import java.util.*
@@ -76,7 +77,7 @@ object Update {
                     else
                         retrofit.create(UpdateApi::class.java).getUpdateDetail()
                 Log.d("checkUpdate", api.request().url().toString())
-                json = api.execute().body()
+                json = api.await()
                 if (json == null) {
                     Log.d("checkUpdate", "json == null")
                     callback.invoke(null, false)
@@ -86,6 +87,8 @@ object Update {
 
             val pInfo: PackageInfo =
                 App.context.packageManager.getPackageInfo(App.context.packageName, 0)
+
+            @Suppress("DEPRECATION")
             val versionCode: Long =
                 if (App.isAndroidPorAbove) pInfo.longVersionCode else pInfo.versionCode.toLong()
 
