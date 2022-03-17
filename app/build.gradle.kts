@@ -4,6 +4,7 @@ plugins {
     id ("org.jetbrains.kotlin.kapt") version "1.6.10"
 }
 
+@Suppress("PropertyName")
 val compose_version: String by project
 
 android {

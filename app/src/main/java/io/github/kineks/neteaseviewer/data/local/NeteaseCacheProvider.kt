@@ -166,7 +166,7 @@ object NeteaseCacheProvider {
                         if (App.isAndroidQorAbove)
                             App.context.cacheDir
                         else
-                            NeteaseCacheProvider.musicDirectory
+                            musicDirectory
                     val file = File(path, "$displayFileName.$ext")
                     // 在 Android Q 之后的先放在私有目录, P 及以下的则直接写出
                     // 避免文件父目录不存在
