@@ -1,6 +1,6 @@
 # Add project specific ProGuard rules here.
 # You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# proguardFiles setting in build.gradle.kts.
 #
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
@@ -20,20 +20,21 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# api包下的类混淆会导致无法正常反射
+# Api 包下的类混淆会导致无法正常反射
 -keep class io.github.kineks.neteaseviewer.data.network.** {*;}
 -keep interface io.github.kineks.neteaseviewer.data.network.** { *; }
+-keepnames class io.github.kineks.neteaseviewer.data.network.** {*;}
 
--keep class io.github.kineks.neteaseviewer.data.** {*;}
--keep interface io.github.kineks.neteaseviewer.data.** { *; }
+-keep class io.github.kineks.neteaseviewer.data.update.** {*;}
+-keep interface io.github.kineks.neteaseviewer.data.update.** { *; }
 
--keepnames class io.github.kineks.neteaseviewer.data.** {*;}
 -keepnames class io.github.kineks.neteaseviewer.** {*;}
 
--dontwarn io.github.kineks.neteaseviewer.**
 
+# Exoplayer
 -dontwarn com.google.android.exoplayer2.**
 
+# Ealvatag
 -keep class ealvatag.tag.id3.framebody.** { *; }
 -keep class ealvatag.tag.datatype.** { *; }
 -dontwarn java.awt.geom.AffineTransform
@@ -49,9 +50,11 @@
 -dontwarn java.nio.file.OpenOption
 -dontwarn java.nio.file.Files
 
+# Bugly
 -dontwarn com.tencent.bugly.**
 -keep public class com.tencent.bugly.**{*;}
 
+# Debug Log
 -assumenosideeffects class android.util.Log {
     public static int v(...);
     public static int i(...);

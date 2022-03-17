@@ -12,7 +12,6 @@ import android.os.FileUtils
 import android.provider.MediaStore
 import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.network.ArtistXX
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.net.URLConnection
@@ -67,7 +66,11 @@ fun Byte.toHex(): String {
     return hex
 }
 
-fun Number.formatFileSize() = FileSizeUtils.formatFileSize(this.toLong(), 2, true)
+fun Number.formatFileSize(
+    size: Long = this.toLong(),
+    scale: Int = 2,
+    withUnit: Boolean = true): String
+= FileSizeUtils.formatFileSize(size, scale, withUnit)
 
 fun String.replaceIllegalChar() =
     this.replace("/", "／")
@@ -80,7 +83,6 @@ fun String.replaceIllegalChar() =
 
 fun String.openBrowser() = FileOpener.openBrowser(App.context, this)
 
-@OptIn(ExperimentalCoroutinesApi::class)
 suspend fun File.scanFile(context: Context = App.context) =
     suspendCancellableCoroutine<Uri?> { cont ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
