@@ -13,9 +13,9 @@ android {
     defaultConfig {
         applicationId = "io.github.kineks.neteaseviewer"
         minSdk = 21
-        targetSdk = 32
-        versionCode = 28
-        versionName = "Alpha 2.8"
+        targetSdk = 31
+        versionCode = 29
+        versionName = "Alpha 2.8.2"
         resourceConfigurations += listOf("en", "zh", "zh-rCN")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -28,7 +28,6 @@ android {
         debug {
 
         }
-
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -54,15 +53,16 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    buildToolsVersion = "32.0.0"
 }
 
 dependencies {
 
     // 默认库
     implementation ("androidx.core:core-ktx:1.7.0")
-    implementation ("androidx.compose.ui:ui:1.2.0-alpha05")
+    implementation ("androidx.compose.ui:ui:1.2.0-alpha07")
     implementation ("androidx.compose.compiler:compiler:$compose_version")
-    implementation ("androidx.compose.runtime:runtime:1.2.0-alpha05")
+    implementation ("androidx.compose.runtime:runtime:1.2.0-alpha07")
     implementation ("androidx.compose.material:material:$compose_version")
     implementation ("androidx.compose.ui:ui-tooling-preview:$compose_version")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.4.1")
@@ -83,7 +83,7 @@ dependencies {
     //kapt 'androidx.hilt:hilt-compiler:1.0.0'
 
     // 用于 compose 的系统ui控制(代码设置沉浸状态栏和导航栏)
-    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.24.3-alpha")
+    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.24.6-alpha")
 
     // 支持 compose 使用的图像加载库
     implementation ("io.coil-kt:coil-compose:1.4.0")
@@ -108,17 +108,18 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-swiperefresh:0.18.0")
 
     // Compose 版的 ViewPager ,用来滑动页面
-    implementation ("com.google.accompanist:accompanist-pager:0.24.3-alpha")
+    implementation ("com.google.accompanist:accompanist-pager:0.24.6-alpha")
 
     // 音频文件标签处理
     implementation ("com.ealva:ealvatag:0.4.6")
     implementation ("com.squareup.okio:okio:3.0.0")
 
     // 异常上报
-    implementation ("com.tencent.bugly:crashreport:4.0.0")
+    implementation ("com.tencent.bugly:crashreport:4.0.4")
 
     // 文件操作
     implementation ("com.github.javakam:file.core:3.5.0@aar")
+    implementation("androidx.test.ext:junit-ktx:1.1.3")
 
 
     // 单元测试

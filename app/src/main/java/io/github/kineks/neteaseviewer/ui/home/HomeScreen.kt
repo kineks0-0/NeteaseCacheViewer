@@ -1,6 +1,7 @@
 package io.github.kineks.neteaseviewer.ui.home
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -21,12 +22,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
@@ -36,11 +34,14 @@ import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.R
-import io.github.kineks.neteaseviewer.data.local.Music
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 import io.github.kineks.neteaseviewer.formatFileSize
 import io.github.kineks.neteaseviewer.getString
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 var working by mutableStateOf(false)
 
@@ -171,7 +172,6 @@ fun SongsList(
 
 }
 
-@OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun MusicItemDropdownMenu(
     index: Int,
@@ -183,7 +183,7 @@ fun MusicItemDropdownMenu(
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange.invoke(false) }) {
         DropdownMenuItem(onClick = {
-            GlobalScope.launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 onExpandedChange.invoke(false)
                 working = true
                 delay(250)
@@ -209,7 +209,7 @@ fun MusicItemDropdownMenu(
             Text("导出到音乐媒体库")
         }
         DropdownMenuItem(onClick = {
-            GlobalScope.launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 onExpandedChange.invoke(false)
                 music.delete()
                 snackbar.invoke("已删除: index $index  " + music.file.name)
@@ -235,7 +235,6 @@ fun MusicItemDropdownMenu(
     }
 }
 
-@OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun MusicItemAlertDialog(
     openDialog: Boolean,
@@ -289,7 +288,7 @@ fun MusicItemAlertDialog(
     }
 }
 
-@OptIn(DelicateCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MusicItem(
     index: Int,
@@ -298,10 +297,10 @@ fun MusicItem(
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
-    //Log.d("SongListItem", "Call once")
     var expanded by remember {
         mutableStateOf(false)
     }
+
     var alpha by remember {
         mutableStateOf(1f)
     }
@@ -347,7 +346,7 @@ fun MusicItem(
                     data = music.smallAlbumArt ?: "",
                     builder = {
                         // 加载完淡入图片
-                        //crossfade(true)
+                        crossfade(true)
                     }
                 ),
                 contentDescription = "Song Album Art",
@@ -402,10 +401,7 @@ fun MusicItem(
             ) {
 
                 InfoText(
-                    buildAnnotatedString {
-                        append(music.artists)
-                        append(" - ${music.album}   ")
-                    },
+                    text = "${music.artists} - ${music.album}",
                     textAlign = TextAlign.Start,
                     modifier = Modifier
                         .weight(0.75f)
@@ -477,9 +473,6 @@ fun InfoText(
     text: AnnotatedString,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
-    fontSize: TextUnit = TextUnit.Unspecified,
-    fontStyle: FontStyle? = null,
-    fontFamily: FontFamily? = null,
     textAlign: TextAlign? = TextAlign.Center,
     overflow: TextOverflow = TextOverflow.Ellipsis,
     maxLines: Int = 1,
@@ -489,9 +482,6 @@ fun InfoText(
         text = text,
         modifier = modifier.padding(start = 2.dp, end = 2.dp),
         color = color,
-        fontSize = fontSize,
-        fontFamily = fontFamily,
-        fontStyle = fontStyle,
         textAlign = textAlign,
         overflow = overflow,
         maxLines = maxLines,
@@ -504,10 +494,7 @@ fun InfoText(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
-    fontSize: TextUnit = TextUnit.Unspecified,
-    fontStyle: FontStyle? = null,
     fontWeight: FontWeight? = null,
-    fontFamily: FontFamily? = null,
     textAlign: TextAlign? = TextAlign.Center,
     overflow: TextOverflow = TextOverflow.Ellipsis,
     maxLines: Int = 1,
@@ -517,10 +504,7 @@ fun InfoText(
         text = text,
         modifier = modifier.padding(start = 2.dp, end = 2.dp),
         color = color,
-        fontSize = fontSize,
-        fontFamily = fontFamily,
         fontWeight = fontWeight,
-        fontStyle = fontStyle,
         textAlign = textAlign,
         overflow = overflow,
         maxLines = maxLines,

@@ -1,17 +1,15 @@
 package io.github.kineks.neteaseviewer
 
+import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
 import kotlin.experimental.xor
 
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
+
 class ExampleUnitTest {
+
     @Test
     fun addition_isCorrect() {
         assertEquals(4, 2 + 2)
@@ -29,11 +27,14 @@ class ExampleUnitTest {
             println("测试2 " + String(byteArray))
         }
 
-        val file = File("E:\\1378762448-96004-3f7b06ce9eae0909e78ed9f8c668106c.mp3.uc!")
-        val fileOut = File("E:\\1378762448-96004-3f7b06ce9eae0909e78ed9f8c668106c.mp3")
+        val file = File("I:\\Root\\备份\\PhoneBackup\\Mi 6x\\netease\\cloudmusic\\Cache\\Music1\\37092830-256000-1d69314c1c6d6f4651c2b046890e3d53.mp3.uc!")
+        /*val fileOut = File(file.parent,file.nameWithoutExtension)
         val xorByteInputStream = XorByteInputStream(file = file)
         xorByteInputStream.buffered().use {
             fileOut.writeBytes(it.readBytes())
-        }
+        }*/
+        FileType.getFileType(XorByteInputStream(file = file)).println()
     }
 }
+
+fun String?.println() = println(this)

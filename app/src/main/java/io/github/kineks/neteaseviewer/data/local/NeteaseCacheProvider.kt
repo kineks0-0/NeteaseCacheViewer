@@ -5,9 +5,15 @@ import android.os.Environment
 import android.util.Log
 import com.google.gson.Gson
 import io.github.kineks.neteaseviewer.App
+import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
+import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
+import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 import io.github.kineks.neteaseviewer.scanFile
 import io.github.kineks.neteaseviewer.toRFile
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object NeteaseCacheProvider {
@@ -213,7 +219,6 @@ object NeteaseCacheProvider {
         return out != null
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     fun decryptSongList(
         list: List<Music>,
         skipIncomplete: Boolean = true,
@@ -221,7 +226,7 @@ object NeteaseCacheProvider {
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> },
         isLastOne: (Boolean) -> Unit = {},
     ) {
-        GlobalScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             withContext(Dispatchers.IO) {
                 list.forEachIndexed { index, music ->
                     if (index == list.lastIndex) isLastOne.invoke(true)

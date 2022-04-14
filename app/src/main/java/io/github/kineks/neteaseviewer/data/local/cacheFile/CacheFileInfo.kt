@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.data.local
+package io.github.kineks.neteaseviewer.data.local.cacheFile
 
 import com.google.gson.annotations.SerializedName
 

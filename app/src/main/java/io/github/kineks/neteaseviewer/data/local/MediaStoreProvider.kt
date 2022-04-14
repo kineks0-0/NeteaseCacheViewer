@@ -13,6 +13,7 @@ import ealvatag.tag.NullTag
 import ealvatag.tag.Tag
 import ealvatag.tag.images.ArtworkFactory
 import io.github.kineks.neteaseviewer.App
+import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -44,7 +45,7 @@ object MediaStoreProvider {
             }
         }
 
-        //tag = audioFile.tag
+        // tag = audioFile.tag
         tag.setField(FieldKey.TITLE, music.name)
         tag.setField(FieldKey.ALBUM, music.album)
         tag.setField(FieldKey.ARTIST, music.artists)
@@ -107,11 +108,10 @@ object MediaStoreProvider {
 
     }
 
-    //fileName为需要保存到媒体的文件名
     fun insert2Music(inputStream: InputStream, music: Music, ext: String = "mp3"): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
-        val fileName: String = "${music.displayFileName}.$ext"
+        val fileName = "${music.displayFileName}.$ext"
         songDetails.apply {
             put(MediaStore.Audio.AudioColumns.DISPLAY_NAME, fileName)
             put(MediaStore.Audio.AudioColumns.TITLE, music.name)
@@ -145,7 +145,7 @@ object MediaStoreProvider {
             }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            //RELATIVE_PATH 字段表示相对路径-------->(1)
+            // RELATIVE_PATH 字段表示相对路径
             songDetails.put(
                 MediaStore.Audio.AudioColumns.RELATIVE_PATH,
                 Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
@@ -154,11 +154,11 @@ object MediaStoreProvider {
             val dstPath = (Environment.getExternalStorageDirectory().toString()
                     + File.separator + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
                     + File.separator + fileName)
-            //DATA字段在Android 10.0 之后已经废弃
+            // DATA 字段在 Android Q 之后已经废弃
             songDetails.put(MediaStore.Audio.AudioColumns.DATA, dstPath)
         }
 
-        //插入媒体------->(2)
+        // 插入媒体
         val songContentUri: Uri =
             App.context.contentResolver.insert(
                 audioCollection,
@@ -166,7 +166,7 @@ object MediaStoreProvider {
             )
                 ?: return null
 
-        //写入文件------->(3)
+        // 写入文件
         val outPut = resolver.openOutputStream(songContentUri, "w")
             ?: return null
 

@@ -15,8 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
-import io.github.kineks.neteaseviewer.data.local.EmptyMusic
-import io.github.kineks.neteaseviewer.data.local.Music
+import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
+import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 
 
 @Preview(showBackground = true)

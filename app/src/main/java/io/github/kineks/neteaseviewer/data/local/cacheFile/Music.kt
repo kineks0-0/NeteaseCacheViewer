@@ -1,10 +1,11 @@
-package io.github.kineks.neteaseviewer.data.local
+package io.github.kineks.neteaseviewer.data.local.cacheFile
 
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.network.Song
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.replaceIllegalChar
@@ -63,14 +64,16 @@ data class Music(
         }
 
 
-    val displayBitrate = when (bitrate) {
-        1000 -> {
-            "trial"//试听
+    val displayBitrate by lazy {
+        when (bitrate) {
+            1000 -> {
+                "trial"//试听
+            }
+            999000 -> {
+                "flac"//无损
+            }
+            else -> "${bitrate / 1000} k"
         }
-        999000 -> {
-            "flac"//无损
-        }
-        else -> "${bitrate / 1000} k"
     }
 
     val smallAlbumArt by lazy { getAlbumPicUrl(80, 80) }

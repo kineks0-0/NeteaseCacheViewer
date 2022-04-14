@@ -12,7 +12,11 @@ import com.lzx.starrysky.OnPlayerEventListener
 import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
-import io.github.kineks.neteaseviewer.data.local.*
+import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.RFile
+import io.github.kineks.neteaseviewer.data.local.Setting
+import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
+import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 import io.github.kineks.neteaseviewer.data.network.Network
 import io.github.kineks.neteaseviewer.data.network.Song
 import io.github.kineks.neteaseviewer.data.network.SongDetail
@@ -177,16 +181,16 @@ class MainViewModel : ViewModel() {
                     val size =
                         when (true) {
                             // 单页加载,但列表数量小于单页加载数量
-                            quantity > songs.size -> songs.size
+                            (quantity > songs.size) -> songs.size
 
                             // 最后一页,计算剩下多少
-                            i == pages -> songs.size - offset
+                            (i == pages) -> songs.size - offset
 
                             // 其余情况都是单页加载数量
                             else -> quantity
                         }
 
-                    // 对于该页 只有一个 的情况下的分支处理
+                    // 对于该页数量 只有一个 的情况下的分支处理
                     val get: Call<SongDetail> =
                         when (size) {
                             1 -> Network.api.getSongDetail(songs[offset].id)
