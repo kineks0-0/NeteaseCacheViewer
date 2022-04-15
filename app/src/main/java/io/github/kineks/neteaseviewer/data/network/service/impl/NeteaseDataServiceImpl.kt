@@ -57,6 +57,18 @@ object NeteaseDataServiceImpl : NeteaseDataService {
             }
         }
 
+    override fun getAlbumPicUrl(id: Int, width: Int, height: Int): String? {
+        val song = map[id]
+        if (song?.album?.picUrl != null) {
+            // api 如果不同时限定宽高参数就会默认返回原图
+            if (width != -1 && height != -1) {
+                return song.album.picUrl + "?param=${width}y$height"
+            }
+            return song.album.picUrl
+        }
+        return null
+    }
+
 
 }
 

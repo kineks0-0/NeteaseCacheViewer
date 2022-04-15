@@ -294,7 +294,8 @@ fun MusicItem(
     index: Int,
     music: Music,
     snackbar: (message: String) -> Unit,
-    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
+    clickable: (index: Int, music: Music) -> Unit = { _, _ -> },
+    onLongClick: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
     var expanded by remember {
@@ -323,7 +324,7 @@ fun MusicItem(
             .fillMaxWidth()
             .combinedClickable(
                 onLongClick = {
-                    expanded = true
+                    onLongClick.invoke(index, music)//expanded = true
                 },
                 onClick = {
                     clickable.invoke(index, music)

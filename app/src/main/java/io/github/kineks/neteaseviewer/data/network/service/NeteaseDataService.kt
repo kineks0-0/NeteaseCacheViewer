@@ -21,4 +21,6 @@ interface NeteaseDataService {
     suspend fun getSongFromCache(ids: List<Int>): List<Song?>
 
     suspend fun getSongFromNetwork(ids: List<Int>): List<Song>
+
+    fun getAlbumPicUrl(id: Int, width: Int = -1, height: Int = -1): String?
 }

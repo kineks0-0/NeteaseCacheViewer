@@ -66,7 +66,7 @@ class MainViewModel : ViewModel() {
                             PlaybackStage.SWITCH -> {
                                 viewModelScope.launch {
                                     selectedMusicItem = NeteaseCacheProvider
-                                        .getCacheSongs(stage.lastSongInfo?.songUrl!!)
+                                        .getCacheSongs(stage.songInfo?.songUrl!!)
                                 }
                             }
                         }
@@ -123,17 +123,16 @@ class MainViewModel : ViewModel() {
         }
 
         // 计算分页数量
-        var pages = songs.size / quantity
+        var pages = songs.size / quantity - 1
         if (songs.size % quantity != 0)
             pages++
 
-
-        for (i in 1..pages) {
+        for (i in 0..pages) {
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {
 
                     // 对于 list 索引的偏移值
-                    val offset = (i - 1) * quantity
+                    val offset = i * quantity
 
                     // 该页的数量
                     val size =
@@ -148,22 +147,19 @@ class MainViewModel : ViewModel() {
                             else -> quantity
                         }
 
-                    // 对于该页数量 只有一个 的情况下的分支处理
-                    when (size) {
-                        1 -> {
-                            NeteaseDataService.instance.getSong(songs[offset].id)
+
+                    val ids = ArrayList<Int>()
+                    repeat(size) {
+                        val id = songs[offset + it].id
+                        // 如果缓存里有则跳过
+                        if (NeteaseDataService.instance.getSongFromCache(id) == null) {
+                            ids.add(id)
                         }
-                        else -> {
-                            val ids = ArrayList<Int>()
-                            repeat(size) {
-                                val id = songs[offset + it].id
-                                // 如果缓存里有则跳过
-                                if (NeteaseDataService.instance.getSongFromCache(id) == null) {
-                                    ids.add(id)
-                                }
-                            }
-                            NeteaseDataService.instance.getSong(ids)
-                        }
+                    }
+                    when (true) {
+                        ids.isEmpty() -> {}
+                        (ids.size == 1) -> NeteaseDataService.instance.getSong(ids[0])
+                        else -> NeteaseDataService.instance.getSong(ids)
                     }
 
                     // 如果加载完最后一页
