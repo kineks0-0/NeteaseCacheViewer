@@ -10,7 +10,7 @@ import kotlinx.coroutines.withContext
 import retrofit2.await
 
 object NeteaseServiceImpl : NeteaseService {
-    val handler = CoroutineExceptionHandler { coroutineContext, throwable ->
+    private val handler = CoroutineExceptionHandler { coroutineContext, throwable ->
         coroutineContext.cancel(CancellationException("Error when requesting network.", throwable))
     }
 

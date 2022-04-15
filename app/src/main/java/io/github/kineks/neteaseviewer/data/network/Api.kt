@@ -8,7 +8,6 @@ interface Api {
     @GET("api/song/detail")
     fun getSongDetail(@Query("id") id: Int, @Query("ids") ids: String = "[$id]"): Call<SongDetail>
 
-    // todo: 添加请求缓存
     @GET("api/song/detail")
     fun getSongsDetail(@Query("ids") ids: String): Call<SongDetail>
 }

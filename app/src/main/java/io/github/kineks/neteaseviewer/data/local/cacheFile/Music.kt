@@ -7,33 +7,67 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.network.Song
+import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
+import io.github.kineks.neteaseviewer.getArtists
 import io.github.kineks.neteaseviewer.replaceIllegalChar
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-val EmptyMusic = Music(-1, "Name", "N/A", -1, "", File(""))
+val EmptyMusic = Music(-1, -1, "", File(""))
 const val EmptyAlbum = "N/A"
+const val EmptyArtists = "N/A"
 
 data class Music(
     val id: Int,
-    val name: String,
-    val artists: String,
     val bitrate: Int = -1,
     val md5: String,
     val file: File,
-    val song: Song? = null,
     val info: CacheFileInfo? = null,
     val neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache? = null
 ) {
+
+    private var _song: Song? = null
+    val song: Song?
+        get() =
+            when (_song) {
+                null -> {
+                    runBlocking {
+                        NeteaseDataService.instance.getSongFromCache(id)
+                    }.apply {
+                        _song = this
+                    }
+                }
+                else -> _song
+            }
+
+    val name
+        get() = when (song) {
+            null -> md5
+            else -> song!!.name ?: song!!.lMusic.name
+        }
+
+    private var _artists = ""
+    val artists
+        get() = when (song) {
+            null -> EmptyArtists
+            else -> {
+                if (_artists.isEmpty())
+                    _artists = song!!.artists.getArtists()
+                _artists
+            }
+        }
+
     val album get() = song?.album?.name ?: "$EmptyAlbum $id"
     val track get() = song?.no ?: -1
     val year: String
         get() =
             if (song == null) "N/A" else
-                SimpleDateFormat("yyyy", Locale.US).format(Date(song.album.publishTime))
-    val disc get() = song?.disc ?: ""
+                SimpleDateFormat("yyyy", Locale.US).format(Date(song?.album?.publishTime ?: 0))
+    val disc
+        get() = song?.disc ?: ""
 
 
     var deleted by mutableStateOf(false)
@@ -76,16 +110,16 @@ data class Music(
         }
     }
 
-    val smallAlbumArt by lazy { getAlbumPicUrl(80, 80) }
+    val smallAlbumArt get() = getAlbumPicUrl(80, 80)
 
     fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? {
         Log.d("Music", "$id - $width $height")
         if (song?.album?.picUrl != null) {
             // api 如果不同时限定宽高参数就会默认返回原图
             if (width != -1 && height != -1) {
-                return song.album.picUrl + "?param=${width}y$height"
+                return song!!.album.picUrl + "?param=${width}y$height"
             }
-            return song.album.picUrl
+            return song!!.album.picUrl
         }
         return null
     }

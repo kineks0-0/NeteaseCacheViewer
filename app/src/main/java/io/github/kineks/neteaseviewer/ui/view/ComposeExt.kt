@@ -21,24 +21,24 @@ import io.github.kineks.neteaseviewer.ui.home.working
 @Composable
 fun CheckUpdate(model: MainViewModel) {
 
-    if (model.hasUpdate) {
+    if (model.hasUpdateApp) {
         AlertDialog(
-            onDismissRequest = { model.hasUpdate = false },
-            title = { Text("发现新版本[" + model.updateJSON.versionName + "]") },
+            onDismissRequest = { model.hasUpdateApp = false },
+            title = { Text("发现新版本[" + model.updateAppJSON.versionName + "]") },
             text = {
                 Column(
                     modifier = Modifier
                         .padding(2.dp)
                         .fillMaxWidth()
                 ) {
-                    Text(text = model.updateJSON.updateInfo)
+                    Text(text = model.updateAppJSON.updateInfo)
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        model.hasUpdate = false
-                        val uri: Uri = Uri.parse(model.updateJSON.updateLink)
+                        model.hasUpdateApp = false
+                        val uri: Uri = Uri.parse(model.updateAppJSON.updateLink)
                         val intent = Intent()
                         intent.action =
                             "android.intent.action.VIEW"
@@ -51,7 +51,7 @@ fun CheckUpdate(model: MainViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { model.hasUpdate = false }) { Text("取消") }
+                TextButton(onClick = { model.hasUpdateApp = false }) { Text("取消") }
             }
         )
     }

@@ -13,27 +13,21 @@ import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.local.Setting
 import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
-import io.github.kineks.neteaseviewer.data.network.Network
 import io.github.kineks.neteaseviewer.data.network.Song
-import io.github.kineks.neteaseviewer.data.network.SongDetail
-import io.github.kineks.neteaseviewer.data.network.service.NeteaseService
+import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.update.Update
 import io.github.kineks.neteaseviewer.data.update.UpdateJSON
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import retrofit2.Call
-import retrofit2.await
 
 class MainViewModel : ViewModel() {
     var displayWelcomeScreen by mutableStateOf(false)
-    var updateJSON by mutableStateOf(UpdateJSON())
-    var hasUpdate by mutableStateOf(false)
+    var updateAppJSON by mutableStateOf(UpdateJSON())
+    var hasUpdateApp by mutableStateOf(false)
 
     var errorWhenPlaying by mutableStateOf(false)
     var selectedMusicItem: Music by mutableStateOf(EmptyMusic)
@@ -57,8 +51,8 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             Update.checkUpdateWithTime { json, hasUpdate ->
                 if (hasUpdate) {
-                    updateJSON = json ?: UpdateJSON()
-                    this@MainViewModel.hasUpdate = true
+                    updateAppJSON = json ?: UpdateJSON()
+                    this@MainViewModel.hasUpdateApp = true
                 }
             }
         }
@@ -72,23 +66,9 @@ class MainViewModel : ViewModel() {
                                 errorWhenPlaying = true
                             }
                             PlaybackStage.SWITCH -> {
-                                if (stage.songInfo?.songUrl ==
-                                    selectedMusicItem.file.toUri().toString()
-                                ) return
                                 viewModelScope.launch {
-                                    val music = NeteaseCacheProvider.getCacheSongs(
-                                        cacheDir = listOf(
-                                            NeteaseCacheProvider.NeteaseAppCache(
-                                                "", listOf(
-                                                    RFile(
-                                                        RFile.RType.SingleUri,
-                                                        stage.songInfo?.songUrl!!
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )[0]
-                                    selectedMusicItem = updateSongsInfo(music)
+                                    selectedMusicItem = NeteaseCacheProvider
+                                        .getCacheSongs(stage.lastSongInfo?.songUrl!!)
                                 }
                             }
                         }
@@ -102,8 +82,8 @@ class MainViewModel : ViewModel() {
     fun initList(init: Boolean = hadListInited, callback: () -> Unit = {}) {
         if (!init) {
             viewModelScope.launch {
-                reloadSongsList()
                 hadListInited = true
+                reloadSongsList()
                 callback()
             }
         }
@@ -125,43 +105,24 @@ class MainViewModel : ViewModel() {
         hadListInited = true
     }
 
-    suspend fun updateSongsInfo(
-        music: Music
-    ): Music =
-        withContext(Dispatchers.IO) {
-            try {
-                NeteaseService.instance.getSongDetail(music.id).songs[0].let {
-                    return@let it.run {
-                        val name: String = (name ?: lMusic.name ?: bMusic.name).toString()
-                        music.copy(name = name, artists = artists.getArtists(), song = this)
-                    }
-                }
-            } catch (e: CancellationException) {
-                music
-            }
-        }
-
     fun updateSongsInfo(
         quantity: Int = 50,
-        onUpdate: (songDetail: SongDetail, song: Song) -> Unit = { _, _ -> },
-        onUpdateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit = { _, _ -> }
     ) {
         isUpdateComplete = false
         isFailure = false
 
         isUpdating = true
 
-        val updateComplete: (songs: List<Music>, isFailure: Boolean) -> Unit =
-            { songs, isFailure ->
+        val updateComplete: (isFailure: Boolean) -> Unit =
+            { isFailure ->
                 isUpdating = false
                 this.isUpdateComplete = true
                 this.isFailure = isFailure
-                onUpdateComplete.invoke(songs, isFailure)
             }
 
         // 如果列表为空
         if (songs.isEmpty()) {
-            updateComplete.invoke(songs, true)
+            updateComplete.invoke(true)
             return
         }
 
@@ -190,51 +151,55 @@ class MainViewModel : ViewModel() {
                             else -> quantity
                         }
 
+                    val indexList = ArrayList<Int>()
                     // 对于该页数量 只有一个 的情况下的分支处理
-                    val get: Call<SongDetail> =
+                    val songList: List<Song> =
                         when (size) {
-                            1 -> Network.api.getSongDetail(songs[offset].id)
+                            1 -> {
+                                indexList.add(offset)
+                                listOf(NeteaseDataService.instance.getSong(songs[offset].id))
+                            }
                             else -> {
-                                val ids = Array(size) { 0 }
+                                val ids = ArrayList<Int>()
                                 repeat(size) {
-                                    ids[it] = songs[offset + it].id
+                                    val id = songs[offset + it].id
+                                    if (NeteaseDataService.instance.getSongFromCache(id) == null) {
+                                        ids.add(id)
+                                        indexList.add(offset + it)
+                                    }
                                 }
-                                Network.api.getSongsDetail(ids.toURLArray())
+                                NeteaseDataService.instance.getSong(ids)
                             }
                         }
 
-                    Log.d(this.toString(), get.request().url().toString())
 
                     try {
-                        val songDetail = get.await()
-                        songDetail.songs.forEachIndexed { x, song ->
+
+                        songList.forEachIndexed { x, song ->
                             // 计算该对象对应列表索引
-                            val index = (i - 1) * quantity + x
+                            val index = indexList[x]//(i - 1) * quantity + x
                             Log.d(
                                 this.javaClass.name,
                                 "update Song $index : " + song.name
                             )
-                            val name: String =
-                                (song.name ?: song.lMusic.name ?: song.bMusic.name).toString()
+                            /*val name: String =
+                                (song.name ?: song.lMusic.name).toString()
                             songs[index] = songs[index].copy(
-                                song = song,
                                 name = name,
-                                artists = song.artists.getArtists() ?: "null",
-                                id = song.id
+                                artists = song.artists.getArtists()
                             )
-                            onUpdate.invoke(songDetail, song)
+                            songs[index].reloadSong()*/
                         }
                         // 如果加载完最后一页
                         if (i == pages)
-                            updateComplete.invoke(songs, false)
+                            updateComplete.invoke(false)
 
 
                     } catch (e: Exception) {
 
-                        Log.e(this.javaClass.name, get.request().url().toString())
                         Log.e(this.javaClass.name, e.message, e)
                         if (i == pages)
-                            updateComplete.invoke(songs, true)
+                            updateComplete.invoke(true)
 
                     }
 

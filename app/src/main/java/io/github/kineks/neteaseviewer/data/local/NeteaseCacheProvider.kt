@@ -51,6 +51,7 @@ object NeteaseCacheProvider {
     private val gson by lazy { Gson() }
 
     // 在 Android P 及以下的使用的导出路径
+    @Suppress("DEPRECATION")
     private val musicDirectory =
         File(
             Environment.getExternalStorageDirectory().path + "/"
@@ -84,6 +85,20 @@ object NeteaseCacheProvider {
         return files
     }
 
+    suspend fun getCacheSongs(uri: String): Music =
+        getCacheSongs(
+            cacheDir = listOf(
+                NeteaseAppCache(
+                    "SingleUri", listOf(
+                        RFile(
+                            RFile.RType.SingleUri,
+                            uri
+                        )
+                    )
+                )
+            )
+        )[0]
+
     suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): ArrayList<Music> {
         val begin = System.currentTimeMillis()
         val songs = ArrayList<Music>()
@@ -103,11 +118,10 @@ object NeteaseCacheProvider {
                             songs.add(
                                 Music(
                                     id = str[0].toInt(),
-                                    name = str[2],
-                                    artists = "N/A - ${str[0].toInt()}",
+                                    /*name = str[2],
+                                    artists = "N/A - ${str[0].toInt()}",*/
                                     bitrate = str[1].toInt(),
                                     md5 = str[2].substring(0, 31),
-                                    song = null,
                                     file = it,
                                     info = null,
                                     neteaseAppCache = neteaseAppCache
@@ -121,12 +135,11 @@ object NeteaseCacheProvider {
                         songs.add(
                             Music(
                                 id = idx.id,
-                                name = idx.fileMD5,
-                                artists = "N/A",
+                                /*name = idx.fileMD5,
+                                artists = "N/A",*/
                                 bitrate = idx.bitrate,
                                 md5 = idx.fileMD5,
                                 file = it,
-                                song = null,
                                 info = idx,
                                 neteaseAppCache = neteaseAppCache
                             )

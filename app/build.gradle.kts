@@ -27,6 +27,7 @@ android {
     buildTypes {
         debug {
 
+            extra["enableCrashlytics"] = false
         }
         release {
             isMinifyEnabled = true

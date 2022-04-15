@@ -18,7 +18,7 @@ import java.net.URLConnection
 import kotlin.coroutines.resume
 import kotlin.experimental.and
 
-fun Array<Int>.toURLArray(): String {
+fun List<Int>.toURLArray(): String {
     val str = StringBuilder()
     this.forEachIndexed { index, id ->
         str.append(
@@ -69,17 +69,22 @@ fun Byte.toHex(): String {
 fun Number.formatFileSize(
     size: Long = this.toLong(),
     scale: Int = 2,
-    withUnit: Boolean = true): String
-= FileSizeUtils.formatFileSize(size, scale, withUnit)
+    withUnit: Boolean = true
+): String = FileSizeUtils.formatFileSize(size, scale, withUnit)
 
-fun String.replaceIllegalChar() =
-    this.replace("/", "／")
-//.replace("*", Char(10034).toString())
-//.replace("?", "？")
-//.replace("|", "｜")
-//.replace(":", ":")
-//.replace("<", "＜")
-//.replace(">", "＞")
+fun String.replaceIllegalChar(isWindows: Boolean = false) =
+    replace("/", "／")
+        .apply {
+            // 在 windows 里下面字符无法用于文件名
+            if (isWindows)
+                replace("*", Char(10034).toString())
+                    .replace("?", "？")
+                    .replace("|", "｜")
+                    .replace(":", ":")
+                    .replace("<", "＜")
+                    .replace(">", "＞")
+        }
+
 
 fun String.openBrowser() = FileOpener.openBrowser(App.context, this)
 
