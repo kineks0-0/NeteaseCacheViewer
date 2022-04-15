@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.kineks.neteaseviewer"
         minSdk = 21
         targetSdk = 31
-        versionCode = 29
-        versionName = "Alpha 2.8.2"
+        versionCode = 36
+        versionName = "Alpha 2.8.6"
         resourceConfigurations += listOf("en", "zh", "zh-rCN")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

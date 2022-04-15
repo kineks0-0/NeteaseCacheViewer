@@ -34,6 +34,7 @@ object NeteaseCacheProvider {
             NeteaseAppCache(
                 "NeteaseLite", listOf(
                     RFile.RType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1"),
+                    // 部分修改版本会用这个路径
                     RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1")
                 )
             )

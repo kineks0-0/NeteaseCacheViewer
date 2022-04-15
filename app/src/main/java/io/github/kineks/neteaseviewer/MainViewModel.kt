@@ -1,6 +1,5 @@
 package io.github.kineks.neteaseviewer
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +15,6 @@ import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.Setting
 import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
-import io.github.kineks.neteaseviewer.data.network.Song
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.update.Update
 import io.github.kineks.neteaseviewer.data.update.UpdateJSON
@@ -105,9 +103,7 @@ class MainViewModel : ViewModel() {
         hadListInited = true
     }
 
-    fun updateSongsInfo(
-        quantity: Int = 50,
-    ) {
+    fun updateSongsInfo(quantity: Int = 50) {
         isUpdateComplete = false
         isFailure = false
 
@@ -138,6 +134,7 @@ class MainViewModel : ViewModel() {
 
                     // 对于 list 索引的偏移值
                     val offset = (i - 1) * quantity
+
                     // 该页的数量
                     val size =
                         when (true) {
@@ -151,57 +148,27 @@ class MainViewModel : ViewModel() {
                             else -> quantity
                         }
 
-                    val indexList = ArrayList<Int>()
                     // 对于该页数量 只有一个 的情况下的分支处理
-                    val songList: List<Song> =
-                        when (size) {
-                            1 -> {
-                                indexList.add(offset)
-                                listOf(NeteaseDataService.instance.getSong(songs[offset].id))
-                            }
-                            else -> {
-                                val ids = ArrayList<Int>()
-                                repeat(size) {
-                                    val id = songs[offset + it].id
-                                    if (NeteaseDataService.instance.getSongFromCache(id) == null) {
-                                        ids.add(id)
-                                        indexList.add(offset + it)
-                                    }
+                    when (size) {
+                        1 -> {
+                            NeteaseDataService.instance.getSong(songs[offset].id)
+                        }
+                        else -> {
+                            val ids = ArrayList<Int>()
+                            repeat(size) {
+                                val id = songs[offset + it].id
+                                // 如果缓存里有则跳过
+                                if (NeteaseDataService.instance.getSongFromCache(id) == null) {
+                                    ids.add(id)
                                 }
-                                NeteaseDataService.instance.getSong(ids)
                             }
+                            NeteaseDataService.instance.getSong(ids)
                         }
-
-
-                    try {
-
-                        songList.forEachIndexed { x, song ->
-                            // 计算该对象对应列表索引
-                            val index = indexList[x]//(i - 1) * quantity + x
-                            Log.d(
-                                this.javaClass.name,
-                                "update Song $index : " + song.name
-                            )
-                            /*val name: String =
-                                (song.name ?: song.lMusic.name).toString()
-                            songs[index] = songs[index].copy(
-                                name = name,
-                                artists = song.artists.getArtists()
-                            )
-                            songs[index].reloadSong()*/
-                        }
-                        // 如果加载完最后一页
-                        if (i == pages)
-                            updateComplete.invoke(false)
-
-
-                    } catch (e: Exception) {
-
-                        Log.e(this.javaClass.name, e.message, e)
-                        if (i == pages)
-                            updateComplete.invoke(true)
-
                     }
+
+                    // 如果加载完最后一页
+                    if (i == pages)
+                        updateComplete.invoke(false)
 
                 }
             }
