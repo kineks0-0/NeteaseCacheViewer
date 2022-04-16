@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -146,7 +147,7 @@ fun SongsList(
 ) {
     if (available && songs.isNotEmpty()) {
         LazyColumn(
-            contentPadding = PaddingValues(top = 6.dp, bottom = 8.dp),
+            contentPadding = PaddingValues(top = 7.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             itemsIndexed(songs) { index, music ->
@@ -288,14 +289,22 @@ fun MusicItemAlertDialog(
     }
 }
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MusicItem(
     index: Int,
     music: Music,
+    artBackground: Color = MaterialTheme.colors.onBackground.copy(alpha = 0.6f),
+    artPainter: Painter = rememberImagePainter(
+        data = music.smallAlbumArt,
+        builder = {
+            // 加载完淡入图片
+            crossfade(true)
+        }
+    ),
     snackbar: (message: String) -> Unit,
-    clickable: (index: Int, music: Music) -> Unit = { _, _ -> },
-    onLongClick: (index: Int, music: Music) -> Unit = { _, _ -> }
+    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
 
     var expanded by remember {
@@ -307,75 +316,64 @@ fun MusicItem(
     }
 
     LaunchedEffect(music.deleted) {
-        alpha = if (music.deleted) 0.4f else 1f
+        if (music.deleted)
+            alpha = 0.4f
     }
 
 
     var openDialog by remember { mutableStateOf(false) }
-    MusicItemAlertDialog(
-        openDialog = openDialog,
-        onOpenDialog = { openDialog = it },
-        music = music
-    )
+    if (openDialog)
+        MusicItemAlertDialog(
+            openDialog = openDialog,
+            onOpenDialog = { openDialog = it },
+            music = music
+        )
 
     Row(
         modifier = Modifier
             .height(64.dp)
-            .fillMaxWidth()
             .combinedClickable(
                 onLongClick = {
-                    onLongClick.invoke(index, music)//expanded = true
+                    expanded = true
                 },
                 onClick = {
                     clickable.invoke(index, music)
                 })
-            .padding(top = 7.dp, bottom = 7.dp)
-            .padding(start = 15.dp, end = 15.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-
-
         Surface(
             shape = MaterialTheme.shapes.medium,
             elevation = 4.dp
         ) {
             Image(
-                painter = rememberImagePainter(
-                    // 添加 250y250 参数限制宽高来优化加载大小,避免原图加载
-                    data = music.smallAlbumArt ?: "",
-                    builder = {
-                        // 加载完淡入图片
-                        crossfade(true)
-                    }
-                ),
+                painter = artPainter,
                 contentDescription = "Song Album Art",
                 modifier = Modifier
                     .size(50.dp)
-                    .background(MaterialTheme.colors.onBackground.copy(alpha = 0.6f))
+                    .background(artBackground)
             )
 
-            MusicItemDropdownMenu(
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-                onOpenDialog = { openDialog = it },
-                index = index,
-                music = music,
-                snackbar = snackbar
-            )
+            if (expanded)
+                MusicItemDropdownMenu(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    onOpenDialog = { openDialog = it },
+                    index = index,
+                    music = music,
+                    snackbar = snackbar
+                )
         }
 
         Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 6.dp, bottom = 4.dp)
+                    .padding(start = 10.dp, bottom = 4.dp)
             ) {
                 Text(
                     text = (index + 1).toString(),
@@ -383,9 +381,7 @@ fun MusicItem(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .alpha(0.85f)
+                    modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
                     text = music.name,
@@ -397,23 +393,15 @@ fun MusicItem(
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 9.dp, end = 8.dp, top = 3.dp, bottom = 1.dp)
+                    .padding(start = 9.dp, end = 8.dp, top = 3.dp)
             ) {
 
                 InfoText(
                     text = "${music.artists} - ${music.album}",
                     textAlign = TextAlign.Start,
-                    modifier = Modifier
-                        .weight(0.75f)
+                    modifier = Modifier.weight(0.75f)
                 )
 
-                Row(
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier
-                        .weight(0.25f)
-                        .alpha(0.85f)
-                ) {
 
                     if (music.incomplete) {
                         InfoText(
@@ -457,7 +445,6 @@ fun MusicItem(
                         modifier = Modifier
                             .width(40.dp)
                     )
-                }
 
 
             }
@@ -465,8 +452,8 @@ fun MusicItem(
 
         }
 
-
     }
+
 }
 
 @Composable
