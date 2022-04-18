@@ -35,7 +35,6 @@ class MainViewModel : ViewModel() {
     var isUpdating by mutableStateOf(false)
     var isUpdateComplete by mutableStateOf(false)
 
-    // todo: 状态保持与恢复
     var hadListInited = false
     val songs = mutableStateListOf<Music>()
 

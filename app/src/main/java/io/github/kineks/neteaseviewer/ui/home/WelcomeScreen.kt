@@ -127,7 +127,8 @@ fun WelcomeScreen(
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colors.background.copy(0.1f)),
+                        .background(MaterialTheme.colors.background.copy(0.1f))
+                        .padding(it),
                     count = 2
                 ) { page ->
 

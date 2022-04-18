@@ -67,8 +67,7 @@ object MediaStoreProvider {
                 withContext(Dispatchers.IO) {
                     try {
                         val byteArray =
-                            okHttpClient.newCall(request).await()
-                                ?.byteStream()//.execute().body?.byteStream()
+                            okHttpClient.newCall(request).await().byteStream()
                                 ?: throw Exception("下载失败")
 
                         val artwork = File(parentFile, music.displayFileName + ".image")
@@ -159,6 +158,7 @@ object MediaStoreProvider {
                     + File.separator + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
                     + File.separator + fileName)
             // DATA 字段在 Android Q 之后已经废弃
+            @Suppress("DEPRECATION")
             songDetails.put(MediaStore.Audio.AudioColumns.DATA, dstPath)
         }
 

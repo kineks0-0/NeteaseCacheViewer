@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
 import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 
@@ -48,10 +48,7 @@ fun PlayScreen(song: Music) {
                 elevation = 4.dp
             ) {
                 Image(
-                    painter = rememberImagePainter(
-                        data = song.getAlbumPicUrl(500, 500) ?: "",
-                        builder = { crossfade(true) }
-                    ),
+                    painter = rememberAsyncImagePainter(song.getAlbumPicUrl(500, 500)),
                     contentDescription = "Song Album Art",
                     modifier = Modifier
                         .size(240.dp)

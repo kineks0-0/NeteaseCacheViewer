@@ -6,7 +6,6 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -136,7 +135,7 @@ class MainActivity : FragmentActivity() {
 /*    DefView    */
 
 @OptIn(
-    ExperimentalAnimationApi::class, com.google.accompanist.pager.ExperimentalPagerApi::class,
+    com.google.accompanist.pager.ExperimentalPagerApi::class,
     kotlinx.coroutines.DelicateCoroutinesApi::class
 )
 @Composable
