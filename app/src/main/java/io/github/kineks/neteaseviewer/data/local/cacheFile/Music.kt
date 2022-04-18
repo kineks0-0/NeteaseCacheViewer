@@ -10,6 +10,9 @@ import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.getArtists
 import io.github.kineks.neteaseviewer.replaceIllegalChar
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -18,6 +21,7 @@ val EmptyMusic = Music(-1, -1, "", File(""))
 const val EmptyAlbum = "N/A"
 const val EmptyArtists = "N/A"
 
+@OptIn(DelicateCoroutinesApi::class)
 data class Music(
     val id: Int,
     val bitrate: Int = -1,
@@ -30,6 +34,14 @@ data class Music(
     val info: CacheFileInfo? = null,
     val neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache? = null
 ) {
+
+    init {
+        GlobalScope.launch {
+            if (NeteaseDataService.instance.getSongFromCache(id) != null) {
+                reload(NeteaseDataService.instance.getSongFromCache(id))
+            }
+        }
+    }
 
     val track get() = song?.no ?: -1
     val disc get() = song?.disc ?: ""
@@ -95,6 +107,7 @@ data class Music(
     ): Boolean = NeteaseCacheProvider.decryptCacheFile(this, callback)
 
     fun reload(_song: Song?) {
+        if (_song != null && name == _song.name) return
         song = _song
 
         name = when (song) {

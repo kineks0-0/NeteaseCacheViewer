@@ -1,10 +1,7 @@
 package io.github.kineks.neteaseviewer.ui.home
 
 import android.util.Log
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -248,7 +245,7 @@ fun MusicItemDropdownMenu(
             CoroutineScope(Dispatchers.IO).launch {
                 onExpandedChange(false)
                 music.delete()
-                snackbar("已删除: index $index  " + music.file.name)
+                snackbar("已删除: 索引 $index  " + music.file.name)
             }
         }) {
             Icon(
@@ -390,16 +387,12 @@ fun MusicItem(
             )
 
 
-            musicItemDropdownMenu(
-                expanded,
-                { expanded = it },
-                { openDialog = it }
-            )
         }
 
         Column(
             horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(0.95f)
         ) {
 
             Row(
@@ -485,11 +478,25 @@ fun MusicItem(
 
 
 
-        Icon(
-            Icons.Rounded.MoreVert,
-            contentDescription = "MoreVert",
-            modifier = Modifier.padding(end = 2.dp)
-        )
+        Box {
+
+            Icon(
+                Icons.Rounded.MoreVert,
+                contentDescription = "MoreVert",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+                        expanded = true
+                    }
+                    .padding(end = 2.dp, top = 2.dp)
+            )
+
+            musicItemDropdownMenu(
+                expanded,
+                { expanded = it },
+                { openDialog = it }
+            )
+        }
 
 
     }
