@@ -2,5 +2,5 @@
   "versionCode": 38,
   "versionName": "Alpha 2.8.8",
   "updateInfo": "修复：修复相同ID,相同比特率但不同md5的播放处理\n修复：修复单元测试和其他几个bug\n修复：切歌和刷新不再会重新获取歌曲信息\n重构：重构项目，优化性能\n重构：重构 Gradle 构建文件迁移至 Kotlin脚本(KTS)\n重构：网络请求添加内存缓存(将 Music.kt 和 MainViewModel.kt 的 Song 对象更新获取抽取到 NeteaseDataService.kt)\n重构：重构 Music.kt 的部分对象获取，优化 SongItem 布局",
-  "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/"
+  "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/releases"
 }
