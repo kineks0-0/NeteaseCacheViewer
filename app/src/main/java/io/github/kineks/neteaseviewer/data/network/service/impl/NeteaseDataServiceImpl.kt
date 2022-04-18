@@ -72,27 +72,30 @@ object NeteaseDataServiceImpl : NeteaseDataService {
 
 }
 
+// 自动将 空对象 通过 getSongFromNetwork 更新
 private suspend fun MutableList<Song>.addAll(
     elements: MutableList<Song?>,
     ids: List<Int>
 ): Boolean {
 
+    //保存需要联网更新的id
     val idsNetwork = ArrayList<Int>()
     elements.forEachIndexed { index, song ->
         if (song == null)
             idsNetwork.add(ids[index])
     }
 
+    // 如果列表等于空说明没有空对象, 可以直接添加
     if (idsNetwork.isNotEmpty()) {
         val networkList = NeteaseDataServiceImpl.getSongFromNetwork(idsNetwork)
         var index = 0
 
         elements.forEach { song ->
-            if (song == null)
+            if (song == null) {
                 add(networkList[index])
-            else
+                index++
+            } else
                 add(song)
-            index++
         }
     } else {
 

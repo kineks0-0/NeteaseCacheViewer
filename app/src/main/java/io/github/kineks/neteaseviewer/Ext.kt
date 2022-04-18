@@ -13,9 +13,15 @@ import android.provider.MediaStore
 import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.network.ArtistXX
 import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import okhttp3.ResponseBody
 import java.io.File
+import java.io.IOException
 import java.net.URLConnection
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.experimental.and
 
 fun List<Int>.toURLArray(): String {
@@ -119,3 +125,26 @@ fun File.mimeType() =
     URLConnection.getFileNameMap().getContentTypeFor(name) ?: "multipart/form-data"
 
 fun RFile.RType.toRFile(path: String) = RFile(this, path)
+
+// 直接根据 Retrofit2 的 retrofit2.KotlinExtensions.kt 改的
+suspend fun Call.await(): ResponseBody {
+    return suspendCancellableCoroutine { continuation ->
+        continuation.invokeOnCancellation {
+            cancel()
+        }
+        enqueue(object : Callback {
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    continuation.resume(response.body!!)
+                } else {
+                    continuation.resumeWithException(Exception(response.message))
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                continuation.resumeWithException(e)
+            }
+        })
+    }
+}

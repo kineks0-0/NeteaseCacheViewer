@@ -13,23 +13,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Feed
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -67,7 +69,7 @@ fun HomeScreen(
         }
     }
 
-    if (working) {
+    if (working || model.isUpdating) {
         LinearProgressIndicator(
             modifier = Modifier
                 .padding(
@@ -117,8 +119,8 @@ fun HomeScreen(
     SwipeRefresh(
         state = refreshState,
         onRefresh = {
-            refreshState.isRefreshing = true
             working = true
+            refreshState.isRefreshing = true
             model.viewModelScope.launch {
                 model.reloadSongsList(updateInfo = true)
                 delay(1500)
@@ -130,7 +132,8 @@ fun HomeScreen(
         SongsList(
             songs = model.songs,
             clickable = clickable,
-            snackbar = snackbar
+            snackbar = snackbar,
+            onWorking = { working = it }
         )
     }
 
@@ -141,11 +144,13 @@ fun HomeScreen(
 @Composable
 fun SongsList(
     songs: List<Music>,
-    available: Boolean = !songs.isNullOrEmpty(),
+    available: Boolean = songs.isNotEmpty(),
     snackbar: (message: String) -> Unit,
+    onWorking: (Boolean) -> Unit,
     clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
 ) {
     if (available && songs.isNotEmpty()) {
+        val color = MaterialTheme.colors.onBackground.copy(alpha = 0.6f)
         LazyColumn(
             contentPadding = PaddingValues(top = 7.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
             modifier = Modifier.fillMaxSize()
@@ -153,10 +158,37 @@ fun SongsList(
             itemsIndexed(songs) { index, music ->
                 MusicItem(
                     index = index,
-                    music = music,
-                    clickable = clickable,
-                    snackbar = snackbar
+                    name = music.name,
+                    album = music.album,
+                    artists = music.artists,
+                    artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
+                    artBackground = color,
+                    incomplete = music.incomplete,
+                    deleted = music.deleted,
+                    saved = music.saved,
+                    info = music.info == null,
+                    displayBitrate = music.displayBitrate,
+                    clickable = { clickable(index, music) },
+                    musicItemAlertDialog = { openDialog, onOpenDialog ->
+                        MusicItemAlertDialog(
+                            openDialog = openDialog,
+                            onOpenDialog = onOpenDialog,
+                            music = music
+                        )
+                    },
+                    musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
+                        MusicItemDropdownMenu(
+                            index = index,
+                            music = music,
+                            expanded = expanded,
+                            onExpandedChange = onExpanded,
+                            onOpenDialog = onOpenDialog,
+                            onWorking = onWorking,
+                            snackbar = snackbar
+                        )
+                    }
                 )
+
             }
         }
     } else {
@@ -180,17 +212,19 @@ fun MusicItemDropdownMenu(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onOpenDialog: (Boolean) -> Unit,
+    onWorking: (Boolean) -> Unit,
     snackbar: (message: String) -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange.invoke(false) }) {
+
         DropdownMenuItem(onClick = {
             CoroutineScope(Dispatchers.IO).launch {
-                onExpandedChange.invoke(false)
-                working = true
+                onExpandedChange(false)
+                onWorking(true)
                 delay(250)
-                snackbar.invoke("导出中: index $index Song " + music.displayFileName)
+                snackbar("导出中: 索引 $index 歌曲 " + music.displayFileName)
                 music.decryptFile { out, hasError, e ->
-                    working = false
+                    onWorking(false)
                     val text =
                         if (hasError) {
                             Log.e("decrypt songs", e?.message, e)
@@ -198,22 +232,23 @@ fun MusicItemDropdownMenu(
                         } else
                             "保存成功:  ${music.displayFileName}"
 
-                    snackbar.invoke(text)
+                    snackbar(text)
                 }
             }
         }) {
             Icon(
                 Icons.Rounded.CloudDownload,
-                contentDescription = "Delete",
+                contentDescription = "Decrypt Songs",
                 modifier = Modifier.padding(end = 16.dp)
             )
             Text("导出到音乐媒体库")
         }
+
         DropdownMenuItem(onClick = {
             CoroutineScope(Dispatchers.IO).launch {
-                onExpandedChange.invoke(false)
+                onExpandedChange(false)
                 music.delete()
-                snackbar.invoke("已删除: index $index  " + music.file.name)
+                snackbar("已删除: index $index  " + music.file.name)
             }
         }) {
             Icon(
@@ -223,8 +258,9 @@ fun MusicItemDropdownMenu(
             )
             Text("删除缓存文件")
         }
+
         DropdownMenuItem(onClick = {
-            onOpenDialog.invoke(true)
+            onOpenDialog(true)
         }) {
             Icon(
                 Icons.Rounded.Feed,
@@ -233,6 +269,7 @@ fun MusicItemDropdownMenu(
             )
             Text("查看缓存详细")
         }
+
     }
 }
 
@@ -245,7 +282,7 @@ fun MusicItemAlertDialog(
 
     if (openDialog) {
         AlertDialog(
-            onDismissRequest = { onOpenDialog.invoke(false) },
+            onDismissRequest = { onOpenDialog(false) },
             title = { Text("缓存文件详细 [${music.neteaseAppCache?.type ?: "Netease"},${music.id}]") },
             text = {
                 Column(
@@ -278,12 +315,12 @@ fun MusicItemAlertDialog(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { onOpenDialog.invoke(false) }) {
+                TextButton(onClick = { onOpenDialog(false) }) {
                     Text("确定")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { onOpenDialog.invoke(false) }) { Text("取消") }
+                TextButton(onClick = { onOpenDialog(false) }) { Text("取消") }
             }
         )
     }
@@ -294,17 +331,19 @@ fun MusicItemAlertDialog(
 @Composable
 fun MusicItem(
     index: Int,
-    music: Music,
-    artBackground: Color = MaterialTheme.colors.onBackground.copy(alpha = 0.6f),
-    artPainter: Painter = rememberImagePainter(
-        data = music.smallAlbumArt,
-        builder = {
-            // 加载完淡入图片
-            crossfade(true)
-        }
-    ),
-    snackbar: (message: String) -> Unit,
-    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
+    name: String,
+    deleted: Boolean,
+    artists: String,
+    album: String,
+    incomplete: Boolean,
+    saved: Boolean,
+    displayBitrate: String,
+    info: Boolean,
+    artBackground: Color,
+    artPainter: Painter,// = rememberAsyncImagePainter(music.smallAlbumArt),
+    musicItemDropdownMenu: @Composable (expanded: Boolean, onExpanded: (Boolean) -> Unit, onOpenDialog: (Boolean) -> Unit) -> Unit,
+    musicItemAlertDialog: @Composable (openDialog: Boolean, onOpenDialog: (Boolean) -> Unit) -> Unit,
+    clickable: () -> Unit = { }
 ) {
 
     var expanded by remember {
@@ -315,19 +354,14 @@ fun MusicItem(
         mutableStateOf(1f)
     }
 
-    LaunchedEffect(music.deleted) {
-        if (music.deleted)
+    LaunchedEffect(deleted) {
+        if (deleted)
             alpha = 0.4f
     }
 
 
     var openDialog by remember { mutableStateOf(false) }
-    if (openDialog)
-        MusicItemAlertDialog(
-            openDialog = openDialog,
-            onOpenDialog = { openDialog = it },
-            music = music
-        )
+    musicItemAlertDialog(openDialog) { openDialog = it }
 
     Row(
         modifier = Modifier
@@ -337,7 +371,7 @@ fun MusicItem(
                     expanded = true
                 },
                 onClick = {
-                    clickable.invoke(index, music)
+                    clickable()
                 })
             .alpha(alpha),
         horizontalArrangement = Arrangement.Center,
@@ -355,15 +389,12 @@ fun MusicItem(
                     .background(artBackground)
             )
 
-            if (expanded)
-                MusicItemDropdownMenu(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    onOpenDialog = { openDialog = it },
-                    index = index,
-                    music = music,
-                    snackbar = snackbar
-                )
+
+            musicItemDropdownMenu(
+                expanded,
+                { expanded = it },
+                { openDialog = it }
+            )
         }
 
         Column(
@@ -384,7 +415,7 @@ fun MusicItem(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = music.name,
+                    text = name,
                     maxLines = 1,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1
@@ -397,54 +428,54 @@ fun MusicItem(
             ) {
 
                 InfoText(
-                    text = "${music.artists} - ${music.album}",
+                    text = "$artists - $album",
                     textAlign = TextAlign.Start,
-                    modifier = Modifier.weight(0.75f)
+                    modifier = Modifier.weight(0.70f)
                 )
 
 
-                    if (music.incomplete) {
-                        InfoText(
-                            text = getString(id = R.string.list_incomplete),
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colors.error,
-                        )
-                    }
-
-                    if (!NeteaseCacheProvider.fastReader && music.info == null) {
-                        InfoText(
-                            text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
-                            color = MaterialTheme.colors.error,
-                            modifier = Modifier
-                                .padding(end = 2.dp)
-                        )
-                    }
-
-                    if (music.deleted) {
-                        InfoText(
-                            text = getString(id = R.string.list_deleted),
-                            color = MaterialTheme.colors.error,
-                            modifier = Modifier
-                                .padding(end = 2.dp)
-                        )
-                    }
-
-                    if (music.saved) {
-                        InfoText(
-                            text = getString(id = R.string.list_saved),
-                            color = MaterialTheme.colors.primary,
-                            modifier = Modifier
-                                .padding(end = 2.dp)
-                        )
-                    }
-
+                if (incomplete) {
                     InfoText(
-                        text = music.displayBitrate,
-                        textAlign = TextAlign.End,
+                        text = getString(id = R.string.list_incomplete),
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colors.error,
+                    )
+                }
+
+                if (!NeteaseCacheProvider.fastReader && info) {
+                    InfoText(
+                        text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
+                        color = MaterialTheme.colors.error,
+                        modifier = Modifier
+                            .padding(end = 2.dp)
+                    )
+                }
+
+                if (deleted) {
+                    InfoText(
+                        text = getString(id = R.string.list_deleted),
+                        color = MaterialTheme.colors.error,
+                        modifier = Modifier
+                            .padding(end = 2.dp)
+                    )
+                }
+
+                if (saved) {
+                    InfoText(
+                        text = getString(id = R.string.list_saved),
                         color = MaterialTheme.colors.primary,
                         modifier = Modifier
-                            .width(40.dp)
+                            .padding(end = 2.dp)
                     )
+                }
+
+                InfoText(
+                    text = displayBitrate,
+                    textAlign = TextAlign.End,
+                    color = MaterialTheme.colors.primary,
+                    modifier = Modifier
+                        .width(40.dp)
+                )
 
 
             }
@@ -452,29 +483,17 @@ fun MusicItem(
 
         }
 
+
+
+        Icon(
+            Icons.Rounded.MoreVert,
+            contentDescription = "MoreVert",
+            modifier = Modifier.padding(end = 2.dp)
+        )
+
+
     }
 
-}
-
-@Composable
-fun InfoText(
-    text: AnnotatedString,
-    modifier: Modifier = Modifier,
-    color: Color = Color.Unspecified,
-    textAlign: TextAlign? = TextAlign.Center,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
-    maxLines: Int = 1,
-    style: TextStyle = MaterialTheme.typography.body2
-) {
-    Text(
-        text = text,
-        modifier = modifier.padding(start = 2.dp, end = 2.dp),
-        color = color,
-        textAlign = textAlign,
-        overflow = overflow,
-        maxLines = maxLines,
-        style = style
-    )
 }
 
 @Composable
@@ -498,4 +517,27 @@ fun InfoText(
         maxLines = maxLines,
         style = style
     )
+}
+
+@Preview(showBackground = true, widthDp = 200, heightDp = 80)
+@Composable
+fun DefPreView() {
+    MusicItem(
+        index = 0,
+        name = "Name",
+        album = "Album",
+        artists = "Artists",
+        artPainter = painterResource(id = R.drawable.ic_launcher_background),
+        artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f),
+        incomplete = false,
+        deleted = false,
+        saved = false,
+        info = false,
+        displayBitrate = "192 k",
+        musicItemAlertDialog = { _, _ ->
+            Text("Todo")
+        },
+        musicItemDropdownMenu = { _, _, _ ->
+            Text("Todo")
+        })
 }

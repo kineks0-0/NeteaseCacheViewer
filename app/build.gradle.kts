@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.kineks.neteaseviewer"
         minSdk = 21
         targetSdk = 31
-        versionCode = 36
-        versionName = "Alpha 2.8.6"
+        versionCode = 38
+        versionName = "Alpha 2.8.8"
         resourceConfigurations += listOf("en", "zh", "zh-rCN")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -60,23 +60,23 @@ android {
 dependencies {
 
     // 默认库
-    implementation ("androidx.core:core-ktx:1.7.0")
-    implementation ("androidx.compose.ui:ui:1.2.0-alpha07")
-    implementation ("androidx.compose.compiler:compiler:$compose_version")
-    implementation ("androidx.compose.runtime:runtime:1.2.0-alpha07")
-    implementation ("androidx.compose.material:material:$compose_version")
-    implementation ("androidx.compose.ui:ui-tooling-preview:$compose_version")
-    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.4.1")
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1")
-    implementation ("androidx.activity:activity-compose:1.4.0")
-    implementation ("androidx.activity:activity:1.4.0")
-    implementation ("androidx.fragment:fragment:1.4.1")
-    implementation ("androidx.documentfile:documentfile:1.0.1")
-    implementation ("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("androidx.core:core-ktx:1.9.0-alpha02")
+    implementation("androidx.compose.ui:ui:1.2.0-alpha07")
+    implementation("androidx.compose.compiler:compiler:$compose_version")
+    implementation("androidx.compose.runtime:runtime:1.2.0-alpha07")
+    implementation("androidx.compose.material:material:$compose_version")
+    implementation("androidx.compose.ui:ui-tooling-preview:$compose_version")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.0-alpha06")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.0-alpha06")
+    implementation("androidx.activity:activity-compose:1.6.0-alpha01")
+    implementation("androidx.activity:activity:1.6.0-alpha01")
+    implementation("androidx.fragment:fragment:1.5.0-alpha05")
+    implementation("androidx.documentfile:documentfile:1.1.0-alpha01")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // compose 的额外扩展库(图标库和livedata)
-    implementation ("androidx.compose.material:material-icons-extended:$compose_version")
-    implementation ("androidx.compose.runtime:runtime-livedata:$compose_version")
+    implementation("androidx.compose.material:material-icons-extended:$compose_version")
+    implementation("androidx.compose.runtime:runtime-livedata:$compose_version")
 
     // todo: 等我折腾明白注入怎么用再加回来
     //implementation 'androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha03'
@@ -87,7 +87,7 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.24.6-alpha")
 
     // 支持 compose 使用的图像加载库
-    implementation ("io.coil-kt:coil-compose:1.4.0")
+    implementation("io.coil-kt:coil-compose:2.0.0-rc03")
 
     // 用于数据请求和处理
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")
@@ -95,7 +95,7 @@ dependencies {
     implementation ("com.google.code.gson:gson:2.9.0")
 
     // 简化权限申请库
-    implementation ("com.guolindev.permissionx:permissionx:1.6.1")
+    implementation("com.guolindev.permissionx:permissionx:1.6.2")
 
     // 播放控制
     implementation ("com.github.EspoirX:StarrySky:v2.6.5")
@@ -106,7 +106,7 @@ dependencies {
     }
 
     // Compose 的下拉刷新
-    implementation ("com.google.accompanist:accompanist-swiperefresh:0.18.0")
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.24.6-alpha")
 
     // Compose 版的 ViewPager ,用来滑动页面
     implementation ("com.google.accompanist:accompanist-pager:0.24.6-alpha")
@@ -125,8 +125,8 @@ dependencies {
 
     // 单元测试
     testImplementation ("junit:junit:4.13.2")
-    androidTestImplementation ("androidx.test.ext:junit:1.1.3")
-    androidTestImplementation ("androidx.test.espresso:espresso-core:3.4.0")
-    androidTestImplementation ("androidx.compose.ui:ui-test-junit4:$compose_version")
+    androidTestImplementation("androidx.test.ext:junit:1.1.3")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0-alpha05")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$compose_version")
     debugImplementation ("androidx.compose.ui:ui-tooling:$compose_version")
 }

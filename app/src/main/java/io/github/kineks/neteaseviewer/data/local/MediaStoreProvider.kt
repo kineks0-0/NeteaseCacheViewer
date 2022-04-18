@@ -1,8 +1,8 @@
 package io.github.kineks.neteaseviewer.data.local
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
@@ -13,6 +13,7 @@ import ealvatag.tag.NullTag
 import ealvatag.tag.Tag
 import ealvatag.tag.images.ArtworkFactory
 import io.github.kineks.neteaseviewer.App
+import io.github.kineks.neteaseviewer.await
 import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,12 +41,11 @@ object MediaStoreProvider {
         val title: String = tag.getValue(FieldKey.TITLE).or("")
         if ("" == title) {
             if (tag === NullTag.INSTANCE) {
-                // there was no tag. set a new default tag for the file type
+                // 标签信息不存在，需根据文件类型设置一个新的默认标签。
                 tag = audioFile.setNewDefaultTag()
             }
         }
 
-        // tag = audioFile.tag
         tag.setField(FieldKey.TITLE, music.name)
         tag.setField(FieldKey.ALBUM, music.album)
         tag.setField(FieldKey.ARTIST, music.artists)
@@ -67,7 +67,9 @@ object MediaStoreProvider {
                 withContext(Dispatchers.IO) {
                     try {
                         val byteArray =
-                            okHttpClient.newCall(request).execute().body()?.byteStream() ?: TODO()
+                            okHttpClient.newCall(request).await()
+                                ?.byteStream()//.execute().body?.byteStream()
+                                ?: throw Exception("下载失败")
 
                         val artwork = File(parentFile, music.displayFileName + ".image")
                         artwork.delete()
@@ -95,7 +97,6 @@ object MediaStoreProvider {
                         Log.e(this@MediaStoreProvider.javaClass.name, file.absolutePath)
                     }
                 }
-                //tag.setField(ArtworkFactory.createLinkedArtworkFromURL(pic))
             }
 
 
@@ -108,6 +109,7 @@ object MediaStoreProvider {
 
     }
 
+    @SuppressLint("InlinedApi")
     fun insert2Music(inputStream: InputStream, music: Music, ext: String = "mp3"): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
@@ -122,11 +124,12 @@ object MediaStoreProvider {
             //put(MediaStore.Audio.AudioColumns.MIME_TYPE, "")
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // 在 Android Q 之后可以先获取该媒体的句柄
+        if (App.isAndroidQorAbove) {
             songDetails.put(MediaStore.Audio.Media.IS_PENDING, 1)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (App.isAndroidRorAbove) {
             songDetails.apply {
                 put(MediaStore.Audio.AudioColumns.ALBUM_ARTIST, music.artists)
                 put(MediaStore.Audio.AudioColumns.DISC_NUMBER, music.disc)
@@ -136,7 +139,7 @@ object MediaStoreProvider {
 
         // Find all audio files on the primary external storage device.
         val audioCollection =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (App.isAndroidQorAbove) {
                 MediaStore.Audio.Media.getContentUri(
                     MediaStore.VOLUME_EXTERNAL_PRIMARY
                 )
@@ -144,13 +147,14 @@ object MediaStoreProvider {
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (App.isAndroidQorAbove) {
             // RELATIVE_PATH 字段表示相对路径
             songDetails.put(
                 MediaStore.Audio.AudioColumns.RELATIVE_PATH,
                 Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
             )
         } else {
+            @Suppress("DEPRECATION")
             val dstPath = (Environment.getExternalStorageDirectory().toString()
                     + File.separator + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
                     + File.separator + fileName)
@@ -176,7 +180,8 @@ object MediaStoreProvider {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // 释放占用并更新媒体库信息
+        if (App.isAndroidQorAbove) {
             songDetails.clear()
             songDetails.put(MediaStore.Audio.Media.IS_PENDING, 0)
             resolver.update(songContentUri, songDetails, null, null)

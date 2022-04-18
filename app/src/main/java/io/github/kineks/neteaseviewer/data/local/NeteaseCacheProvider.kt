@@ -8,6 +8,7 @@ import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
 import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
+import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.scanFile
 import io.github.kineks.neteaseviewer.toRFile
 import kotlinx.coroutines.CoroutineScope
@@ -119,11 +120,10 @@ object NeteaseCacheProvider {
                             songs.add(
                                 Music(
                                     id = str[0].toInt(),
-                                    /*name = str[2],
-                                    artists = "N/A - ${str[0].toInt()}",*/
                                     bitrate = str[1].toInt(),
                                     md5 = str[2].substring(0, 31),
                                     file = it,
+                                    song = NeteaseDataService.instance.getSongFromCache(str[0].toInt()),
                                     info = null,
                                     neteaseAppCache = neteaseAppCache
                                 )
@@ -136,11 +136,10 @@ object NeteaseCacheProvider {
                         songs.add(
                             Music(
                                 id = idx.id,
-                                /*name = idx.fileMD5,
-                                artists = "N/A",*/
                                 bitrate = idx.bitrate,
                                 md5 = idx.fileMD5,
                                 file = it,
+                                song = NeteaseDataService.instance.getSongFromCache(idx.id),
                                 info = idx,
                                 neteaseAppCache = neteaseAppCache
                             )

@@ -1,6 +1,5 @@
 package io.github.kineks.neteaseviewer.data.local
 
-import ando.file.core.FileUri
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
@@ -37,15 +36,18 @@ data class RFile(val type: RType, val path: String) {
     val uri: Uri
         get() = when (type) {
             RType.Uri, RType.SingleUri -> Uri.parse(path)
-            RType.ShareStorage ->
-                File(Environment.getExternalStorageDirectory().path + path).toUri()
-            RType.File, RType.SingleFile -> FileUri.getUriByPath(path)!!
-            RType.AndroidData -> TODO()
+            RType.ShareStorage -> file.toUri()
+            RType.File, RType.SingleFile -> file.toUri()
+            RType.AndroidData -> file.toUri()
             RType.Root -> TODO()
         }
     val file: File
         get() = when (type) {
             RType.File, RType.SingleFile -> File(path)
+            RType.ShareStorage ->
+                File(Environment.getExternalStorageDirectory().path + path)
+            RType.AndroidData ->
+                File(Environment.getExternalStorageDirectory().path + "/Android/Data/" + path)
             else -> uri.toFile()
         }
     val input: InputStream?
@@ -66,7 +68,7 @@ data class RFile(val type: RType, val path: String) {
     fun read2File(callback: (index: Int, file: File) -> Unit) {
         when (type) {
             RType.Uri -> {
-                uri.toFile().walk().forEachIndexed { index, file ->
+                file.walk().forEachIndexed { index, file ->
                     callback.invoke(index, file)
                 }
             }
@@ -78,17 +80,15 @@ data class RFile(val type: RType, val path: String) {
             RType.SingleUri -> callback.invoke(0, file)
             RType.SingleFile -> callback.invoke(0, file)
             RType.ShareStorage -> {
-                File(Environment.getExternalStorageDirectory().path + path)
-                    .walk().forEachIndexed { index, file ->
-                        callback.invoke(index, file)
-                    }
+                file.walk().forEachIndexed { index, file ->
+                    callback.invoke(index, file)
+                }
             }
             RType.AndroidData -> {
                 if (!App.isAndroidRorAbove)
-                    File(Environment.getExternalStorageDirectory().path + "/Android/Data/" + path)
-                        .walk().forEachIndexed { index, file ->
-                            callback.invoke(index, file)
-                        }
+                    file.walk().forEachIndexed { index, file ->
+                        callback.invoke(index, file)
+                    }
                 else
                     Log.e(TAG, "RFileType.AndroidData not support on Android R+")
             }

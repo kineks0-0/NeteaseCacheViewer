@@ -39,7 +39,7 @@ object Update {
     suspend fun checkUpdateWithTime(callback: (json: UpdateJSON?, hasUpdate: Boolean) -> Unit) {
         Setting.lastCheckUpdates.collect {
             Log.d("checkUpdateWithTime", "lastCheckUpdates: $it")
-            if (it < 100) {
+            if (it < 1000) {
                 checkUpdate(callback)
             } else {
                 val timeMillis: Long = Calendar.getInstance().timeInMillis
@@ -75,7 +75,7 @@ object Update {
                         retrofit.create(UpdateApi::class.java).getCDNUpdateDetail()
                     else
                         retrofit.create(UpdateApi::class.java).getUpdateDetail()
-                Log.d("checkUpdate", api.request().url().toString())
+                Log.d("checkUpdate", api.request().url.toString())
                 json = api.await()
                 if (json == null) {
                     Log.d("checkUpdate", "json == null")
@@ -89,7 +89,10 @@ object Update {
 
             @Suppress("DEPRECATION")
             val versionCode: Long =
-                if (App.isAndroidPorAbove) pInfo.longVersionCode else pInfo.versionCode.toLong()
+                if (App.isAndroidPorAbove)
+                    pInfo.longVersionCode
+                else
+                    pInfo.versionCode.toLong()
 
             Log.d("checkUpdate", json.toString())
             callback.invoke(json, versionCode < json!!.versionCode)

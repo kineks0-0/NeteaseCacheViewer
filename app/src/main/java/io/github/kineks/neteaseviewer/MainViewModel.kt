@@ -1,5 +1,6 @@
 package io.github.kineks.neteaseviewer
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -160,6 +161,18 @@ class MainViewModel : ViewModel() {
                         ids.isEmpty() -> {}
                         (ids.size == 1) -> NeteaseDataService.instance.getSong(ids[0])
                         else -> NeteaseDataService.instance.getSong(ids)
+                    }
+
+                    repeat(size) {
+                        val index = offset + it
+                        val music = songs[index]
+                        if (NeteaseDataService.instance.getSongFromCache(music.id) != null) {
+                            music.reload(NeteaseDataService.instance.getSongFromCache(music.id))
+                            Log.d(
+                                this.javaClass.name,
+                                "update Song $index : " + music.name
+                            )
+                        }
                     }
 
                     // 如果加载完最后一页
