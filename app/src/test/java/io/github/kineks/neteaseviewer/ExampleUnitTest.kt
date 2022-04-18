@@ -28,11 +28,6 @@ class ExampleUnitTest {
         }
 
         val file = File("I:\\Root\\备份\\PhoneBackup\\Mi 6x\\netease\\cloudmusic\\Cache\\Music1\\37092830-256000-1d69314c1c6d6f4651c2b046890e3d53.mp3.uc!")
-        /*val fileOut = File(file.parent,file.nameWithoutExtension)
-        val xorByteInputStream = XorByteInputStream(file = file)
-        xorByteInputStream.buffered().use {
-            fileOut.writeBytes(it.readBytes())
-        }*/
         FileType.getFileType(XorByteInputStream(file = file)).println()
     }
 }
