@@ -81,7 +81,7 @@ fun WelcomeScreen(
                         needAgreeAgreementToast()
                         appState.animateScrollToPage(0, 600)
                     } else {
-                        // 同意协议时的回调
+                        // 完成用户引导页时的回调
                         callback()
                     }
 
@@ -220,7 +220,12 @@ fun PageTwo(
                                 mutableStateOf("size: N/A")
                             }
                             Row(horizontalArrangement = Arrangement.Center) {
-                                Surface(shape = MaterialTheme.shapes.medium) {
+                                Surface(
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .padding(bottom = 4.dp)
+                                ) {
                                     Image(
                                         contentDescription = "AppIcon",
                                         painter = rememberAsyncImagePainter(
@@ -228,17 +233,16 @@ fun PageTwo(
                                         ),
                                         modifier = Modifier
                                             .background(Color.Transparent)
-                                            .padding(8.dp)
-                                            .padding(bottom = 4.dp)
                                             .size(40.dp)
                                     )
                                 }
                                 Column(
                                     modifier = Modifier.padding(
-                                        top = 6.dp,
+                                        top = 10.dp,
                                         end = 4.dp,
                                         start = 4.dp
-                                    )
+                                    ),
+                                    verticalArrangement = Arrangement.Center
                                 ) {
                                     Text(
                                         text = neteaseAppCache.type,
@@ -306,33 +310,42 @@ fun PageOne(
         ) {
             Column {
                 Row {
-                    Surface(shape = MaterialTheme.shapes.medium) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .padding(bottom = 4.dp)
+                    ) {
                         Image(
                             contentDescription = "AppIcon",
                             painter = rememberAsyncImagePainter(
                                 R.mipmap.ic_launcher
                             ),
                             modifier = Modifier
-                                .background(Color.Transparent)
-                                .padding(8.dp)
-                                .padding(bottom = 4.dp)
+                                .size(65.dp)
                         )
                     }
                     Column(
-                        modifier = Modifier.padding(
-                            top = 12.dp,
-                            end = 6.dp,
-                            start = 6.dp
-                        )
+                        modifier = Modifier
+                            .height(65.dp)
+                            .padding(
+                                top = 8.dp,
+                                end = 6.dp,
+                                start = 6.dp
+                            ),
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = "欢迎使用 NeteaseViewer",
-                            style = MaterialTheme.typography.body1,
+                            style = MaterialTheme.typography.h6,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = "一个用来管理网易云音乐缓存的工具",
-                            style = MaterialTheme.typography.subtitle2
+                            style = MaterialTheme.typography.subtitle2,
+                            modifier = Modifier.padding(
+                                top = 6.dp
+                            )
                         )
                     }
                 }
