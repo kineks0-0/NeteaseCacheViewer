@@ -8,8 +8,18 @@
     <string name="snackbar_dismissed">Dismissed</string>
     <string name="list_incomplete">incomplete</string>
     <string name="list_missing_info_file">missing</string>
-    <string name="list_update">Update</string>
+    <string name="list_reload">Reload</string>
     <string name="list_update_failure">Update Failure</string>
     <string name="list_saved">saved</string>
     <string name="list_deleted">deleted</string>
+    <string name="list_file_has_deleted">The file has been deleted</string>
+    <string name="play_error">Error When Playing :  %s</string>
+    <string name="list_decrypt_all_files">Decrypt all files</string>
+    <string name="welcome_next">Next</string>
+    <string name="welcome_need_agree_agreement">Need to agree to privacy agreement to continue</string>
+    <string name="welcome_agree">Agree</string>
+    <string name="welcome_finish">Finish</string>
+    <string name="welcome_check_permissions">Checking Permissions</string>
+    <string name="welcome_permission_denied">Permission Denied</string>
+    <string name="welcome_loading">Loading</string>
 </resources>

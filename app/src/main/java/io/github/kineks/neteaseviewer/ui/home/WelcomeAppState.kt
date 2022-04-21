@@ -1,11 +1,13 @@
-package io.github.kineks.neteaseviewer
+package io.github.kineks.neteaseviewer.ui.home
 
 import android.annotation.SuppressLint
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ScaffoldState
-import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.SnackbarResult
 import androidx.compose.material.rememberScaffoldState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.PagerState
@@ -13,38 +15,49 @@ import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.systemuicontroller.SystemUiController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class MainAppState @OptIn(ExperimentalPagerApi::class) constructor(
+class WelcomeAppState @OptIn(ExperimentalPagerApi::class) constructor(
     // For Snackbar
     val scope: CoroutineScope,
     val scaffoldState: ScaffoldState,
 
-    // BottomBar & Pager
-    var selectedItem: MutableState<Int>,
-    val navItemList: List<String>,
-    val state: PagerState,
+    // Pager
+    val pagerState: PagerState,
     val coroutineScope: CoroutineScope,
 
     // use UI Controller in compose
     val systemUiController: SystemUiController
-
 ) {
 
-    val snackbar: (message: String) -> Unit = {
-        scope.launch {
-            scaffoldState.snackbarHostState
-                .currentSnackbarData?.dismiss()
-            scaffoldState.snackbarHostState
-                .showSnackbar(
-                    message = it,
-                    actionLabel = getString(R.string.snackbar_dismissed),
-                    duration = SnackbarDuration.Short
-                )
+    @OptIn(ExperimentalPagerApi::class)
+    fun animateScrollToPage(index: Int, delay: Long = 0) {
+        coroutineScope.launch {
+            if (delay > 0)
+                delay(delay)
+            pagerState.animateScrollToPage(index)
         }
     }
 
-    fun snackbar(id: Int) = snackbar(getString(id = id))
+    @OptIn(ExperimentalPagerApi::class)
+    fun animateScrollToNextPage(delay: Long = 0) =
+        animateScrollToPage(pagerState.currentPage + 1, delay)
+
+    fun snackbar(message: String, actionLabel: String, ActionPerformed: () -> Unit) {
+        scope.launch {
+            scaffoldState.snackbarHostState
+                .currentSnackbarData?.dismiss()
+            val result = scaffoldState.snackbarHostState
+                .showSnackbar(
+                    message = message,
+                    actionLabel = actionLabel
+                )
+            if (result == SnackbarResult.ActionPerformed) {
+                ActionPerformed()
+            }
+        }
+    }
 
     @SuppressLint("ComposableNaming")
     @Composable
@@ -52,31 +65,16 @@ class MainAppState @OptIn(ExperimentalPagerApi::class) constructor(
         systemUiController.setStatusBarColor(backgroundColor)
         systemUiController.setNavigationBarColor(backgroundColor)
     }
-
-    @OptIn(ExperimentalPagerApi::class)
-    fun scrollToPage(index: Int) {
-        selectedItem.value = index
-        coroutineScope.launch {
-            state.scrollToPage(index)
-        }
-    }
-
 }
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
-fun rememberMainAppState(
+fun rememberWelcomeAppState(
     scope: CoroutineScope = rememberCoroutineScope(),
     scaffoldState: ScaffoldState = rememberScaffoldState(),
-    selectedItem: MutableState<Int> = mutableStateOf(0),
-    navItemList: List<String> = listOf("home", "play", "setting"),
-    state: PagerState = rememberPagerState(initialPage = 0),
+    pagerState: PagerState = rememberPagerState(initialPage = 0),
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     systemUiController: SystemUiController = rememberSystemUiController()
 ) = remember {
-    MainAppState(
-        scope, scaffoldState, selectedItem,
-        navItemList, state, coroutineScope,
-        systemUiController
-    )
+    WelcomeAppState(scope, scaffoldState, pagerState, coroutineScope, systemUiController)
 }

@@ -1,6 +1,5 @@
 package io.github.kineks.neteaseviewer.ui.play
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -57,7 +56,7 @@ fun PlayScreen(song: MusicState) {
                                 .copy(alpha = 0.5f)
                         )
                 )
-                Log.d(TAG, "Song Album Art : " + song.getAlbumPicUrl(700, 700))
+                //Log.d(TAG, "Song Album Art : " + song.getAlbumPicUrl(700, 700))
             }
 
             Text(

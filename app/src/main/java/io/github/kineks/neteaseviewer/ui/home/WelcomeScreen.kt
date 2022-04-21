@@ -20,19 +20,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
-import com.google.accompanist.pager.PagerState
-import com.google.accompanist.pager.rememberPagerState
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.getString
 import io.github.kineks.neteaseviewer.openBrowser
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
@@ -43,16 +38,7 @@ fun WelcomeScreen(
 ) {
     if (display) {
 
-        // For Snackbar
-        val scope = rememberCoroutineScope()
-        val scaffoldState = rememberScaffoldState()
-
-        // Pager
-        val pagerState = rememberPagerState(initialPage = 0)
-        val coroutineScope = rememberCoroutineScope()
-
-        // use UI Controller in compose
-        val systemUiController = rememberSystemUiController()
+        val appState = rememberWelcomeAppState()
 
         // 是否同意隐私协议
         var agreeAgreement by remember {
@@ -61,62 +47,55 @@ fun WelcomeScreen(
 
         // 设置 fab 的文本
         var floatingActionText by remember {
-            mutableStateOf("下一步")
+            mutableStateOf(getString(id = R.string.welcome_next))
         }
 
         // 跳转下一页
         val nextPage: () -> Unit = {
-            coroutineScope.launch {
-                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-            }
+            appState.animateScrollToNextPage()
         }
 
         // 弹出需要同意隐私协议的吐司
         val needAgreeAgreementToast: () -> Unit = {
-            scope.launch {
-                scaffoldState.snackbarHostState
-                    .currentSnackbarData?.dismiss()
-                val result = scaffoldState.snackbarHostState
-                    .showSnackbar("需要同意隐私协议才能继续", actionLabel = "同意")
-                if (result == SnackbarResult.ActionPerformed) {
+            appState.snackbar(
+                message = getString(R.string.welcome_need_agree_agreement),
+                actionLabel = getString(R.string.welcome_agree),
+                ActionPerformed = {
                     agreeAgreement = true
-                    nextPage.invoke()
+                    nextPage()
                 }
-            }
+            )
         }
 
         // 点击下一步
         val onNextClick: () -> Unit = {
-            when (pagerState.currentPage) {
+            when (appState.pagerState.currentPage) {
                 0 -> {
-                    if (!agreeAgreement) {
-                        needAgreeAgreementToast.invoke()
-                    } else nextPage.invoke()
+                    if (!agreeAgreement)
+                        needAgreeAgreementToast()
+                    else
+                        nextPage()
                 }
-                pagerState.pageCount - 1 -> {
+                appState.pagerState.pageCount - 1 -> {
                     if (!agreeAgreement) {
-                        needAgreeAgreementToast.invoke()
-                        coroutineScope.launch {
-                            delay(600)
-                            pagerState
-                                .animateScrollToPage(0)
-                        }
+                        needAgreeAgreementToast()
+                        appState.animateScrollToPage(0, 600)
                     } else {
-                        callback.invoke()
+                        // 同意协议时的回调
+                        callback()
                     }
 
                 }
-                else -> nextPage.invoke()
+                else -> nextPage()
             }
         }
 
         NeteaseViewerTheme {
 
-            systemUiController.setStatusBarColor(MaterialTheme.colors.background)
-            systemUiController.setNavigationBarColor(MaterialTheme.colors.background)
+            appState.setSystemBarColor()
 
             Scaffold(
-                scaffoldState = scaffoldState,
+                scaffoldState = appState.scaffoldState,
                 floatingActionButton = {
                     ExtendedFloatingActionButton(
                         text = { Text(text = floatingActionText) }, onClick = onNextClick
@@ -124,7 +103,7 @@ fun WelcomeScreen(
                 }
             ) {
                 HorizontalPager(
-                    state = pagerState,
+                    state = appState.pagerState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colors.background.copy(0.1f))
@@ -132,10 +111,10 @@ fun WelcomeScreen(
                     count = 2
                 ) { page ->
 
-                    LaunchedEffect(pagerState.currentPage) {
-                        floatingActionText = when (pagerState.currentPage) {
-                            pagerState.pageCount - 1 -> "完成"
-                            else -> "下一步"
+                    LaunchedEffect(appState.pagerState.currentPage) {
+                        floatingActionText = when (appState.pagerState.currentPage) {
+                            appState.pagerState.pageCount - 1 -> getString(R.string.welcome_finish)
+                            else -> getString(R.string.welcome_next)
                         }
                     }
 
@@ -153,8 +132,7 @@ fun WelcomeScreen(
                             1 -> PageTwo(
                                 needAgreeAgreementToast = needAgreeAgreementToast,
                                 checkPermission = checkPermission,
-                                pagerState = pagerState,
-                                coroutineScope = coroutineScope,
+                                appState = appState,
                                 agreeAgreement = agreeAgreement
                             )
                         }
@@ -181,8 +159,7 @@ fun WelcomeScreen(
 fun PageTwo(
     needAgreeAgreementToast: () -> Unit,
     checkPermission: (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
-    pagerState: PagerState,
-    coroutineScope: CoroutineScope,
+    appState: WelcomeAppState,
     agreeAgreement: Boolean
 ) {
     Column {
@@ -192,21 +169,21 @@ fun PageTwo(
             mutableStateOf(false)
         }
         var title by remember {
-            mutableStateOf("检查权限中")
+            mutableStateOf(getString(id = R.string.welcome_check_permissions))
         }
 
-        LaunchedEffect(pagerState.currentPage) {
-            if (pagerState.currentPage != 1) return@LaunchedEffect
+        LaunchedEffect(appState.pagerState.currentPage) {
+            if (appState.pagerState.currentPage != 1) return@LaunchedEffect
             if (!agreeAgreement) {
-                needAgreeAgreementToast.invoke()
-                coroutineScope.launch {
-                    delay(600)
-                    pagerState.animateScrollToPage(0)
-                }
+                needAgreeAgreementToast()
+                appState.animateScrollToPage(0, 500)
             } else {
-                checkPermission.invoke {
-                    toNext = it
-                    if (!it) title = "权限被拒"
+                checkPermission.invoke { allGranted ->
+                    toNext = allGranted
+                    title = if (allGranted)
+                        getString(R.string.welcome_loading)
+                    else
+                        getString(R.string.welcome_permission_denied)
                 }
             }
         }
@@ -246,8 +223,8 @@ fun PageTwo(
                                 Surface(shape = MaterialTheme.shapes.medium) {
                                     Image(
                                         contentDescription = "AppIcon",
-                                        painter = rememberImagePainter(
-                                            data = R.mipmap.ic_launcher
+                                        painter = rememberAsyncImagePainter(
+                                            R.mipmap.ic_launcher
                                         ),
                                         modifier = Modifier
                                             .background(Color.Transparent)
@@ -332,8 +309,8 @@ fun PageOne(
                     Surface(shape = MaterialTheme.shapes.medium) {
                         Image(
                             contentDescription = "AppIcon",
-                            painter = rememberImagePainter(
-                                data = R.mipmap.ic_launcher
+                            painter = rememberAsyncImagePainter(
+                                R.mipmap.ic_launcher
                             ),
                             modifier = Modifier
                                 .background(Color.Transparent)

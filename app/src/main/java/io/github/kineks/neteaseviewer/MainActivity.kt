@@ -31,6 +31,8 @@ import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
 import io.github.kineks.neteaseviewer.ui.view.CheckUpdate
 import io.github.kineks.neteaseviewer.ui.view.SaveFilesAlertDialog
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 class MainActivity : FragmentActivity() {
@@ -132,7 +134,6 @@ class MainActivity : FragmentActivity() {
 fun DefaultView(model: MainViewModel) {
 
 
-
     NeteaseViewerTheme {
 
         val appState = rememberMainAppState()
@@ -148,12 +149,15 @@ fun DefaultView(model: MainViewModel) {
                     backgroundColor = MaterialTheme.colors.background,
                     elevation = 0.dp,
                     actions = {
+
                         IconButton(onClick = {
-                            model.updateSongsInfo()
+                            GlobalScope.launch {
+                                model.reloadSongsList(updateInfo = true)
+                            }
                         }) {
                             Icon(
                                 Icons.Rounded.CloudDownload, contentDescription = stringResource(
-                                    id = R.string.list_update
+                                    id = R.string.list_reload
                                 )
                             )
                         }
@@ -171,7 +175,11 @@ fun DefaultView(model: MainViewModel) {
                         IconButton(onClick = {
                             openDialog = true
                         }) {
-                            Icon(Icons.Rounded.SaveAlt, contentDescription = "导出所有文件")
+                            Icon(
+                                Icons.Rounded.SaveAlt, contentDescription = stringResource(
+                                    id = R.string.list_decrypt_all_files
+                                )
+                            )
                         }
 
                     }
@@ -207,13 +215,18 @@ fun DefaultView(model: MainViewModel) {
                             scaffoldState = appState.scaffoldState,
                             clickable = { index, song ->
                                 if (song.deleted) {
-                                    appState.snackbar.invoke("该文件已被删除")
+                                    appState.snackbar(getString(R.string.list_file_has_deleted))
                                     return@HomeScreen
                                 }
                                 model.playMusic(song)
-                                appState.snackbar.invoke("$index  ${song.name}")
+                                appState.snackbar("$index  ${song.name}")
                                 if (model.errorWhenPlaying) {
-                                    appState.snackbar.invoke("播放出错 : $index  ${song.name}")
+                                    appState.snackbar(
+                                        getString(
+                                            R.string.play_error,
+                                            "$index  ${song.name}"
+                                        )
+                                    )
                                     model.errorWhenPlaying = false
                                 }
                             }

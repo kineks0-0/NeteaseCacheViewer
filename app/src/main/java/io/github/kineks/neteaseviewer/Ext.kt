@@ -54,7 +54,9 @@ fun List<ArtistXX>.getArtists(delimiters: String = ",", defValue: String = "N/A"
     return str.toString()
 }
 
+
 fun getString(id: Int) = App.context.getString(id)
+fun getString(id: Int, format: Any) = App.context.getString(id, format)
 
 fun String.decodeHex(): ByteArray {
     check(length % 2 == 0) { "Must have an even length" }
@@ -63,20 +65,6 @@ fun String.decodeHex(): ByteArray {
         .map { it.toInt(16).toByte() }
         .toByteArray()
 }
-
-fun Byte.toHex(): String {
-    var hex = Integer.toHexString((this and 0xFF.toByte()).toInt())
-    if (hex.length < 2) {
-        hex = "0$hex"
-    }
-    return hex
-}
-
-fun Number.formatFileSize(
-    size: Long = this.toLong(),
-    scale: Int = 2,
-    withUnit: Boolean = true
-): String = FileSizeUtils.formatFileSize(size, scale, withUnit)
 
 fun String.replaceIllegalChar(isWindows: Boolean = false) =
     replace("/", "／")
@@ -92,7 +80,23 @@ fun String.replaceIllegalChar(isWindows: Boolean = false) =
         }
 
 
-fun String.openBrowser() = FileOpener.openBrowser(App.context, this)
+fun String.openBrowser() = FileOpener.openBrowser(context = App.context, url = this, newTask = true)
+
+
+fun Byte.toHex(): String {
+    var hex = Integer.toHexString((this and 0xFF.toByte()).toInt())
+    if (hex.length < 2) {
+        hex = "0$hex"
+    }
+    return hex
+}
+
+fun Number.formatFileSize(
+    size: Long = this.toLong(),
+    scale: Int = 2,
+    withUnit: Boolean = true
+): String = FileSizeUtils.formatFileSize(size, scale, withUnit)
+
 
 suspend fun File.scanFile(context: Context = App.context) =
     suspendCancellableCoroutine<Uri?> { cont ->
@@ -125,6 +129,7 @@ fun File.mimeType() =
     URLConnection.getFileNameMap().getContentTypeFor(name) ?: "multipart/form-data"
 
 fun RFile.RType.toRFile(path: String) = RFile(this, path)
+
 
 // 直接根据 Retrofit2 的 retrofit2.KotlinExtensions.kt 改的
 suspend fun Call.await(): ResponseBody {

@@ -9,8 +9,18 @@
     <string name="snackbar_dismissed">关闭</string>
     <string name="list_incomplete">缓存损坏</string>
     <string name="list_missing_info_file">丢失</string>
-    <string name="list_update">获取歌曲信息</string>
+    <string name="list_reload">重载歌曲信息</string>
     <string name="list_update_failure">数据更新失败</string>
     <string name="list_saved">已导出</string>
     <string name="list_deleted">已删除</string>
+    <string name="list_file_has_deleted">该文件已被删除</string>
+    <string name="play_error">播放出错 :  %s</string>
+    <string name="list_decrypt_all_files">导出所有文件</string>
+    <string name="welcome_next">下一步</string>
+    <string name="welcome_need_agree_agreement">需要同意隐私协议才能继续</string>
+    <string name="welcome_agree">同意</string>
+    <string name="welcome_finish">完成</string>
+    <string name="welcome_check_permissions">检查权限中</string>
+    <string name="welcome_permission_denied">权限被拒</string>
+    <string name="welcome_loading">加载中</string>
 </resources>
