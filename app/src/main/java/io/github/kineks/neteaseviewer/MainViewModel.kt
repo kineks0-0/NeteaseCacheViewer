@@ -14,8 +14,8 @@ import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.Setting
-import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
-import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
+import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusicState
+import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.update.Update
 import io.github.kineks.neteaseviewer.data.update.UpdateJSON
@@ -29,14 +29,14 @@ class MainViewModel : ViewModel() {
     var hasUpdateApp by mutableStateOf(false)
 
     var errorWhenPlaying by mutableStateOf(false)
-    var selectedMusicItem: Music by mutableStateOf(EmptyMusic)
+    var selectedMusicStateItem: MusicState by mutableStateOf(EmptyMusicState)
 
     var isFailure by mutableStateOf(false)
     var isUpdating by mutableStateOf(false)
     var isUpdateComplete by mutableStateOf(false)
 
     var hadListInited = false
-    val songs = mutableStateListOf<Music>()
+    val songs = mutableStateListOf<MusicState>()
 
     init {
 
@@ -65,7 +65,7 @@ class MainViewModel : ViewModel() {
                             }
                             PlaybackStage.SWITCH -> {
                                 viewModelScope.launch {
-                                    selectedMusicItem = NeteaseCacheProvider
+                                    selectedMusicStateItem = NeteaseCacheProvider
                                         .getCacheSongs(stage.songInfo?.songUrl!!)
                                 }
                             }
@@ -77,17 +77,21 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun initList(init: Boolean = hadListInited, callback: () -> Unit = {}) {
+    fun initList(
+        init: Boolean = hadListInited,
+        updateInfo: Boolean = false,
+        callback: () -> Unit = {}
+    ) {
         if (!init) {
             viewModelScope.launch {
                 hadListInited = true
-                reloadSongsList()
+                reloadSongsList(updateInfo = updateInfo)
                 callback()
             }
         }
     }
 
-    suspend fun reloadSongsList(list: List<Music>? = null, updateInfo: Boolean = false) {
+    suspend fun reloadSongsList(list: List<MusicState>? = null, updateInfo: Boolean = false) {
         if (songs.isNotEmpty())
             songs.clear()
 
@@ -111,7 +115,7 @@ class MainViewModel : ViewModel() {
 
         val updateComplete: (isFailure: Boolean) -> Unit =
             { isFailure ->
-                isUpdating = false
+                this.isUpdating = false
                 this.isUpdateComplete = true
                 this.isFailure = isFailure
             }
@@ -149,30 +153,37 @@ class MainViewModel : ViewModel() {
 
 
                     val ids = ArrayList<Int>()
+                    val indexList = ArrayList<Int>()
                     repeat(size) {
-                        val id = songs[offset + it].id
+                        val index = offset + it
+                        val id = songs[index].id
                         // 如果缓存里有则跳过
-                        if (NeteaseDataService.instance.getSongFromCache(id) == null) {
+                        if (songs[index].song == null) {
                             ids.add(id)
+                            indexList.add(offset + it)
                         }
                     }
+
                     when (true) {
                         ids.isEmpty() -> {}
                         (ids.size == 1) -> NeteaseDataService.instance.getSong(ids[0])
                         else -> NeteaseDataService.instance.getSong(ids)
                     }
 
-                    repeat(size) {
-                        val index = offset + it
-                        val music = songs[index]
-                        if (NeteaseDataService.instance.getSongFromCache(music.id) != null) {
-                            music.reload(NeteaseDataService.instance.getSongFromCache(music.id))
+                    indexList.forEach { index ->
+                        val id = songs[index].id
+                        if (NeteaseDataService.instance.getSongFromCache(id) != null) {
+                            songs[index] = songs[index]
+                                .reload(NeteaseDataService.instance.getSongFromCache(id))
                             Log.d(
                                 this.javaClass.name,
-                                "update Song $index : " + music.name
+                                "update Song $index : " + songs[index].name
                             )
                         }
                     }
+
+                    ids.clear()
+                    indexList.clear()
 
                     // 如果加载完最后一页
                     if (i == pages)
@@ -185,8 +196,8 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun playMusic(song: Music) {
-        selectedMusicItem = song
+    fun playMusic(song: MusicState) {
+        selectedMusicStateItem = song
         val info = SongInfo(
             songId = song.md5,
             songUrl = song.file.toUri().toString(),

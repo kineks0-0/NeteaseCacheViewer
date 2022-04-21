@@ -5,21 +5,14 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,19 +21,16 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.pager.HorizontalPager
-import com.google.accompanist.pager.rememberPagerState
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.permissionx.guolindev.PermissionX
 import io.github.kineks.neteaseviewer.data.local.Setting
-import io.github.kineks.neteaseviewer.ui.CheckUpdate
-import io.github.kineks.neteaseviewer.ui.SaveFilesAlertDialog
 import io.github.kineks.neteaseviewer.ui.home.HomeScreen
 import io.github.kineks.neteaseviewer.ui.home.WelcomeScreen
 import io.github.kineks.neteaseviewer.ui.home.working
 import io.github.kineks.neteaseviewer.ui.play.PlayScreen
 import io.github.kineks.neteaseviewer.ui.setting.SettingScreen
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
-import kotlinx.coroutines.launch
+import io.github.kineks.neteaseviewer.ui.view.CheckUpdate
+import io.github.kineks.neteaseviewer.ui.view.SaveFilesAlertDialog
 
 
 class MainActivity : FragmentActivity() {
@@ -116,8 +106,8 @@ class MainActivity : FragmentActivity() {
                             working = false
                         }
                         model.initList(
+                            updateInfo = true,
                             callback = {
-                                model.updateSongsInfo()
                                 working = false
                             }
                         )
@@ -141,42 +131,17 @@ class MainActivity : FragmentActivity() {
 @Composable
 fun DefaultView(model: MainViewModel) {
 
-    // For Snackbar
-    val scope = rememberCoroutineScope()
-    val scaffoldState = rememberScaffoldState()
-
-    // BottomBar & Pager
-    var selectedItem by remember { mutableStateOf(0) }
-    val navItemList: List<String> = listOf("home", "play", "setting")
-    val state = rememberPagerState(initialPage = 0)
-    val coroutineScope = rememberCoroutineScope()
-
-    // use UI Controller in compose
-    val systemUiController = rememberSystemUiController()
-
-    val snackbar: (message: String) -> Unit = {
-        scope.launch {
-            scaffoldState.snackbarHostState
-                .currentSnackbarData?.dismiss()
-            scaffoldState.snackbarHostState
-                .showSnackbar(
-                    message = it,
-                    actionLabel = getString(R.string.snackbar_dismissed),
-                    duration = SnackbarDuration.Short
-                )
-        }
-    }
 
 
     NeteaseViewerTheme {
 
-        systemUiController.setStatusBarColor(MaterialTheme.colors.background)
-        systemUiController.setNavigationBarColor(MaterialTheme.colors.background)
+        val appState = rememberMainAppState()
+        appState.setSystemBarColor()
 
         CheckUpdate(model)
 
         Scaffold(
-            scaffoldState = scaffoldState,
+            scaffoldState = appState.scaffoldState,
             topBar = {
                 TopAppBar(
                     title = { Text(stringResource(id = R.string.app_name)) },
@@ -200,7 +165,7 @@ fun DefaultView(model: MainViewModel) {
                             model = model,
                             openDialog = openDialog,
                             onValueChange = { openDialog = it },
-                            snackbar = snackbar
+                            snackbar = appState.snackbar
                         )
 
                         IconButton(onClick = {
@@ -208,77 +173,54 @@ fun DefaultView(model: MainViewModel) {
                         }) {
                             Icon(Icons.Rounded.SaveAlt, contentDescription = "导出所有文件")
                         }
+
                     }
                 )
             },
             bottomBar = {
-                BottomNavigation(
-                    backgroundColor = MaterialTheme.colors.background
-                ) {
-                    for (index in navItemList.indices) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(1f)
-                                .clickable(
-                                    onClick = {
-                                        selectedItem = index
-                                        coroutineScope.launch { state.scrollToPage(index) }
-                                    },
-                                    indication = null,
-                                    interactionSource = MutableInteractionSource()
-                                ),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            NavigationIcon(index, selectedItem)
-                            Spacer(Modifier.padding(top = 2.dp))
-                            AnimatedVisibility(visible = index == selectedItem) {
-                                Surface(
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(5.dp),
-                                    color = MaterialTheme.colors.onSurface
-                                ) { }
-                            }
-                        }
+                io.github.kineks.neteaseviewer.ui.view.BottomNavigation(
+                    selectedItem = appState.selectedItem,
+                    navItemList = appState.navItemList,
+                    whenIndexChange = { index ->
+                        appState.scrollToPage(index)
                     }
-                }
+                )
             }
         ) { paddingValues ->
 
             HorizontalPager(
-                state = state,
-                count = navItemList.size,
+                state = appState.state,
+                count = appState.navItemList.size,
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colors.background)
                     .padding(bottom = paddingValues.calculateBottomPadding())
             ) { page ->
                 LaunchedEffect(currentPage) {
-                    selectedItem = currentPage
+                    appState.selectedItem.value = currentPage
                 }
-                when (navItemList[page]) {
+                when (appState.navItemList[page]) {
                     "home" -> {
                         HomeScreen(
                             model = model,
-                            scope = scope,
-                            scaffoldState = scaffoldState,
+                            scope = appState.scope,
+                            scaffoldState = appState.scaffoldState,
                             clickable = { index, song ->
                                 if (song.deleted) {
-                                    snackbar.invoke("该文件已被删除")
+                                    appState.snackbar.invoke("该文件已被删除")
                                     return@HomeScreen
                                 }
                                 model.playMusic(song)
-                                snackbar.invoke("$index  ${song.name}")
+                                appState.snackbar.invoke("$index  ${song.name}")
                                 if (model.errorWhenPlaying) {
-                                    snackbar.invoke("播放出错 : $index  ${song.name}")
+                                    appState.snackbar.invoke("播放出错 : $index  ${song.name}")
                                     model.errorWhenPlaying = false
                                 }
                             }
                         )
                     }
                     "play" -> {
-                        PlayScreen(model.selectedMusicItem)
+                        PlayScreen(model.selectedMusicStateItem)
                     }
                     "setting" -> {
                         SettingScreen()
@@ -294,20 +236,6 @@ fun DefaultView(model: MainViewModel) {
 
 }
 
-@Composable
-fun NavigationIcon(
-    index: Int,
-    selectedItem: Int
-) {
-    val alpha = if (selectedItem != index) 0.5f else 1f
-    CompositionLocalProvider(LocalContentAlpha provides alpha) {
-        when (index) {
-            0 -> Icon(Icons.Outlined.Home, contentDescription = null)
-            1 -> Icon(Icons.Outlined.MusicNote, contentDescription = null)
-            else -> Icon(Icons.Outlined.Settings, contentDescription = null)
-        }
-    }
-}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

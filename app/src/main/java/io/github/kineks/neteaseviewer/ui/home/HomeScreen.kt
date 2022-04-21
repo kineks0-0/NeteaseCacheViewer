@@ -35,7 +35,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
+import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.formatFileSize
 import io.github.kineks.neteaseviewer.getString
 import kotlinx.coroutines.CoroutineScope
@@ -50,7 +50,7 @@ fun HomeScreen(
     model: MainViewModel,
     scope: CoroutineScope = rememberCoroutineScope(),
     scaffoldState: ScaffoldState = rememberScaffoldState(),
-    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
+    clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
 ) {
 
     val snackbar: (message: String) -> Unit = {
@@ -140,11 +140,11 @@ fun HomeScreen(
 
 @Composable
 fun SongsList(
-    songs: List<Music>,
+    songs: List<MusicState>,
     available: Boolean = songs.isNotEmpty(),
     snackbar: (message: String) -> Unit,
     onWorking: (Boolean) -> Unit,
-    clickable: (index: Int, music: Music) -> Unit = { _, _ -> }
+    clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
 ) {
     if (available && songs.isNotEmpty()) {
         val color = MaterialTheme.colors.onBackground.copy(alpha = 0.6f)
@@ -163,20 +163,20 @@ fun SongsList(
                     incomplete = music.incomplete,
                     deleted = music.deleted,
                     saved = music.saved,
-                    info = music.info == null,
+                    missInfoFile = music.missingInfo,
                     displayBitrate = music.displayBitrate,
                     clickable = { clickable(index, music) },
                     musicItemAlertDialog = { openDialog, onOpenDialog ->
                         MusicItemAlertDialog(
                             openDialog = openDialog,
                             onOpenDialog = onOpenDialog,
-                            music = music
+                            musicState = music
                         )
                     },
                     musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
                         MusicItemDropdownMenu(
                             index = index,
-                            music = music,
+                            musicState = music,
                             expanded = expanded,
                             onExpandedChange = onExpanded,
                             onOpenDialog = onOpenDialog,
@@ -205,7 +205,7 @@ fun SongsList(
 @Composable
 fun MusicItemDropdownMenu(
     index: Int,
-    music: Music,
+    musicState: MusicState,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onOpenDialog: (Boolean) -> Unit,
@@ -219,15 +219,15 @@ fun MusicItemDropdownMenu(
                 onExpandedChange(false)
                 onWorking(true)
                 delay(250)
-                snackbar("导出中: 索引 $index 歌曲 " + music.displayFileName)
-                music.decryptFile { out, hasError, e ->
+                snackbar("导出中: 索引 $index 歌曲 " + musicState.displayFileName)
+                musicState.decryptFile { out, hasError, e ->
                     onWorking(false)
                     val text =
                         if (hasError) {
                             Log.e("decrypt songs", e?.message, e)
                             "保存失败! : ${e?.message} ${out?.toString()}"
                         } else
-                            "保存成功:  ${music.displayFileName}"
+                            "保存成功:  ${musicState.displayFileName}"
 
                     snackbar(text)
                 }
@@ -244,8 +244,8 @@ fun MusicItemDropdownMenu(
         DropdownMenuItem(onClick = {
             CoroutineScope(Dispatchers.IO).launch {
                 onExpandedChange(false)
-                music.delete()
-                snackbar("已删除: 索引 $index  " + music.file.name)
+                musicState.delete()
+                snackbar("已删除: 索引 $index  " + musicState.file.name)
             }
         }) {
             Icon(
@@ -274,13 +274,13 @@ fun MusicItemDropdownMenu(
 fun MusicItemAlertDialog(
     openDialog: Boolean,
     onOpenDialog: (Boolean) -> Unit,
-    music: Music,
+    musicState: MusicState,
 ) {
 
     if (openDialog) {
         AlertDialog(
             onDismissRequest = { onOpenDialog(false) },
-            title = { Text("缓存文件详细 [${music.neteaseAppCache?.type ?: "Netease"},${music.id}]") },
+            title = { Text("缓存文件详细 [${musicState.neteaseAppCache?.type ?: "Netease"},${musicState.id}]") },
             text = {
                 Column(
                     modifier = Modifier
@@ -289,7 +289,7 @@ fun MusicItemAlertDialog(
                 ) {
                     Text(
                         buildAnnotatedString {
-                            music.run {
+                            musicState.run {
                                 append("\n")
                                 append("歌曲名称: $name\n\n")
                                 append("歌曲专辑: $album\n\n")
@@ -297,6 +297,7 @@ fun MusicItemAlertDialog(
                                 append("导出文件名: $displayFileName\n\n")
                                 append("\n\n")
 
+                                val info = NeteaseCacheProvider.getCacheFileInfo(musicState)
                                 append("完整缓存大小:  ${(info?.fileSize ?: -1).formatFileSize()}\n\n")
                                 append("该缓存比特率: $displayBitrate\n\n")
                                 append("完整缓存时长: ${(info?.duration ?: -1)}\n\n")
@@ -335,9 +336,9 @@ fun MusicItem(
     incomplete: Boolean,
     saved: Boolean,
     displayBitrate: String,
-    info: Boolean,
+    missInfoFile: Boolean,
     artBackground: Color,
-    artPainter: Painter,// = rememberAsyncImagePainter(music.smallAlbumArt),
+    artPainter: Painter,
     musicItemDropdownMenu: @Composable (expanded: Boolean, onExpanded: (Boolean) -> Unit, onOpenDialog: (Boolean) -> Unit) -> Unit,
     musicItemAlertDialog: @Composable (openDialog: Boolean, onOpenDialog: (Boolean) -> Unit) -> Unit,
     clickable: () -> Unit = { }
@@ -435,7 +436,7 @@ fun MusicItem(
                     )
                 }
 
-                if (!NeteaseCacheProvider.fastReader && info) {
+                if (!NeteaseCacheProvider.fastReader && missInfoFile) {
                     InfoText(
                         text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
                         color = MaterialTheme.colors.error,
@@ -539,7 +540,7 @@ fun DefPreView() {
         incomplete = false,
         deleted = false,
         saved = false,
-        info = false,
+        missInfoFile = false,
         displayBitrate = "192 k",
         musicItemAlertDialog = { _, _ ->
             Text("Todo")

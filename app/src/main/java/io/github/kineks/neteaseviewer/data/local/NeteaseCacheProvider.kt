@@ -7,7 +7,7 @@ import com.google.gson.Gson
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
-import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
+import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.scanFile
 import io.github.kineks.neteaseviewer.toRFile
@@ -87,7 +87,7 @@ object NeteaseCacheProvider {
         return files
     }
 
-    suspend fun getCacheSongs(uri: String): Music =
+    suspend fun getCacheSongs(uri: String): MusicState =
         getCacheSongs(
             cacheDir = listOf(
                 NeteaseAppCache(
@@ -101,46 +101,55 @@ object NeteaseCacheProvider {
             )
         )[0]
 
-    suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): ArrayList<Music> {
+    suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): ArrayList<MusicState> {
         val begin = System.currentTimeMillis()
-        val songs = ArrayList<Music>()
+        val songs = ArrayList<MusicState>()
 
         withContext(Dispatchers.IO) {
             val begin1 = System.currentTimeMillis()
             cacheDir.forEach { neteaseAppCache ->
                 getCacheFiles(neteaseAppCache).forEach {
                     val begin2 = System.currentTimeMillis()
+                    val infoFile = when (fastReader) {
+                        true -> File("")
+                        false -> File(it.parentFile, it.nameWithoutExtension + ".$infoExt")
+                    }
 
-                    if (fastReader ||
-                        !File(it.parentFile, it.nameWithoutExtension + ".$infoExt").exists()
-                    ) {
+                    if (fastReader || !infoFile.exists()) {
                         // 如果启用快速扫描则跳过读取idx文件
                         // 或者 *.idx! 文件并不存在(一般是 unlock netease music 导致)
                         it.nameWithoutExtension.split("-").let { str ->
                             songs.add(
-                                Music(
+                                MusicState(
                                     id = str[0].toInt(),
                                     bitrate = str[1].toInt(),
                                     md5 = str[2].substring(0, 31),
                                     file = it,
                                     song = NeteaseDataService.instance.getSongFromCache(str[0].toInt()),
-                                    info = null,
+                                    incomplete = false,
+                                    missingInfo = true,
                                     neteaseAppCache = neteaseAppCache
                                 )
                             )
                         }
                     } else {
-                        val infoFile = File(it.parentFile, it.nameWithoutExtension + ".$infoExt")
                         val idx = gson.fromJson(infoFile.readText(), CacheFileInfo::class.java)
 
                         songs.add(
-                            Music(
+                            MusicState(
                                 id = idx.id,
                                 bitrate = idx.bitrate,
                                 md5 = idx.fileMD5,
                                 file = it,
                                 song = NeteaseDataService.instance.getSongFromCache(idx.id),
-                                info = idx,
+                                incomplete = when (idx) {
+                                    null -> false
+                                    else -> {
+                                        // 判断缓存文件和缓存文件信息中的文件长度大小是否一致
+                                        idx.fileSize != it.length()
+                                    }
+                                },
+                                missingInfo = false,
                                 neteaseAppCache = neteaseAppCache
                             )
                         )
@@ -159,13 +168,26 @@ object NeteaseCacheProvider {
         return songs
     }
 
-    fun removeCacheFile(music: Music): Boolean {
-        val infoFile = File(music.file.parentFile, music.file.nameWithoutExtension + ".$infoExt")
-        return music.file.delete() || infoFile.delete()
+    fun getCacheFileInfo(musicState: MusicState): CacheFileInfo? {
+        val infoFile = File(
+            musicState.file.parentFile,
+            musicState.file.nameWithoutExtension + ".$infoExt"
+        )
+        return getCacheFileInfo(infoFile)
+    }
+
+    private fun getCacheFileInfo(infoFile: File): CacheFileInfo? =
+        gson.fromJson(infoFile.readText(), CacheFileInfo::class.java)
+
+
+    fun removeCacheFile(musicState: MusicState): Boolean {
+        val infoFile =
+            File(musicState.file.parentFile, musicState.file.nameWithoutExtension + ".$infoExt")
+        return musicState.file.delete() || infoFile.delete()
     }
 
     suspend fun decryptCacheFile(
-        music: Music,
+        musicState: MusicState,
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
     ): Boolean {
         val begin = System.currentTimeMillis()
@@ -176,7 +198,7 @@ object NeteaseCacheProvider {
         var out: Uri? = null
         withContext(Dispatchers.IO) {
 
-            music.run {
+            musicState.run {
 
                 try {
                     // 从输入流获取文件头判断,获取失败则默认 mp3
@@ -233,7 +255,7 @@ object NeteaseCacheProvider {
     }
 
     fun decryptSongList(
-        list: List<Music>,
+        list: List<MusicState>,
         skipIncomplete: Boolean = true,
         skipMissingInfo: Boolean = true,
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> },
@@ -244,7 +266,7 @@ object NeteaseCacheProvider {
                 list.forEachIndexed { index, music ->
                     if (index == list.lastIndex) isLastOne.invoke(true)
                     if (skipIncomplete && music.incomplete) return@forEachIndexed
-                    if (skipMissingInfo && music.info == null) return@forEachIndexed
+                    if (skipMissingInfo && music.missingInfo) return@forEachIndexed
                     music.decryptFile(callback)
                 }
             }

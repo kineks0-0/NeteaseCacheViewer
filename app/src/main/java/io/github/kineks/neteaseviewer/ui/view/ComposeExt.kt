@@ -1,16 +1,22 @@
-package io.github.kineks.neteaseviewer.ui
+package io.github.kineks.neteaseviewer.ui.view
 
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Checkbox
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.kineks.neteaseviewer.App
@@ -137,5 +143,57 @@ fun SaveFilesAlertDialog(
                 TextButton(onClick = { onValueChange.invoke(false) }) { Text("取消") }
             }
         )
+    }
+}
+
+@Composable
+fun BottomNavigation(
+    selectedItem: MutableState<Int>,
+    navItemList: List<String>,
+    whenIndexChange: (Int) -> Unit,
+    backgroundColor: Color = MaterialTheme.colors.background
+) {
+    BottomNavigation(backgroundColor = backgroundColor) {
+        for (index in navItemList.indices) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+                    .clickable(
+                        onClick = {
+                            whenIndexChange(index)
+                        },
+                        indication = null,
+                        interactionSource = MutableInteractionSource()
+                    ),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                NavigationIcon(index, selectedItem.value)
+                Spacer(Modifier.padding(top = 2.dp))
+                AnimatedVisibility(visible = index == selectedItem.value) {
+                    Surface(
+                        shape = CircleShape,
+                        modifier = Modifier.size(5.dp),
+                        color = MaterialTheme.colors.onSurface
+                    ) { }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavigationIcon(
+    index: Int,
+    selectedItem: Int
+) {
+    val alpha = if (selectedItem != index) 0.5f else 1f
+    CompositionLocalProvider(LocalContentAlpha provides alpha) {
+        when (index) {
+            0 -> Icon(Icons.Outlined.Home, contentDescription = null)
+            1 -> Icon(Icons.Outlined.MusicNote, contentDescription = null)
+            else -> Icon(Icons.Outlined.Settings, contentDescription = null)
+        }
     }
 }

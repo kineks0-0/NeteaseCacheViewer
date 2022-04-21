@@ -14,7 +14,7 @@ import ealvatag.tag.Tag
 import ealvatag.tag.images.ArtworkFactory
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.await
-import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
+import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -29,8 +29,8 @@ object MediaStoreProvider {
     private val parentFile: File = App.context.cacheDir
     private const val TAG = "MediaStoreProvider"
 
-    suspend fun setInfo(music: Music, file: File) {
-        music.song ?: return
+    suspend fun setInfo(musicState: MusicState, file: File) {
+        musicState.song ?: return
 
 
         val audioFile = withContext(Dispatchers.IO) {
@@ -46,14 +46,14 @@ object MediaStoreProvider {
             }
         }
 
-        tag.setField(FieldKey.TITLE, music.name)
-        tag.setField(FieldKey.ALBUM, music.album)
-        tag.setField(FieldKey.ARTIST, music.artists)
-        tag.setField(FieldKey.ARTISTS, music.artists)
-        tag.setField(FieldKey.TRACK, music.track.toString())
-        tag.setField(FieldKey.YEAR, music.year)
-        tag.setField(FieldKey.DISC_NO, music.disc)
-        val pic = music.getAlbumPicUrl()
+        tag.setField(FieldKey.TITLE, musicState.name)
+        tag.setField(FieldKey.ALBUM, musicState.album)
+        tag.setField(FieldKey.ARTIST, musicState.artists)
+        tag.setField(FieldKey.ARTISTS, musicState.artists)
+        tag.setField(FieldKey.TRACK, musicState.track.toString())
+        tag.setField(FieldKey.YEAR, musicState.year)
+        tag.setField(FieldKey.DISC_NO, musicState.disc)
+        val pic = musicState.getAlbumPicUrl()
         if (!pic.isNullOrEmpty() && tag.artworkList.isEmpty()) {
             Log.d(this.javaClass.name, "下载专辑图 : $pic")
 
@@ -70,7 +70,7 @@ object MediaStoreProvider {
                             okHttpClient.newCall(request).await().byteStream()
                                 ?: throw Exception("下载失败")
 
-                        val artwork = File(parentFile, music.displayFileName + ".image")
+                        val artwork = File(parentFile, musicState.displayFileName + ".image")
                         artwork.delete()
                         artwork.parentFile?.mkdirs()
 
@@ -109,17 +109,17 @@ object MediaStoreProvider {
     }
 
     @SuppressLint("InlinedApi")
-    fun insert2Music(inputStream: InputStream, music: Music, ext: String = "mp3"): Uri? {
+    fun insert2Music(inputStream: InputStream, musicState: MusicState, ext: String = "mp3"): Uri? {
         val songDetails = ContentValues()
         val resolver = App.context.contentResolver
-        val fileName = "${music.displayFileName}.$ext"
+        val fileName = "${musicState.displayFileName}.$ext"
         songDetails.apply {
             put(MediaStore.Audio.AudioColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.Audio.AudioColumns.TITLE, music.name)
-            put(MediaStore.Audio.AudioColumns.ARTIST, music.artists)
-            put(MediaStore.Audio.AudioColumns.ALBUM, music.album)
-            put(MediaStore.Audio.AudioColumns.TRACK, music.track)
-            put(MediaStore.Audio.AudioColumns.YEAR, music.year)
+            put(MediaStore.Audio.AudioColumns.TITLE, musicState.name)
+            put(MediaStore.Audio.AudioColumns.ARTIST, musicState.artists)
+            put(MediaStore.Audio.AudioColumns.ALBUM, musicState.album)
+            put(MediaStore.Audio.AudioColumns.TRACK, musicState.track)
+            put(MediaStore.Audio.AudioColumns.YEAR, musicState.year)
             //put(MediaStore.Audio.AudioColumns.MIME_TYPE, "")
         }
 
@@ -130,9 +130,9 @@ object MediaStoreProvider {
 
         if (App.isAndroidRorAbove) {
             songDetails.apply {
-                put(MediaStore.Audio.AudioColumns.ALBUM_ARTIST, music.artists)
-                put(MediaStore.Audio.AudioColumns.DISC_NUMBER, music.disc)
-                put(MediaStore.Audio.AudioColumns.NUM_TRACKS, music.track)
+                put(MediaStore.Audio.AudioColumns.ALBUM_ARTIST, musicState.artists)
+                put(MediaStore.Audio.AudioColumns.DISC_NUMBER, musicState.disc)
+                put(MediaStore.Audio.AudioColumns.NUM_TRACKS, musicState.track)
             }
         }
 

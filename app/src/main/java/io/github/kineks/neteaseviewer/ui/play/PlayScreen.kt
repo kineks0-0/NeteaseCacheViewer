@@ -15,20 +15,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
-import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusic
-import io.github.kineks.neteaseviewer.data.local.cacheFile.Music
+import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusicState
+import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewPlay() {
-    PlayScreen(EmptyMusic)
+    PlayScreen(EmptyMusicState)
 }
 
 const val TAG = "PlayScreen"
 
 @Composable
-fun PlayScreen(song: Music) {
+fun PlayScreen(song: MusicState) {
 
     Box(
         contentAlignment = Alignment.Center,

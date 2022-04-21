@@ -10,57 +10,59 @@ import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.getArtists
 import io.github.kineks.neteaseviewer.replaceIllegalChar
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-val EmptyMusic = Music(-1, -1, "", File(""))
+val EmptyMusicState = MusicState(-1, -1, "", File(""))
 const val EmptyAlbum = "N/A"
 const val EmptyArtists = "N/A"
 
-@OptIn(DelicateCoroutinesApi::class)
-data class Music(
+data class MusicState(
     val id: Int,
     val bitrate: Int = -1,
     val md5: String,
     val file: File,
-    var name: String = md5,
-    var artists: String = EmptyArtists,
-    var album: String = "$EmptyAlbum $id",
-    var song: Song? = null,
-    val info: CacheFileInfo? = null,
+    val song: Song? = null,
+
+    // 歌名
+    val name: String = when (song) {
+        null -> md5
+        else -> song.name ?: song.lMusic.name
+    },
+
+    // 歌手
+    val artists: String = when (song) {
+        null -> EmptyArtists
+        else -> song.artists.getArtists()
+    },
+
+    // 专辑
+    val album: String = song?.album?.name ?: "$EmptyAlbum $id",
+    // 专辑缩略图
+    val smallAlbumArt: String? = when (song) {
+        null -> ""
+        else -> NeteaseDataService.instance.getAlbumPicUrl(id, 80, 80)
+    },
+
+    // 缓存损坏
+    val incomplete: Boolean = false,
+    // 丢失 idx 文件
+    val missingInfo: Boolean = true,
+
     val neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache? = null
 ) {
-
-    init {
-        GlobalScope.launch {
-            if (NeteaseDataService.instance.getSongFromCache(id) != null) {
-                reload(NeteaseDataService.instance.getSongFromCache(id))
-            }
-        }
-    }
 
     val track get() = song?.no ?: -1
     val disc get() = song?.disc ?: ""
     val year: String
         get() =
             if (song == null) "N/A" else
-                SimpleDateFormat("yyyy", Locale.US).format(Date(song?.album?.publishTime ?: 0))
+                SimpleDateFormat("yyyy", Locale.US).format(Date(song.album.publishTime ?: 0))
 
 
     var deleted by mutableStateOf(false)
     var saved by mutableStateOf(false)
-    val incomplete =
-        when (info) {
-            null -> false
-            else -> {
-                // 判断缓存文件和缓存文件信息中的文件长度大小是否一致
-                info.fileSize != file.length()
-            }
-        }
 
     val displayFileName: String
         get() {
@@ -97,8 +99,7 @@ data class Music(
 
     val inputStream get() = XorByteInputStream(file)
 
-    var smallAlbumArt: String? = ""
-
+    // 包装调用函数
     fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? =
         NeteaseDataService.instance.getAlbumPicUrl(id, width, height)
 
@@ -106,23 +107,28 @@ data class Music(
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
     ): Boolean = NeteaseCacheProvider.decryptCacheFile(this, callback)
 
-    fun reload(_song: Song?) {
-        if (_song != null && name == _song.name) return
-        song = _song
+    // 主要避免无效拷贝
+    fun reload(_song: Song?): MusicState {
+        if (_song == null) return this
+        if (_song.name == name) return this
+        // kotlin 的 copy 只是替换参数,并不会重新走类初始化的构建函数
+        // 所以需要自己替换更新参数
+        return copy(
+            song = _song,
+            name = when (_song) {
+                null -> md5
+                else -> _song.name ?: _song.lMusic.name
+            },
+            artists = when (_song) {
+                null -> EmptyArtists
+                else -> _song.artists.getArtists()
+            },
+            album = _song.album.name ?: "$EmptyAlbum $id",
+            smallAlbumArt = when (_song) {
+                null -> ""
+                else -> NeteaseDataService.instance.getAlbumPicUrl(id, 80, 80)
+            }
+        )
 
-        name = when (song) {
-            null -> md5
-            else -> song!!.name ?: song!!.lMusic.name
-        }
-
-        artists = when (song) {
-            null -> EmptyArtists
-            else -> song!!.artists.getArtists()
-        }
-
-        album = song?.album?.name ?: "$EmptyAlbum $id"
-
-        smallAlbumArt = NeteaseDataService.instance
-            .getAlbumPicUrl(id, 80, 80)
     }
 }
