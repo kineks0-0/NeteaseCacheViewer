@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.FileUtils
 import android.provider.MediaStore
+import androidx.annotation.StringRes
 import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.network.ArtistXX
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -55,8 +56,8 @@ fun List<ArtistXX>.getArtists(delimiters: String = ",", defValue: String = "N/A"
 }
 
 
-fun getString(id: Int) = App.context.getString(id)
-fun getString(id: Int, format: Any) = App.context.getString(id, format)
+fun getString(@StringRes id: Int) = App.context.getString(id)
+fun getString(@StringRes id: Int, format: Any) = App.context.getString(id, format)
 
 fun String.decodeHex(): ByteArray {
     check(length % 2 == 0) { "Must have an even length" }

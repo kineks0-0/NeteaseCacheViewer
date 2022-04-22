@@ -8,5 +8,5 @@ tasks.register("clean", Delete::class) {
 
 buildscript {
     @Suppress("LocalVariableName")
-    val compose_version by extra("1.2.0-alpha07")
+    val compose_version by extra("1.2.0-alpha08")
 }

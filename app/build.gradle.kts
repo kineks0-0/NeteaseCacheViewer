@@ -1,7 +1,7 @@
 plugins {
     id ("com.android.application")
     id ("org.jetbrains.kotlin.android")
-    id ("org.jetbrains.kotlin.kapt") version "1.6.10"
+    id("org.jetbrains.kotlin.kapt") version "1.6.20"
 }
 
 @Suppress("PropertyName")
@@ -84,7 +84,7 @@ dependencies {
     //kapt 'androidx.hilt:hilt-compiler:1.0.0'
 
     // 用于 compose 的系统ui控制(代码设置沉浸状态栏和导航栏)
-    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.24.6-alpha")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.24.7-alpha")
 
     // 支持 compose 使用的图像加载库
     implementation("io.coil-kt:coil-compose:2.0.0-rc03")
@@ -106,14 +106,14 @@ dependencies {
     }
 
     // Compose 的下拉刷新
-    implementation("com.google.accompanist:accompanist-swiperefresh:0.24.6-alpha")
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.24.7-alpha")
 
     // Compose 版的 ViewPager ,用来滑动页面
-    implementation ("com.google.accompanist:accompanist-pager:0.24.6-alpha")
+    implementation("com.google.accompanist:accompanist-pager:0.24.7-alpha")
 
     // 音频文件标签处理
-    implementation ("com.ealva:ealvatag:0.4.6")
-    implementation ("com.squareup.okio:okio:3.0.0")
+    implementation("com.ealva:ealvatag:0.4.6")
+    implementation("com.squareup.okio:okio:3.1.0")
 
     // 异常上报
     implementation ("com.tencent.bugly:crashreport:4.0.4")
