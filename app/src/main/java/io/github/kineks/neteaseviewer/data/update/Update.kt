@@ -35,16 +35,17 @@ object Update {
     private const val Day = 1000 * 60 * 60 * 24
     private var cdn = true
     private var json: UpdateJSON? = null
+    private const val TAG = "checkUpdate"
 
     suspend fun checkUpdateWithTime(callback: (json: UpdateJSON?, hasUpdate: Boolean) -> Unit) {
         Setting.lastCheckUpdates.collect {
-            Log.d("checkUpdateWithTime", "lastCheckUpdates: $it")
+            Log.d(TAG, "lastCheckUpdates: $it")
             if (it < 1000) {
                 checkUpdate(callback)
             } else {
                 val timeMillis: Long = Calendar.getInstance().timeInMillis
-                Log.d("checkUpdateWithTime", "timeMillis: $timeMillis")
-                Log.d("checkUpdateWithTime", "day: ${timeMillis - it}")
+                Log.d(TAG, "timeMillis: $timeMillis")
+                Log.d(TAG, "day: ${timeMillis - it}")
                 if (timeMillis - it > Day) {
                     checkUpdate(callback)
                 }
@@ -56,7 +57,7 @@ object Update {
     suspend fun checkUpdate(callback: (json: UpdateJSON?, hasUpdate: Boolean) -> Unit) {
         withContext(Dispatchers.IO) {
             val timeMillis: Long = Calendar.getInstance().timeInMillis
-            Log.d("checkUpdate", "save lastTimeMillis: $timeMillis")
+            Log.d(TAG, "save lastTimeMillis: $timeMillis")
             Setting.setLastCheckUpdates()
 
             if (json == null) {
@@ -75,10 +76,14 @@ object Update {
                         retrofit.create(UpdateApi::class.java).getCDNUpdateDetail()
                     else
                         retrofit.create(UpdateApi::class.java).getUpdateDetail()
-                Log.d("checkUpdate", api.request().url.toString())
-                json = api.await()
+                Log.d(TAG, api.request().url.toString())
+                try {
+                    json = api.await()
+                } catch (e: Exception) {
+                    Log.e(TAG, e.message, e)
+                }
                 if (json == null) {
-                    Log.d("checkUpdate", "json == null")
+                    Log.d(TAG, "json == null")
                     callback.invoke(null, false)
                     return@withContext
                 }
@@ -94,7 +99,7 @@ object Update {
                 else
                     pInfo.versionCode.toLong()
 
-            Log.d("checkUpdate", json.toString())
+            Log.d(TAG, json.toString())
             callback.invoke(json, versionCode < json!!.versionCode)
 
         }

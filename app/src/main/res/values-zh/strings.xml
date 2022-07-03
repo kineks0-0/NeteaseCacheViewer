@@ -8,7 +8,7 @@
     <string name="list_updated">数据已更新</string>
     <string name="snackbar_dismissed">关闭</string>
     <string name="list_incomplete">缓存损坏</string>
-    <string name="list_missing_info_file">丢失</string>
+    <string name="list_missing_info_file">丢失 %s</string>
     <string name="list_reload">重载歌曲信息</string>
     <string name="list_update_failure">数据更新失败</string>
     <string name="list_saved">已导出</string>
@@ -23,4 +23,6 @@
     <string name="welcome_check_permissions">检查权限中</string>
     <string name="welcome_permission_denied">权限被拒</string>
     <string name="welcome_loading">加载中</string>
+    <string name="permission_request_button">请求权限</string>
+    <string name="refresh">刷新</string>
 </resources>

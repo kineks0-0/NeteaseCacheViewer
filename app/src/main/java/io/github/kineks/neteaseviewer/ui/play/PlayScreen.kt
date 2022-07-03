@@ -24,8 +24,6 @@ fun PreviewPlay() {
     PlayScreen(EmptyMusicState)
 }
 
-const val TAG = "PlayScreen"
-
 @Composable
 fun PlayScreen(song: MusicState) {
 
@@ -56,7 +54,6 @@ fun PlayScreen(song: MusicState) {
                                 .copy(alpha = 0.5f)
                         )
                 )
-                //Log.d(TAG, "Song Album Art : " + song.getAlbumPicUrl(700, 700))
             }
 
             Text(

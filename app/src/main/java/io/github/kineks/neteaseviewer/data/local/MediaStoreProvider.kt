@@ -29,12 +29,12 @@ object MediaStoreProvider {
     private val parentFile: File = App.context.cacheDir
     private const val TAG = "MediaStoreProvider"
 
-    suspend fun setInfo(musicState: MusicState, file: File) {
+    suspend fun setInfo(musicState: MusicState, file: RFile) {
         musicState.song ?: return
 
 
         val audioFile = withContext(Dispatchers.IO) {
-            AudioFileIO.read(file)
+            AudioFileIO.read(file.file)
         }
 
         var tag: Tag = audioFile.tag.or(NullTag.INSTANCE)
@@ -87,13 +87,19 @@ object MediaStoreProvider {
                             audioFile.save()
                         } catch (e: Exception) {
                             Log.e(this@MediaStoreProvider.javaClass.name, e.message, e)
-                            Log.e(this@MediaStoreProvider.javaClass.name, file.absolutePath)
+                            Log.e(
+                                this@MediaStoreProvider.javaClass.name,
+                                file.type.name + "://" + file.path
+                            )
                         }
 
                         artwork.delete()
                     } catch (e: Exception) {
                         Log.e(this@MediaStoreProvider.javaClass.name, e.message, e)
-                        Log.e(this@MediaStoreProvider.javaClass.name, file.absolutePath)
+                        Log.e(
+                            this@MediaStoreProvider.javaClass.name,
+                            file.type.name + "://" + file.path
+                        )
                     }
                 }
             }

@@ -3,6 +3,7 @@ package io.github.kineks.neteaseviewer.data.local
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
+import androidx.core.net.toUri
 import com.google.gson.Gson
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
@@ -25,18 +26,18 @@ object NeteaseCacheProvider {
         add(
             NeteaseAppCache(
                 "Netease", listOf(
-                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1"),
+                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1/"),
                     // 部分修改版本会用这个路径
-                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1")
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1/")
                 )
             )
         )
         add(
             NeteaseAppCache(
                 "NeteaseLite", listOf(
-                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1"),
+                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1/"),
                     // 部分修改版本会用这个路径
-                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1")
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1/")
                 )
             )
         )
@@ -55,29 +56,37 @@ object NeteaseCacheProvider {
     // 在 Android P 及以下的使用的导出路径
     @Suppress("DEPRECATION")
     private val musicDirectory =
-        File(
-            Environment.getExternalStorageDirectory().path + "/"
-                    + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
-        )
+        try {
+            File(
+                Environment.getExternalStorageDirectory().path + "/"
+                        + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
+            ).toRFile()
+        } catch (e: Exception) {
+            File("../test/").toRFile()
+        }
 
 
-    suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<File> {
+    suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<RFile> {
         val begin = System.currentTimeMillis()
-        val files = ArrayList<File>()
+        val files = ArrayList<RFile>()
 
         withContext(Dispatchers.IO) {
             neteaseAppCache.rFiles.forEach {
                 var size = -1
-                it.read2File { index, file ->
-                    if (file.extension == playExt) {
-                        files.add(file)
+                it.read2File { index, rfile ->
+                    if (rfile.extension == playExt) {
+                        files.add(rfile)
                     }
                     size = index
+                    Log.d(
+                        this.javaClass.name,
+                        "load file : ${rfile.type}://${rfile.path}  size : " + size
+                    )
                 }
                 size++
                 Log.d(
                     this.javaClass.name,
-                    "load file : ${it.type}://${it.path}  size : " + size//files.size
+                    "load file : ${it.type}://${it.path}  size : " + size
                 )
             }
         }
@@ -92,10 +101,7 @@ object NeteaseCacheProvider {
             cacheDir = listOf(
                 NeteaseAppCache(
                     "SingleUri", listOf(
-                        RFile(
-                            RFile.RType.SingleUri,
-                            uri
-                        )
+                        uri.toUri().toSingleRFile()
                     )
                 )
             )
@@ -111,11 +117,11 @@ object NeteaseCacheProvider {
                 getCacheFiles(neteaseAppCache).forEach {
                     val begin2 = System.currentTimeMillis()
                     val infoFile = when (fastReader) {
-                        true -> File("")
-                        false -> File(it.parentFile, it.nameWithoutExtension + ".$infoExt")
+                        true -> RFile.of(type = RFile.RType.File, "", "")
+                        false -> RFile.of(it.parentFile!!, it.nameWithoutExtension + ".$infoExt")
                     }
 
-                    if (fastReader || !infoFile.exists()) {
+                    if (fastReader || infoFile == null || !infoFile.exists()) {
                         // 如果启用快速扫描则跳过读取idx文件
                         // 或者 *.idx! 文件并不存在(一般是 unlock netease music 导致)
                         it.nameWithoutExtension.split("-").let { str ->
@@ -169,21 +175,24 @@ object NeteaseCacheProvider {
     }
 
     fun getCacheFileInfo(musicState: MusicState): CacheFileInfo? {
-        val infoFile = File(
-            musicState.file.parentFile,
+        val infoFile = RFile.of(
+            musicState.file.parentFile!!,
             musicState.file.nameWithoutExtension + ".$infoExt"
         )
-        return getCacheFileInfo(infoFile)
+        return if (infoFile != null) getCacheFileInfo(infoFile) else null
     }
 
-    private fun getCacheFileInfo(infoFile: File): CacheFileInfo? =
+    private fun getCacheFileInfo(infoFile: RFile): CacheFileInfo? =
         gson.fromJson(infoFile.readText(), CacheFileInfo::class.java)
 
 
     fun removeCacheFile(musicState: MusicState): Boolean {
         val infoFile =
-            File(musicState.file.parentFile, musicState.file.nameWithoutExtension + ".$infoExt")
-        return musicState.file.delete() || infoFile.delete()
+            RFile.of(
+                musicState.file.parentFile!!,
+                musicState.file.nameWithoutExtension + ".$infoExt"
+            )
+        return musicState.file.delete() || infoFile?.delete() == true
     }
 
     suspend fun decryptCacheFile(
@@ -205,18 +214,20 @@ object NeteaseCacheProvider {
                     val ext = FileType.getFileType(inputStream) ?: "mp3"
                     val path =
                         if (App.isAndroidQorAbove)
-                            App.context.cacheDir
+                            App.context.cacheDir.toRFile()
                         else
                             musicDirectory
-                    val file = File(path, "$displayFileName.$ext")
+                    val file = RFile.of(path, "$displayFileName.$ext")!!
                     // 在 Android Q 之后的先放在私有目录, P 及以下的则直接写出
                     // 避免文件父目录不存在
                     path.mkdirs()
 
-                    Log.d("Music", file.absolutePath)
+                    Log.d("Music", file.type.name + "://" + file.path)
+                    if (file.output == null) throw Exception("output == null")
+
                     inputStream.use { input ->
-                        file.outputStream().use {
-                            input.buffered().copyTo(it.buffered())
+                        file.output.use {
+                            input.buffered().copyTo(it!!.buffered())
                         }
                     }
 
@@ -225,7 +236,7 @@ object NeteaseCacheProvider {
                     // 在 Android Q 之后的用 MediaStore 导出文件,然后清理私有目录的源副本文件
                     if (App.isAndroidQorAbove) {
                         out = MediaStoreProvider.insert2Music(
-                            file.inputStream(),
+                            file.input!!,
                             this,
                             ext
                         )
@@ -233,7 +244,7 @@ object NeteaseCacheProvider {
                         Log.d("Music", out.toString())
                         file.delete()
                     } else {
-                        file.scanFile()
+                        file.file.scanFile()
                     }
 
                     saved = true
@@ -241,7 +252,7 @@ object NeteaseCacheProvider {
                 } catch (e: Exception) {
                     error = true
                     exception = e
-                    Log.e("Music", e.message, e)
+                    Log.e("Music", e.message + " / " + file.path, e)
                 }
             }
 

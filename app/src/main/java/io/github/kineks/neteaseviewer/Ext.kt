@@ -129,7 +129,10 @@ suspend fun File.scanFile(context: Context = App.context) =
 fun File.mimeType() =
     URLConnection.getFileNameMap().getContentTypeFor(name) ?: "multipart/form-data"
 
-fun RFile.RType.toRFile(path: String) = RFile(this, path)
+fun RFile.RType.toRFile(path: String) =
+    RFile.of(type = this, path = path, name = path.split("/").last())
+
+fun String.toFile() = File(this)
 
 
 // 直接根据 Retrofit2 的 retrofit2.KotlinExtensions.kt 改的

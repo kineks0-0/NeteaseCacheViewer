@@ -1,5 +1,6 @@
 package io.github.kineks.neteaseviewer.ui.home
 
+import android.content.res.Configuration.UI_MODE_NIGHT_UNDEFINED
 import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -23,46 +24,54 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.SwipeRefreshState
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.formatFileSize
 import io.github.kineks.neteaseviewer.getString
+import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import io.github.kineks.neteaseviewer.ui.view.checkPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-var working by mutableStateOf(false)
+var working by mutableStateOf(true)
 
 @Composable
 fun HomeScreen(
-    model: MainViewModel,
+    model: MainViewModel = viewModel(),
     scope: CoroutineScope = rememberCoroutineScope(),
-    scaffoldState: ScaffoldState = rememberScaffoldState(),
-    clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
+    scaffoldState: ScaffoldState = rememberScaffoldState()
 ) {
 
-    val snackbar: (message: String) -> Unit = {
-        scope.launch {
-            scaffoldState.snackbarHostState
-                .currentSnackbarData?.dismiss()
-            scaffoldState.snackbarHostState
-                .showSnackbar(
-                    message = it,
-                    actionLabel = getString(R.string.snackbar_dismissed),
-                    duration = SnackbarDuration.Short
+    val appState = rememberHomeAppState(scope, scaffoldState)
+
+    val clickable: (index: Int, musicState: MusicState) -> Unit = { index, song ->
+        if (song.deleted) {
+            appState.snackbar(getString(R.string.list_file_has_deleted))
+        } else {
+            model.playMusic(song)
+            appState.snackbar("$index  ${song.name}")
+            if (model.errorWhenPlaying) {
+                appState.snackbar(
+                    getString(
+                        R.string.play_error,
+                        "$index  ${song.name}"
+                    )
                 )
+                model.errorWhenPlaying = false
+            }
         }
     }
 
@@ -81,55 +90,39 @@ fun HomeScreen(
 
     LaunchedEffect(model.isUpdating) {
         if (model.isUpdating)
-            scope.launch {
-                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                scaffoldState.snackbarHostState
-                    .showSnackbar(
-                        message = "Working...",
-                        actionLabel = getString(R.string.snackbar_dismissed),
-                        duration = SnackbarDuration.Indefinite
-                    )
-            }
+            appState.snackbarIndefinite("Working...")
     }
 
     LaunchedEffect(model.isUpdateComplete) {
         if (model.isUpdateComplete)
-            scope.launch {
-                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
-                scaffoldState.snackbarHostState
-                    .showSnackbar(
-                        message = getString(
-                            if (model.isFailure)
-                                R.string.list_update_failure
-                            else
-                                R.string.list_updated
-                        ),
-                        actionLabel = getString(R.string.snackbar_dismissed),
-                        duration = SnackbarDuration.Short
-                    )
-            }
+            appState.snackbar(
+                getString(
+                    if (model.isFailure)
+                        R.string.list_update_failure
+                    else
+                        R.string.list_updated
+                )
+            )
     }
 
-
-    val refreshState: SwipeRefreshState = rememberSwipeRefreshState(false)
-
     SwipeRefresh(
-        state = refreshState,
+        state = appState.refreshState,
         onRefresh = {
-            working = true
-            refreshState.isRefreshing = true
             model.viewModelScope.launch {
+                working = true
+                appState.refreshState.isRefreshing = true
                 model.reloadSongsList(updateInfo = true)
                 delay(1500)
-                refreshState.isRefreshing = false
+                appState.refreshState.isRefreshing = false
                 working = false
             }
         }
     ) {
         SongsList(
             songs = model.songs,
+            model = model,
             clickable = clickable,
-            snackbar = snackbar,
+            snackbar = appState.snackbar,
             onWorking = { working = it }
         )
     }
@@ -140,26 +133,28 @@ fun HomeScreen(
 
 @Composable
 fun SongsList(
-    songs: List<MusicState>,
+    model: MainViewModel = viewModel(),
+    songs: List<MusicState> = model.songs,
     available: Boolean = songs.isNotEmpty(),
     snackbar: (message: String) -> Unit,
     onWorking: (Boolean) -> Unit,
     clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
 ) {
     if (available && songs.isNotEmpty()) {
-        val color = MaterialTheme.colors.onBackground.copy(alpha = 0.6f)
+
+        val artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f)
+
         LazyColumn(
-            contentPadding = PaddingValues(top = 7.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             itemsIndexed(songs) { index, music ->
+
                 MusicItem(
                     index = index,
-                    name = music.name,
-                    album = music.album,
-                    artists = music.artists,
+                    title = music.name,
+                    subtitle = "${music.artists} - ${music.album}",
                     artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
-                    artBackground = color,
+                    artBackground = artBackground,
                     incomplete = music.incomplete,
                     deleted = music.deleted,
                     saved = music.saved,
@@ -188,16 +183,71 @@ fun SongsList(
 
             }
         }
+
     } else {
+
         Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = stringResource(id = R.string.list_no_data),
-                textAlign = TextAlign.Center
-            )
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.6f)
+            ) {
+
+                if (model.displayPermissionDialog) {
+                    Text(
+                        text = stringResource(R.string.list_no_data),
+                        style = MaterialTheme.typography.h5
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    checkPermission { allGranted ->
+                        if (allGranted) {
+                            model.displayPermissionDialog = false
+                            // 注: 该函数仅在第一次调用会重新加载数据
+                            // 重载数据请用 model.reload()
+                            if (model.hadListInited) {
+                                working = false
+                            }
+                            model.initList(
+                                updateInfo = true,
+                                callback = {
+                                    working = false
+                                }
+                            )
+                        } else {
+                            model.displayWelcomeScreen = true
+                        }
+                    }
+                } else {
+                    Text(
+                        text = stringResource(R.string.list_no_data),
+                        style = MaterialTheme.typography.h6
+                    )
+                    Text(
+                        text = stringResource(R.string.refresh),
+                        //style = MaterialTheme.typography.h,
+                        color = MaterialTheme.colors.primary,
+                        fontWeight = FontWeight.Medium,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable {
+                            model.viewModelScope.launch {
+                                working = true
+                                model.reloadSongsList(updateInfo = true)
+                                delay(1500)
+                                working = false
+                            }
+                        }
+                    )
+                }
+
+            }
         }
+
+
     }
 
 }
@@ -306,7 +356,7 @@ fun MusicItemAlertDialog(
 
                                 append("文件大小:  ${file.length().formatFileSize()}\n\n")
                                 append("文件名称: ${file.name}\n\n")
-                                append("文件路径: ${file.canonicalPath}\n\n")
+                                append("文件路径: ${file.type}://${file.path}\n\n")
                             }
                         }
                     )
@@ -329,10 +379,10 @@ fun MusicItemAlertDialog(
 @Composable
 fun MusicItem(
     index: Int,
-    name: String,
+    title: String,
+    subtitle: String,
+
     deleted: Boolean,
-    artists: String,
-    album: String,
     incomplete: Boolean,
     saved: Boolean,
     displayBitrate: String,
@@ -348,18 +398,12 @@ fun MusicItem(
         mutableStateOf(false)
     }
 
-    var alpha by remember {
-        mutableStateOf(1f)
-    }
-
-    LaunchedEffect(deleted) {
-        if (deleted)
-            alpha = 0.4f
-    }
-
+    val alpha = if (deleted) 0.4f else 1f
 
     var openDialog by remember { mutableStateOf(false) }
-    musicItemAlertDialog(openDialog) { openDialog = it }
+    if (openDialog) musicItemAlertDialog(openDialog) { openDialog = it }
+
+
 
     Row(
         modifier = Modifier
@@ -371,6 +415,7 @@ fun MusicItem(
                 onClick = {
                     clickable()
                 })
+            .padding(start = 15.dp, end = 10.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
@@ -386,8 +431,6 @@ fun MusicItem(
                     .size(50.dp)
                     .background(artBackground)
             )
-
-
         }
 
         Column(
@@ -397,8 +440,7 @@ fun MusicItem(
         ) {
 
             Row(
-                modifier = Modifier
-                    .padding(start = 10.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 10.dp, bottom = 4.dp)
             ) {
                 Text(
                     text = (index + 1).toString(),
@@ -409,7 +451,7 @@ fun MusicItem(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = name,
+                    text = title,
                     maxLines = 1,
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1
@@ -417,12 +459,11 @@ fun MusicItem(
             }
 
             Row(
-                modifier = Modifier
-                    .padding(start = 9.dp, end = 8.dp, top = 3.dp)
+                modifier = Modifier.padding(start = 9.dp, end = 8.dp, top = 3.dp)
             ) {
 
                 InfoText(
-                    text = "$artists - $album",
+                    text = subtitle,
                     textAlign = TextAlign.Start,
                     modifier = Modifier.weight(0.70f)
                 )
@@ -438,28 +479,25 @@ fun MusicItem(
 
                 if (!NeteaseCacheProvider.fastReader && missInfoFile) {
                     InfoText(
-                        text = getString(id = R.string.list_missing_info_file) + " " + NeteaseCacheProvider.infoExt,
-                        color = MaterialTheme.colors.error,
-                        modifier = Modifier
-                            .padding(end = 2.dp)
+                        text = getString(
+                            R.string.list_missing_info_file,
+                            NeteaseCacheProvider.infoExt
+                        ),
+                        color = MaterialTheme.colors.error
                     )
                 }
 
                 if (deleted) {
                     InfoText(
                         text = getString(id = R.string.list_deleted),
-                        color = MaterialTheme.colors.error,
-                        modifier = Modifier
-                            .padding(end = 2.dp)
+                        color = MaterialTheme.colors.error
                     )
                 }
 
                 if (saved) {
                     InfoText(
                         text = getString(id = R.string.list_saved),
-                        color = MaterialTheme.colors.primary,
-                        modifier = Modifier
-                            .padding(end = 2.dp)
+                        color = MaterialTheme.colors.primary
                     )
                 }
 
@@ -467,8 +505,7 @@ fun MusicItem(
                     text = displayBitrate,
                     textAlign = TextAlign.End,
                     color = MaterialTheme.colors.primary,
-                    modifier = Modifier
-                        .width(40.dp)
+                    modifier = Modifier.width(40.dp)
                 )
 
 
@@ -489,14 +526,15 @@ fun MusicItem(
                     .clickable {
                         expanded = true
                     }
-                    .padding(end = 2.dp, top = 2.dp)
+                    .padding(end = 2.dp, top = 3.dp)
             )
 
-            musicItemDropdownMenu(
-                expanded,
-                { expanded = it },
-                { openDialog = it }
-            )
+            if (expanded)
+                musicItemDropdownMenu(
+                    expanded,
+                    { expanded = it },
+                    { openDialog = it }
+                )
         }
 
 
@@ -517,7 +555,7 @@ fun InfoText(
 ) {
     Text(
         text = text,
-        modifier = modifier.padding(start = 2.dp, end = 2.dp),
+        modifier = modifier.padding(start = 1.dp, end = 2.dp),
         color = color,
         fontWeight = fontWeight,
         textAlign = textAlign,
@@ -527,25 +565,31 @@ fun InfoText(
     )
 }
 
-@Preview(showBackground = true, widthDp = 200, heightDp = 80)
+@Preview(showBackground = true, widthDp = 500, heightDp = 80, uiMode = UI_MODE_NIGHT_UNDEFINED)
 @Composable
 fun DefPreView() {
-    MusicItem(
-        index = 0,
-        name = "Name",
-        album = "Album",
-        artists = "Artists",
-        artPainter = painterResource(id = R.drawable.ic_launcher_background),
-        artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f),
-        incomplete = false,
-        deleted = false,
-        saved = false,
-        missInfoFile = false,
-        displayBitrate = "192 k",
-        musicItemAlertDialog = { _, _ ->
-            Text("Todo")
-        },
-        musicItemDropdownMenu = { _, _, _ ->
-            Text("Todo")
-        })
+    NeteaseViewerTheme {
+        Column(
+            Modifier.padding(start = 15.dp, end = 10.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            MusicItem(
+                index = 1,
+                title = "Name",
+                subtitle = "Album - Artists",
+                artPainter = painterResource(id = R.drawable.ic_launcher_background),
+                artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f),
+                incomplete = false,
+                deleted = false,
+                saved = false,
+                missInfoFile = false,
+                displayBitrate = "192 k",
+                musicItemAlertDialog = { _, _ ->
+                    Text("Todo")
+                },
+                musicItemDropdownMenu = { _, _, _ ->
+                    Text("Todo")
+                })
+        }
+    }
 }

@@ -4,9 +4,14 @@ import android.annotation.SuppressLint
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.PagerState
 import com.google.accompanist.pager.rememberPagerState
@@ -20,9 +25,10 @@ class MainAppState @OptIn(ExperimentalPagerApi::class) constructor(
     val scope: CoroutineScope,
     val scaffoldState: ScaffoldState,
 
-    // BottomBar & Pager
+    // BottomBar
     var selectedItem: MutableState<Int>,
     val navItemList: List<String>,
+    val navItemIconList: List<ImageVector>,
     val state: PagerState,
     val coroutineScope: CoroutineScope,
 
@@ -44,13 +50,38 @@ class MainAppState @OptIn(ExperimentalPagerApi::class) constructor(
         }
     }
 
-    fun snackbar(id: Int) = snackbar(getString(id = id))
+    val snackbarLong: (message: String) -> Unit = { message ->
+        scope.launch {
+            scaffoldState.snackbarHostState
+                .currentSnackbarData?.dismiss()
+            scaffoldState.snackbarHostState
+                .showSnackbar(
+                    message = message,
+                    actionLabel = getString(R.string.snackbar_dismissed),
+                    duration = SnackbarDuration.Long
+                )
+        }
+    }
+
+    val snackbarIndefinite: (message: String) -> Unit = { message ->
+        scope.launch {
+            scaffoldState.snackbarHostState
+                .currentSnackbarData?.dismiss()
+            scaffoldState.snackbarHostState
+                .showSnackbar(
+                    message = message,
+                    actionLabel = getString(R.string.snackbar_dismissed),
+                    duration = SnackbarDuration.Indefinite
+                )
+        }
+    }
 
     @SuppressLint("ComposableNaming")
     @Composable
-    fun setSystemBarColor(backgroundColor: Color = MaterialTheme.colors.background) {
+    fun setSystemBarColor(backgroundColor: Color = MaterialTheme.colors.background): MainAppState {
         systemUiController.setStatusBarColor(backgroundColor)
         systemUiController.setNavigationBarColor(backgroundColor)
+        return this
     }
 
     @OptIn(ExperimentalPagerApi::class)
@@ -70,13 +101,15 @@ fun rememberMainAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     selectedItem: MutableState<Int> = mutableStateOf(0),
     navItemList: List<String> = listOf("home", "play", "setting"),
+    navItemIconList: List<ImageVector> =
+        listOf(Icons.Outlined.Home, Icons.Outlined.MusicNote, Icons.Outlined.Settings),
     state: PagerState = rememberPagerState(initialPage = 0),
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     systemUiController: SystemUiController = rememberSystemUiController()
 ) = remember {
     MainAppState(
-        scope, scaffoldState, selectedItem,
-        navItemList, state, coroutineScope,
+        scope, scaffoldState,
+        selectedItem, navItemList, navItemIconList, state, coroutineScope,
         systemUiController
     )
 }

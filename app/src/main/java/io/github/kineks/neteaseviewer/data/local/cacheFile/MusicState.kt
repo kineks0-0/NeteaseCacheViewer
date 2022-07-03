@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.RFile
+import io.github.kineks.neteaseviewer.data.local.toRFile
 import io.github.kineks.neteaseviewer.data.network.Song
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
@@ -14,7 +16,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-val EmptyMusicState = MusicState(-1, -1, "", File(""))
+val EmptyMusicState = MusicState(-1, -1, "", File("").toRFile())
 const val EmptyAlbum = "N/A"
 const val EmptyArtists = "N/A"
 
@@ -22,7 +24,7 @@ data class MusicState(
     val id: Int,
     val bitrate: Int = -1,
     val md5: String,
-    val file: File,
+    val file: RFile,
     val song: Song? = null,
 
     // 歌名
@@ -97,7 +99,7 @@ data class MusicState(
         deleted = this
     }
 
-    val inputStream get() = XorByteInputStream(file)
+    val inputStream get() = XorByteInputStream(file.input!!)
 
     // 包装调用函数
     fun getAlbumPicUrl(width: Int = -1, height: Int = -1): String? =

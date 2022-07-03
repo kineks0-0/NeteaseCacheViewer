@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lzx.starrysky.OnPlayerEventListener
@@ -25,6 +24,7 @@ import kotlinx.coroutines.withContext
 
 class MainViewModel : ViewModel() {
     var displayWelcomeScreen by mutableStateOf(false)
+    var displayPermissionDialog by mutableStateOf(false)
     var updateAppJSON by mutableStateOf(UpdateJSON())
     var hasUpdateApp by mutableStateOf(false)
 
@@ -200,7 +200,7 @@ class MainViewModel : ViewModel() {
         selectedMusicStateItem = song
         val info = SongInfo(
             songId = song.md5,
-            songUrl = song.file.toUri().toString(),
+            songUrl = song.file.uri.toString(),
             songName = song.name,
             songCover = song.getAlbumPicUrl(200, 200) ?: "",
             artist = song.artists + " - " + song.album

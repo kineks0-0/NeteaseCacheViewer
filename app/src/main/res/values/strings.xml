@@ -7,7 +7,7 @@
     <string name="list_updated">All data update</string>
     <string name="snackbar_dismissed">Dismissed</string>
     <string name="list_incomplete">incomplete</string>
-    <string name="list_missing_info_file">missing</string>
+    <string name="list_missing_info_file">missing %s</string>
     <string name="list_reload">Reload</string>
     <string name="list_update_failure">Update Failure</string>
     <string name="list_saved">saved</string>
@@ -22,4 +22,6 @@
     <string name="welcome_check_permissions">Checking Permissions</string>
     <string name="welcome_permission_denied">Permission Denied</string>
     <string name="welcome_loading">Loading</string>
+    <string name="permission_request_button">Request permission</string>
+    <string name="refresh">Refresh</string>
 </resources>

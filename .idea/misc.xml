@@ -3,6 +3,14 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="../../../../../../layout/compose-model-1650825081116.xml" value="0.31967905405405406" />
+        <entry key="../../../../../../layout/compose-model-1650860706281.xml" value="0.2518518518518518" />
+        <entry key="../../../../../../layout/compose-model-1650870115635.xml" value="0.18" />
+        <entry key="../../../../../../layout/compose-model-1650963992318.xml" value="0.6890909090909091" />
+        <entry key="../../../../run/media/leli/TEC100-A800/AndroidStudioProjects/NeteaseViewer/app/src/main/java/io/github/kineks/neteaseviewer/ui/DefaultViewv.kt" value="0.32194092827004217" />
+        <entry key="../../../../run/media/leli/TEC100-A800/AndroidStudioProjects/NeteaseViewer/app/src/main/java/io/github/kineks/neteaseviewer/ui/home/HomeScreen.kt" value="0.29818181818181816" />
+        <entry key="../../../../run/media/leli/TEC100-A800/AndroidStudioProjects/NeteaseViewer/app/src/main/java/io/github/kineks/neteaseviewer/ui/welcome/WelcomeScreen.kt" value="0.3646477132262052" />
+        <entry key="../../../../run/media/leli/软件/AndroidStudioProjects/NeteaseViewer-bak/app/src/main/java/io/github/kineks/neteaseviewer/ui/home/HomeScreen.kt" value="0.6563636363636364" />
         <entry key="..\:/AndroidStudioProjects/NeteaseViewer/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.2985" />
         <entry key="..\:/AndroidStudioProjects/NeteaseViewer/app/src/main/res/drawable/ic_android_24dp.xml" value="0.21" />
         <entry key="..\:/AndroidStudioProjects/NeteaseViewer/app/src/main/res/drawable/ic_android_white_24dp.xml" value="0.2985" />
@@ -11,10 +19,12 @@
         <entry key="..\:/AndroidStudioProjects/NeteaseViewer/app/src/main/res/drawable/outline_music_note_24.xml" value="0.1385" />
         <entry key="..\:/AndroidStudioProjects/NeteaseViewer/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.21" />
         <entry key="..\:/AndroidStudioProjects/NeteaseViewer/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" value="0.21" />
+        <entry key="app/src/main/java/io/github/kineks/neteaseviewer/ui/DefaultViewv.kt" value="0.3067510548523207" />
+        <entry key="app/src/main/java/io/github/kineks/neteaseviewer/ui/home/HomeScreen.kt" value="0.68" />
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_X" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">

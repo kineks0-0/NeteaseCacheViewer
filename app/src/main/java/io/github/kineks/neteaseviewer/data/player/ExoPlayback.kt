@@ -16,6 +16,7 @@ import com.lzx.starrysky.playback.FocusInfo
 import com.lzx.starrysky.playback.FocusManager
 import com.lzx.starrysky.playback.Playback
 import com.lzx.starrysky.utils.orDef
+import io.github.kineks.neteaseviewer.App
 
 
 /**
@@ -26,7 +27,7 @@ import com.lzx.starrysky.utils.orDef
 const val TAG = "ExoPlayback"
 
 class ExoPlayback(
-    private val context: Context,
+    private val context: Context = App.context,
     private val isAutoManagerFocus: Boolean
 ) : Playback, FocusManager.OnFocusStateChangeListener {
 
@@ -158,7 +159,7 @@ class ExoPlayback(
 
     @Synchronized
     private fun createMediaSource(source: String): MediaSource {
-        val uri = Uri.parse(source)
+        var uri = Uri.parse(source)
 
         if (dataSourceFactory == null) dataSourceFactory = getDataSourceFactory()
         val extractorsFactory = DefaultExtractorsFactory()
@@ -170,7 +171,9 @@ class ExoPlayback(
                 ),
                 extractorsFactory
             )
-            .createMediaSource(MediaItem.fromUri(uri))
+            .createMediaSource(
+                MediaItem.fromUri(uri)
+            )
     }
 
     @Synchronized

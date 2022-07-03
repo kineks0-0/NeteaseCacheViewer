@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.ui.home
+package io.github.kineks.neteaseviewer.ui.welcome
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,62 +23,38 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
+import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.fileUriUtils
 import io.github.kineks.neteaseviewer.getString
 import io.github.kineks.neteaseviewer.openBrowser
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import io.github.kineks.neteaseviewer.ui.view.PermissionComposeX
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun WelcomeScreen(
     callback: () -> Unit,
-    checkPermission: (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
+    checkPermission: @Composable (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
     display: Boolean = true
 ) {
     if (display) {
 
         val appState = rememberWelcomeAppState()
 
-        // 是否同意隐私协议
-        var agreeAgreement by remember {
-            mutableStateOf(false)
-        }
-
-        // 设置 fab 的文本
-        var floatingActionText by remember {
-            mutableStateOf(getString(id = R.string.welcome_next))
-        }
-
-        // 跳转下一页
-        val nextPage: () -> Unit = {
-            appState.animateScrollToNextPage()
-        }
-
-        // 弹出需要同意隐私协议的吐司
-        val needAgreeAgreementToast: () -> Unit = {
-            appState.snackbar(
-                message = getString(R.string.welcome_need_agree_agreement),
-                actionLabel = getString(R.string.welcome_agree),
-                ActionPerformed = {
-                    agreeAgreement = true
-                    nextPage()
-                }
-            )
-        }
-
         // 点击下一步
         val onNextClick: () -> Unit = {
             when (appState.pagerState.currentPage) {
                 0 -> {
-                    if (!agreeAgreement)
-                        needAgreeAgreementToast()
+                    if (!appState.agreeAgreement)
+                        appState.needAgreeAgreementToast()
                     else
-                        nextPage()
+                        appState.nextPage()
                 }
                 appState.pagerState.pageCount - 1 -> {
-                    if (!agreeAgreement) {
-                        needAgreeAgreementToast()
+                    if (!appState.agreeAgreement) {
+                        appState.needAgreeAgreementToast()
                         appState.animateScrollToPage(0, 600)
                     } else {
                         // 完成用户引导页时的回调
@@ -86,7 +62,7 @@ fun WelcomeScreen(
                     }
 
                 }
-                else -> nextPage()
+                else -> appState.nextPage()
             }
         }
 
@@ -98,21 +74,22 @@ fun WelcomeScreen(
                 scaffoldState = appState.scaffoldState,
                 floatingActionButton = {
                     ExtendedFloatingActionButton(
-                        text = { Text(text = floatingActionText) }, onClick = onNextClick
+                        text = { Text(text = appState.floatingActionText) }, onClick = onNextClick
                     )
                 }
-            ) {
+            ) { paddingValues ->
                 HorizontalPager(
                     state = appState.pagerState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colors.background.copy(0.1f))
-                        .padding(it),
-                    count = 2
+                        .padding(paddingValues),
+                    count = 2,
+                    userScrollEnabled = appState.agreeAgreement
                 ) { page ->
 
                     LaunchedEffect(appState.pagerState.currentPage) {
-                        floatingActionText = when (appState.pagerState.currentPage) {
+                        appState.floatingActionText = when (appState.pagerState.currentPage) {
                             appState.pagerState.pageCount - 1 -> getString(R.string.welcome_finish)
                             else -> getString(R.string.welcome_next)
                         }
@@ -125,16 +102,11 @@ fun WelcomeScreen(
                         when (page) {
                             0 -> PageOne(
                                 onNextClick = onNextClick,
-                                nextPage = nextPage,
-                                agreeAgreement = agreeAgreement,
-                                onValueChange = { agreeAgreement = it }
+                                nextPage = appState.nextPage,
+                                agreeAgreement = appState.agreeAgreement,
+                                onValueChange = { appState.agreeAgreement = it }
                             )
-                            1 -> PageTwo(
-                                needAgreeAgreementToast = needAgreeAgreementToast,
-                                checkPermission = checkPermission,
-                                appState = appState,
-                                agreeAgreement = agreeAgreement
-                            )
+                            1 -> PageTwo(checkPermission)
                         }
 
 
@@ -154,38 +126,20 @@ fun WelcomeScreen(
 
 }
 
-@OptIn(ExperimentalPagerApi::class)
+
 @Composable
 fun PageTwo(
-    needAgreeAgreementToast: () -> Unit,
-    checkPermission: (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
-    appState: WelcomeAppState,
-    agreeAgreement: Boolean
+    checkPermission: @Composable (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
 ) {
     Column {
+        //val context = LocalContext.current
 
 
-        var toNext by remember {
+        var allGranted by remember {
             mutableStateOf(false)
         }
         var title by remember {
-            mutableStateOf(getString(id = R.string.welcome_check_permissions))
-        }
-
-        LaunchedEffect(appState.pagerState.currentPage) {
-            if (appState.pagerState.currentPage != 1) return@LaunchedEffect
-            if (!agreeAgreement) {
-                needAgreeAgreementToast()
-                appState.animateScrollToPage(0, 500)
-            } else {
-                checkPermission.invoke { allGranted ->
-                    toNext = allGranted
-                    title = if (allGranted)
-                        getString(R.string.welcome_loading)
-                    else
-                        getString(R.string.welcome_permission_denied)
-                }
-            }
+            mutableStateOf(getString(R.string.welcome_check_permissions))
         }
 
         InfoCard(
@@ -209,7 +163,7 @@ fun PageTwo(
             elevation = 10.dp,
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            if (toNext) {
+            if (allGranted) {
                 LazyColumn {
                     NeteaseCacheProvider.cacheDir.forEachIndexed { index, neteaseAppCache ->
                         item {
@@ -291,9 +245,45 @@ fun PageTwo(
 
         }
 
+        if (App.isAndroidRorAbove && !fileUriUtils.isGrant && allGranted)
+            InfoCard(
+                shape = MaterialTheme.shapes.small,
+                elevation = 10.dp,
+                modifier = Modifier.padding(top = 16.dp),
+                boxModifier = Modifier.padding(vertical = 15.dp),
+                boxAlignment = Alignment.Center
+            ) {
+                PermissionComposeX(
+                    callback = { },
+                    permissions = listOf("RFile"),
+                    request = { _: List<String>, _: (Boolean) -> Unit ->
+                        fileUriUtils.startForRoot()
+                    },
+                    requestDescription = "/Android/Data/无法访问，使用重定向存储和修改版可能无法识别到"
+                )
+            }
+
+        if (!allGranted)
+            InfoCard(
+                shape = MaterialTheme.shapes.small,
+                elevation = 10.dp,
+                modifier = Modifier.padding(top = 16.dp),
+                boxModifier = Modifier.padding(vertical = 15.dp),
+                boxAlignment = Alignment.Center
+            ) {
+                checkPermission {
+                    allGranted = it
+                    title = if (allGranted)
+                        getString(R.string.welcome_loading)
+                    else
+                        getString(R.string.welcome_permission_denied)
+                }
+            }
+
 
     }
 }
+
 
 @Composable
 fun PageOne(
@@ -322,12 +312,12 @@ fun PageOne(
                                 R.mipmap.ic_launcher
                             ),
                             modifier = Modifier
-                                .size(65.dp)
+                                .size(66.dp)
                         )
                     }
                     Column(
                         modifier = Modifier
-                            .height(65.dp)
+                            .height(66.dp)
                             .padding(
                                 top = 8.dp,
                                 end = 6.dp,
@@ -425,6 +415,7 @@ fun PageOne(
 fun InfoCard(
     modifier: Modifier = Modifier,
     boxModifier: Modifier = Modifier,
+    boxAlignment: Alignment = Alignment.TopStart,
     shape: Shape = MaterialTheme.shapes.small,
     backgroundColor: Color = MaterialTheme.colors.surface,
     contentColor: Color = contentColorFor(backgroundColor),
@@ -441,7 +432,8 @@ fun InfoCard(
         Box(
             modifier = boxModifier
                 .padding(17.dp)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            contentAlignment = boxAlignment
         ) {
             content.invoke()
         }
@@ -451,6 +443,22 @@ fun InfoCard(
 
 @Composable
 @Preview
-fun Preview() {
-    WelcomeScreen(callback = { }, checkPermission = { }, display = true)
+fun PageOnePreview() {
+    var agreeAgreement by remember {
+        mutableStateOf(false)
+    }
+    PageOne(
+        onNextClick = { },
+        nextPage = { },
+        agreeAgreement = agreeAgreement,
+        onValueChange = { agreeAgreement = it }
+    )
+}
+
+@Composable
+@Preview
+fun PageTwoPreview() {
+    PageTwo {
+
+    }
 }
