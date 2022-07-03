@@ -1,6 +1,6 @@
 {
-  "versionCode": 42,
-  "versionName": "Alpha 2.8.9",
-  "updateInfo": "该版本在 Android P with Miui 11 上测试通过\n\n## \uD83D\uDD28修复\n- 修复 WelcomeScreen.kt 图标大小和圆角问题\n- 修复 WelcomeScreen.kt 点链接崩溃的bug\n- 修复切歌播放界面显示错误\n\n## ✏重构\n- 重构优化 MainActivity.kt , WelcomeScreen.kt 部分变量和复用代码到 *AppState.kt \n- 将部分硬编码文本迁移到 strings.xml .\n- Music.kt 重构为 MusicState.kt",
+  "versionCode": 44,
+  "versionName": "Alpha 2.9.0",
+  "updateInfo": "该版本在 Android P with Miui 11 和 Android R 上测试通过\n\n## \uD83D\uDD28修复\n- 修复 ComposePreview 无法正常渲染\n- 由于第三方库兼容问题降级 targetSdk 到 30\n- 以及一些小修小补\n\n## ✏重构\n- 支持在 Android 11 上支持读取 Android/Data 下的缓存文件\n- 重构 RFile.kt，以及部分小修小补",
   "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/releases"
 }
