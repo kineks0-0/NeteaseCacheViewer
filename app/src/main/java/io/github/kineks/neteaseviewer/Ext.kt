@@ -21,6 +21,7 @@ import okhttp3.ResponseBody
 import java.io.File
 import java.io.IOException
 import java.net.URLConnection
+import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.experimental.and
@@ -98,6 +99,11 @@ fun Number.formatFileSize(
     withUnit: Boolean = true
 ): String = FileSizeUtils.formatFileSize(size, scale, withUnit)
 
+@SinceKotlin("1.1")
+inline fun <T> MutableListOf(list: List<T> = ArrayList<T>()): MutableList<T> {
+    //val list>(size)
+    return Collections.synchronizedList(list)
+}
 
 suspend fun File.scanFile(context: Context = App.context) =
     suspendCancellableCoroutine<Uri?> { cont ->

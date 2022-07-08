@@ -133,8 +133,8 @@ object fileUriUtils {
     }
 
     //直接获取data权限，推荐使用这种方案
-    fun startForRoot(context: FragmentActivity = activity!!) {
-        AndroidDataFileUtils(activity = context).requestAndroidDateRootNow()
+    fun startForRoot(context: FragmentActivity = activity!!, callback: () -> Unit) {
+        AndroidDataFileUtils(activity = context, callback = callback).requestAndroidDateRootNow()
     }
 
 }
@@ -143,7 +143,8 @@ class AndroidDataFileUtils(
     @SuppressLint("StaticFieldLeak")
     private val activity: FragmentActivity,
     @SuppressLint("StaticFieldLeak")
-    private val fragment: Fragment? = null
+    private val fragment: Fragment? = null,
+    private val callback: () -> Unit
 ) {
 
     private val FRAGMENT_TAG = "FileUriFragment"
@@ -171,6 +172,7 @@ class AndroidDataFileUtils(
     }
 
     fun removeInvisibleFragment() {
+        callback()
         val existedFragment = fragmentManager.findFragmentByTag(FRAGMENT_TAG)
         if (existedFragment != null) {
             fragmentManager.beginTransaction().remove(existedFragment).commit()

@@ -30,13 +30,14 @@ class MainViewModel : ViewModel() {
 
     var errorWhenPlaying by mutableStateOf(false)
     var selectedMusicStateItem: MusicState by mutableStateOf(EmptyMusicState)
+    private val selectedMusicStateItemMap = HashMap<String, MusicState>()
 
     var isFailure by mutableStateOf(false)
     var isUpdating by mutableStateOf(false)
     var isUpdateComplete by mutableStateOf(false)
 
     var hadListInited = false
-    val songs = mutableStateListOf<MusicState>()
+    val songs = MutableListOf(mutableStateListOf<MusicState>())
 
     init {
 
@@ -47,7 +48,7 @@ class MainViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            Update.checkUpdateWithTime { json, hasUpdate ->
+            Update.checkUpdate { json, hasUpdate ->
                 if (hasUpdate) {
                     updateAppJSON = json ?: UpdateJSON()
                     this@MainViewModel.hasUpdateApp = true
@@ -65,8 +66,10 @@ class MainViewModel : ViewModel() {
                             }
                             PlaybackStage.SWITCH -> {
                                 viewModelScope.launch {
-                                    selectedMusicStateItem = NeteaseCacheProvider
-                                        .getCacheSongs(stage.songInfo?.songUrl!!)
+                                    if (selectedMusicStateItem.md5 != stage.songInfo!!.songId) {
+                                        selectedMusicStateItem =
+                                            selectedMusicStateItemMap[stage.songInfo!!.songId]!!
+                                    }
                                 }
                             }
                         }
@@ -107,7 +110,7 @@ class MainViewModel : ViewModel() {
         hadListInited = true
     }
 
-    fun updateSongsInfo(quantity: Int = 50) {
+    private suspend fun updateSongsInfo(quantity: Int = 50) {
         isUpdateComplete = false
         isFailure = false
 
@@ -132,8 +135,8 @@ class MainViewModel : ViewModel() {
             pages++
 
         for (i in 0..pages) {
-            viewModelScope.launch {
-                withContext(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
+                launch {
 
                     // 对于 list 索引的偏移值
                     val offset = i * quantity
@@ -156,9 +159,10 @@ class MainViewModel : ViewModel() {
                     val indexList = ArrayList<Int>()
                     repeat(size) {
                         val index = offset + it
-                        val id = songs[index].id
+                        Log.d(this@MainViewModel::javaClass.name, "update:$index")
                         // 如果缓存里有则跳过
                         if (songs[index].song == null) {
+                            val id = songs[index].id
                             ids.add(id)
                             indexList.add(offset + it)
                         }
@@ -198,6 +202,7 @@ class MainViewModel : ViewModel() {
 
     fun playMusic(song: MusicState) {
         selectedMusicStateItem = song
+        selectedMusicStateItemMap[song.md5] = song
         val info = SongInfo(
             songId = song.md5,
             songUrl = song.file.uri.toString(),

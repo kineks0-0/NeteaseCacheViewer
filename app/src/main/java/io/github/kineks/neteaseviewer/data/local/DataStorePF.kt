@@ -10,7 +10,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import io.github.kineks.neteaseviewer.App.Companion.context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.*
 
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
@@ -37,11 +36,6 @@ object Setting {
             preferences[LAST_CHECK_UPDATES] ?: -1L
         }
 
-    suspend fun setLastCheckUpdates(value: Long = Calendar.getInstance().timeInMillis) {
-        context.dataStore.edit { settings ->
-            settings[LAST_CHECK_UPDATES] = value
-        }
-    }
     /*
     private val EXAMPLE_COUNTER = intPreferencesKey("example_counter")
     val exampleCounterFlow: Flow<Int> = context.dataStore.data

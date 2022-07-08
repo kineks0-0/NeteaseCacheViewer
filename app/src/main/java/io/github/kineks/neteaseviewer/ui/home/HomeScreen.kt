@@ -78,12 +78,12 @@ fun HomeScreen(
     if (working || model.isUpdating) {
         LinearProgressIndicator(
             modifier = Modifier
-                .padding(
+                /*.padding(
                     top = 8.dp,
                     bottom = 8.dp
-                )
+                )*/
                 .fillMaxWidth()
-                .offset(y = (-8).dp)
+                .offset(y = (-3).dp)
                 .zIndex(1f)
         )
     }

@@ -67,6 +67,8 @@ abstract class RFile(open val type: RType, open val path: String, open val name:
             )
         }
 
+        fun RFile.reload(): RFile = of(type, path, name)
+
     }
 
     enum class RType(val type: String) {
@@ -152,29 +154,30 @@ abstract class RFile(open val type: RType, open val path: String, open val name:
 }
 
 
+fun getNewDocumentFile(path: String, name: String, type: RFile.RType): DocumentFile =
+    if (type == SingleAndroidData) {
+        DocumentFile.fromFile(
+            (Environment.getExternalStorageDirectory().path + "/Android/Data/" + path).toFile()
+        )
+    } else {
+        var documentFile = DocumentFile.fromTreeUri(
+            App.context,
+            Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata")
+        ) ?: TODO()
+        Log.d("RFILE:", path)
+        for (str in path.split("/")) {
+            if (str != "")
+                documentFile = documentFile.findFile(str) ?: documentFile
+        }
+        documentFile
+    }
+
+
 data class RFileAndroidData(
     override val path: String,
     override val name: String,
-    var documentFile: DocumentFile = run {
-        return@run if (type == SingleAndroidData) {
-            DocumentFile.fromFile(
-                (Environment.getExternalStorageDirectory().path + "/Android/Data/" + path).toFile()
-            )
-        } else {
-            var documentFile = DocumentFile.fromTreeUri(
-                App.context,
-                Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata")
-            ) ?: TODO()
-            Log.d("RFILE:", path)
-            for (str in path.split("/")) {
-                if (str != "")
-                    documentFile = documentFile.findFile(str) ?: documentFile
-            }
-            documentFile
-        }
-    },
-    override val type: RType = documentFile.getRFileType()
-
+    override val type: RType = AndroidData,
+    var documentFile: DocumentFile = getNewDocumentFile(path, name, type)
 ) : RFile(type, path, name) {
 
     override val isFile: Boolean
@@ -334,7 +337,10 @@ data class RFileUri(
         get() = App.context.contentResolver.openOutputStream(uri)
 
     override fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
-        callback(0, uri.toRFile(name = name))
+        if (type == SingleUri)
+            callback(0, uri.toSingleRFile(name = name))
+        else
+            callback(0, uri.toRFile(name = name))
     }
 
 }
@@ -385,17 +391,18 @@ fun File.toRFile() = RFile.of(
     name = name
 )
 
-fun Uri.toRFile(name: String = this.toString().split("%2F").last()) = RFile.of(
+fun Uri.toRFile(name: String = DocumentFile.fromTreeUri(App.context, this)?.name ?: "") = RFile.of(
     type = Uri,
     path = toString() ?: "",
     name = name
 )
 
-fun Uri.toSingleRFile(name: String = this.toString().split("%2F").last()) = RFile.of(
-    type = SingleUri,
-    path = toString() ?: "",
-    name = name
-)
+fun Uri.toSingleRFile(name: String = DocumentFile.fromSingleUri(App.context, this)?.name ?: "") =
+    RFile.of(
+        type = SingleUri,
+        path = toString() ?: "",
+        name = name
+    )
 
 fun DocumentFile.toRFile() = RFileAndroidData(
     type = getRFileType(),

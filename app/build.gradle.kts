@@ -19,9 +19,13 @@ android {
         applicationId = "io.github.kineks.neteaseviewer"
         minSdk = 21
         targetSdk = 30
-        versionCode = 44
-        versionName = "Alpha 2.9.0"
+        versionCode = 48
+        versionName = "Alpha 2.9.2"
         resourceConfigurations += listOf("en", "zh", "zh-rCN")
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -31,13 +35,13 @@ android {
 
     buildTypes {
         debug {
-
-            extra["enableCrashlytics"] = false
+            // extra["enableCrashlytics"] = false
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+
         }
     }
 

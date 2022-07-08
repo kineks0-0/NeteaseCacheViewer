@@ -25,8 +25,7 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.R
-import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.data.local.fileUriUtils
+import io.github.kineks.neteaseviewer.data.local.*
 import io.github.kineks.neteaseviewer.getString
 import io.github.kineks.neteaseviewer.openBrowser
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
@@ -257,7 +256,17 @@ fun PageTwo(
                     callback = { },
                     permissions = listOf("RFile"),
                     request = { _: List<String>, _: (Boolean) -> Unit ->
-                        fileUriUtils.startForRoot()
+                        fileUriUtils.startForRoot {
+                            NeteaseCacheProvider.cacheDir.forEach { neteaseAppCache ->
+                                neteaseAppCache.rFiles.forEach { rFile ->
+                                    if (rFile.type == RFile.RType.AndroidData) {
+                                        val file = rFile as RFileAndroidData
+                                        file.documentFile =
+                                            getNewDocumentFile(file.path, file.name, file.type)
+                                    }
+                                }
+                            }
+                        }
                     },
                     requestDescription = "/Android/Data/无法访问，使用重定向存储和修改版可能无法识别到"
                 )

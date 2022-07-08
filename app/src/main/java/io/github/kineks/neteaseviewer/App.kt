@@ -1,6 +1,5 @@
 package io.github.kineks.neteaseviewer
 
-import ando.file.core.FileOperator
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
@@ -52,6 +51,6 @@ class App : Application() {
         CrashReport.initCrashReport(applicationContext, "47b671f209", BuildConfig.DEBUG)
 
         // 初始化文件操作类
-        FileOperator.init(this, BuildConfig.DEBUG)
+        //FileOperator.init(this, BuildConfig.DEBUG)
     }
 }

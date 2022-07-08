@@ -2,6 +2,9 @@ package io.github.kineks.neteaseviewer
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.kineks.neteaseviewer.data.update.Update
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,6 +16,18 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
+
+    fun checkUpdate() {
+        GlobalScope.launch {
+            Update.checkUpdate { json, hasUpdate ->
+                println(json)
+                println(hasUpdate)
+            }
+            println()
+        }
+
+    }
+
     @Test
     fun useAppContext() {
         // Context of the app under test.
