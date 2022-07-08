@@ -1,6 +1,6 @@
 {
-  "versionCode": 44,
-  "versionName": "Alpha 2.9.0",
-  "updateInfo": "该版本在 Android P with Miui 11 和 Android R 上测试通过\n\n## \uD83D\uDD28修复\n- 修复 ComposePreview 无法正常渲染\n- 由于第三方库兼容问题降级 targetSdk 到 30\n- 以及一些小修小补\n\n## ✏重构\n- 支持在 Android 11 上支持读取 Android/Data 下的缓存文件\n- 重构 RFile.kt，以及部分小修小补",
+  "versionCode": 48,
+  "versionName": "Alpha 2.9.2",
+  "updateInfo": "该版本在 Android P with Miui 11 和 Android R 上测试通过\n\n## \uD83D\uDD28修复\n- 修复加载时可能引起的线程安全问题\n- 切歌和启动修复概率性闪退\n- 以及一些小修小补\n\n## ✏更新\n- 利用协程并发功能优化加载速度\n- 优化加载性能，部分代码复用对象优化性能",
   "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/releases"
 }
