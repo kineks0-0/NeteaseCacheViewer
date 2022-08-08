@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.FileUtils
 import android.provider.MediaStore
+import android.util.Log
 import androidx.annotation.StringRes
 import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.network.ArtistXX
@@ -99,9 +100,13 @@ fun Number.formatFileSize(
     withUnit: Boolean = true
 ): String = FileSizeUtils.formatFileSize(size, scale, withUnit)
 
+fun Number.formatMilSec(
+    min: String = "",
+    sec: String = ""
+): String = "" + (this.toLong() / 60000) + min + (this.toLong() % 60000 / 1000) + sec
+
 @SinceKotlin("1.1")
-inline fun <T> MutableListOf(list: List<T> = ArrayList<T>()): MutableList<T> {
-    //val list>(size)
+fun <T> mutableListOf(list: List<T> = ArrayList<T>()): MutableList<T> {
     return Collections.synchronizedList(list)
 }
 
@@ -162,4 +167,16 @@ suspend fun Call.await(): ResponseBody {
             }
         })
     }
+}
+
+suspend fun <T> runWithPrintTimeCostSuspend(
+    tag: String = "",
+    prefix: String = "",
+    block: suspend (() -> T)
+): T {
+    val timeBegin = System.currentTimeMillis()
+    val result = block.invoke()
+    val timeEnd = System.currentTimeMillis()
+    Log.d("TimeCost", "$tag - ${prefix}: ${timeEnd - timeBegin}ms")
+    return result
 }

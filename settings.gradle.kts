@@ -7,8 +7,8 @@ pluginManagement {
         maven("https://oss.sonatype.org/content/repositories/snapshots")
     }
     plugins {
-        id("com.android.application") version "7.3.0-beta04"
-        id("com.android.library") version "7.3.0-beta04"
+        id("com.android.application") version "7.2.2"
+        id("com.android.library") version "7.2.2"
         id("org.jetbrains.kotlin.android") version "1.6.21"
         id("org.jetbrains.kotlin.kapt") version "1.6.21"
     }

@@ -1,44 +1,41 @@
 package io.github.kineks.neteaseviewer.data.local
 
 import android.net.Uri
-import android.os.Environment
 import android.util.Log
 import com.google.gson.Gson
-import io.github.kineks.neteaseviewer.App
-import io.github.kineks.neteaseviewer.MutableListOf
+import io.github.kineks.neteaseviewer.*
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
-import io.github.kineks.neteaseviewer.scanFile
-import io.github.kineks.neteaseviewer.toRFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 object NeteaseCacheProvider {
 
     // todo: 从应用配置读取而不是硬编码
     // todo: 优化 Android R 访问 Android Data 的性能问题
-    val cacheDir: List<NeteaseAppCache> = listOf(
-        NeteaseAppCache(
-            "Netease", listOf(
-                RFile.RType.ShareStorage.toRFile("/netease/cloudmusic/Cache/Music1/"),
-                // 部分修改版本会用这个路径
-                RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1/")
+    val cacheDir: List<NeteaseAppCache> by lazy {
+        listOf(
+            NeteaseAppCache(
+                "Netease", listOf(
+                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusic/cache/Music1/"),
+                    // 部分修改版本会用这个路径
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic/cache/Music1/")
+                )
+            ),
+            NeteaseAppCache(
+                "NeteaseLite", listOf(
+                    RFile.RType.ShareStorage.toRFile("/netease/cloudmusiclite/cache/Music1/"),
+                    // 部分修改版本会用这个路径
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/cache/Music1/")
+                )
             )
-        ),
-        NeteaseAppCache(
-            "NeteaseLite", listOf(
-                RFile.RType.ShareStorage.toRFile("/netease/cloudmusiclite/Cache/Music1/"),
-                // 部分修改版本会用这个路径
-                RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/Cache/Music1/")
-            )
-        )
 
-    )
+        )
+    }
 
     // Music File : *.UC!
     const val playExt = "uc!"
@@ -52,20 +49,15 @@ object NeteaseCacheProvider {
 
     // 在 Android P 及以下的使用的导出路径
     @Suppress("DEPRECATION")
-    private val musicDirectory =
-        try {
-            File(
-                Environment.getExternalStorageDirectory().path + "/"
-                        + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
-            ).toRFile()
-        } catch (e: Exception) {
-            File("../test/").toRFile()
-        }
+    private val musicDirectory by lazy {
+        RFile.getExternalStorageDirectory("NeteaseViewer", RFile.DIRECTORY_MUSIC)
+    }
+
+    private const val TAG = "NeteaseCacheProvider"
 
 
     suspend fun getCacheFiles(neteaseAppCache: NeteaseAppCache): List<RFile> {
-        val begin = System.currentTimeMillis()
-        val files = MutableListOf<RFile>()
+        val files = mutableListOf<RFile>()
 
         withContext(Dispatchers.IO) {
             neteaseAppCache.rFiles.forEach {
@@ -78,14 +70,14 @@ object NeteaseCacheProvider {
                             }
                             size = index
                             Log.d(
-                                this.javaClass.name,
+                                TAG,
                                 "load file : ${rfile.type}://${rfile.path}  size : " + size
                             )
                         }
                     }
                     size++
                     Log.d(
-                        this.javaClass.name,
+                        TAG,
                         "load file : ${it.type}://${it.path}  size : " + size
                     )
                 }
@@ -93,30 +85,34 @@ object NeteaseCacheProvider {
             }
         }
 
-        val costTime = System.currentTimeMillis() - begin
-        Log.d(this::javaClass.name, "加载文件列表耗时: ${costTime}ms")
         return files
     }
 
     suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): MutableList<MusicState> {
-        val begin = System.currentTimeMillis()
-        val songs = MutableListOf<MusicState>()
+        val songs = mutableListOf<MusicState>()
 
-        withContext(Dispatchers.IO) {
-            val begin1 = System.currentTimeMillis()
-            cacheDir.forEach { neteaseAppCache ->
-                getCacheFiles(neteaseAppCache).forEach {
-                    launch {
-                        songs.add(getMusicState(it, neteaseAppCache))
+        runWithPrintTimeCostSuspend(TAG, "总加载耗时") {
+            withContext(Dispatchers.IO) {
+
+                runWithPrintTimeCostSuspend(TAG, "加载缓存信息耗时") {
+                    cacheDir.forEach { neteaseAppCache ->
+
+                        runWithPrintTimeCostSuspend(TAG, "加载文件列表耗时") {
+                            getCacheFiles(neteaseAppCache).forEach {
+                                launch {
+                                    songs.add(getMusicState(it, neteaseAppCache))
+                                }
+                            }
+                        }
+
+
                     }
                 }
-                val costTime = System.currentTimeMillis() - begin1
-                Log.d(this.javaClass.name, "加载缓存信息耗时: ${costTime}ms")
+
+
             }
         }
 
-        val costTime = System.currentTimeMillis() - begin
-        Log.d(this.javaClass.name, "总加载耗时: ${costTime}ms")
         return songs
     }
 
@@ -160,7 +156,7 @@ object NeteaseCacheProvider {
             }
 
             val costTime = System.currentTimeMillis() - begin2
-            Log.d(this.javaClass.name, "加载单个耗时: ${costTime}ms")
+            Log.d(TAG, "加载单个耗时: ${costTime}ms")
 
             return@withContext MusicState(
                 id = id,
@@ -180,7 +176,7 @@ object NeteaseCacheProvider {
             musicState.file.parentFile!!,
             musicState.file.nameWithoutExtension + ".$infoExt"
         )
-        return if (infoFile != null) getCacheFileInfo(infoFile) else null
+        return if (infoFile != null && infoFile.exists()) getCacheFileInfo(infoFile) else null
     }
 
     private fun getCacheFileInfo(infoFile: RFile): CacheFileInfo? =
@@ -200,14 +196,13 @@ object NeteaseCacheProvider {
         musicState: MusicState,
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
     ): Boolean {
-        val begin = System.currentTimeMillis()
 
         var error = false
         var exception: Exception? = null
 
         var out: Uri? = null
-        withContext(Dispatchers.IO) {
 
+        withContext(Dispatchers.IO) {
             musicState.run {
 
                 try {
@@ -223,7 +218,7 @@ object NeteaseCacheProvider {
                     // 避免写出文件 父目录 不存在
                     path.mkdirs()
 
-                    Log.d("Music", file.type.name + "://" + file.path)
+                    Log.d(TAG, file.type.name + "://" + file.path)
                     if (file.output == null) throw Exception("output == null")
 
                     inputStream.use { input ->
@@ -232,7 +227,7 @@ object NeteaseCacheProvider {
                         }
                     }
 
-                    Log.d("Music", file.length().toString())
+                    Log.d(TAG, file.length().toString())
                     MediaStoreProvider.setInfo(this, file)
                     // 在 Android Q 之后的用 MediaStore 导出文件,然后清理私有目录的源缓存文件
                     if (App.isAndroidQorAbove) {
@@ -242,7 +237,7 @@ object NeteaseCacheProvider {
                             ext
                         )
                             ?: throw Exception("")
-                        Log.d("Music", out.toString())
+                        Log.d(TAG, out.toString())
                         file.delete()
                     } else {
                         file.file.scanFile()
@@ -253,12 +248,9 @@ object NeteaseCacheProvider {
                 } catch (e: Exception) {
                     error = true
                     exception = e
-                    Log.e("Music", e.message + " / " + file.path, e)
+                    Log.e(TAG, e.message + " / " + file.path, e)
                 }
             }
-
-            val costTime = System.currentTimeMillis() - begin
-            Log.d(this::javaClass.name, "导出文件耗时: ${costTime}ms")
 
             callback.invoke(out, error, exception)
         }
@@ -276,10 +268,10 @@ object NeteaseCacheProvider {
         CoroutineScope(Dispatchers.IO).launch {
             withContext(Dispatchers.IO) {
                 list.forEachIndexed { index, music ->
-                    launch {
+                    launch launch1@{
                         if (index == list.lastIndex) isLastOne.invoke(true)
-                        if (skipIncomplete && music.incomplete) return@launch
-                        if (skipMissingInfo && music.missingInfo) return@launch
+                        if (skipIncomplete && music.incomplete) return@launch1
+                        if (skipMissingInfo && music.missingInfo) return@launch1
                         music.decryptFile(callback)
                     }
                 }

@@ -8,6 +8,7 @@ import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.kineks.neteaseviewer.App
+import io.github.kineks.neteaseviewer.BuildConfig
 import io.github.kineks.neteaseviewer.data.local.RFile.RType.*
 import io.github.kineks.neteaseviewer.toFile
 import java.io.File
@@ -17,10 +18,10 @@ import java.nio.charset.Charset
 
 const val TAG = "RFile"
 
-
-abstract class RFile(open val type: RType, open val path: String, open val name: String) {
+sealed class RFile(open val type: RType, open val path: String, open val name: String) {
 
     companion object {
+        // todo： 如果 RFile 独立为一个库类需要把这里改成可扩展和覆写判断逻辑的
 
         fun of(type: RType, path: String, name: String): RFile =
             when (type) {
@@ -69,10 +70,22 @@ abstract class RFile(open val type: RType, open val path: String, open val name:
 
         fun RFile.reload(): RFile = of(type, path, name)
 
+        val DIRECTORY_MUSIC: String = Environment.DIRECTORY_MUSIC
+        fun getExternalStorageDirectory(name: String, parentFile: String = ""): RFile = of(
+            File,
+            if (BuildConfig.DEBUG)
+                "/$parentFile/$name"
+            else
+                Environment.getExternalStorageDirectory().path + "/$parentFile/$name",
+            name
+        )
     }
 
+    // 使用 Type 可以和 RFile接口实现类可以区分开，
+    // 例如 AndroidData 标识可以分别使用 File 和 DocumentFile 实现, 但外部调用获取的 Type 依旧是 AndroidData
     enum class RType(val type: String) {
-        // 目录或文件, 通常实现类会先识别为目录
+        // 将某个支持文件读写的类由 RFile 接口实现包装类代理
+        // 目录或文件, 通常包装类会先识别为目录
         Uri("uri"),
         File("file"),
 
@@ -154,31 +167,32 @@ abstract class RFile(open val type: RType, open val path: String, open val name:
 }
 
 
-fun getNewDocumentFile(path: String, name: String, type: RFile.RType): DocumentFile =
-    if (type == SingleAndroidData) {
-        DocumentFile.fromFile(
-            (Environment.getExternalStorageDirectory().path + "/Android/Data/" + path).toFile()
-        )
-    } else {
-        var documentFile = DocumentFile.fromTreeUri(
-            App.context,
-            Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata")
-        ) ?: TODO()
-        Log.d("RFILE:", path)
-        for (str in path.split("/")) {
-            if (str != "")
-                documentFile = documentFile.findFile(str) ?: documentFile
-        }
-        documentFile
-    }
-
-
 data class RFileAndroidData(
     override val path: String,
     override val name: String,
     override val type: RType = AndroidData,
     var documentFile: DocumentFile = getNewDocumentFile(path, name, type)
 ) : RFile(type, path, name) {
+
+    companion object {
+        fun getNewDocumentFile(path: String, name: String, type: RFile.RType): DocumentFile =
+            if (type == SingleAndroidData) {
+                DocumentFile.fromFile(
+                    (Environment.getExternalStorageDirectory().path + "/Android/Data/" + path).toFile()
+                )
+            } else {
+                var documentFile = DocumentFile.fromTreeUri(
+                    App.context,
+                    Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata")
+                ) ?: TODO()
+                Log.d("RFILE:", path)
+                for (str in path.split("/")) {
+                    if (str != "")
+                        documentFile = documentFile.findFile(str) ?: documentFile
+                }
+                documentFile
+            }
+    }
 
     override val isFile: Boolean
         get() = documentFile.isFile
@@ -327,7 +341,7 @@ data class RFileUri(
     override fun delete(): Boolean = App.context.contentResolver.delete(
         uri, MediaStore.Files.getContentUri(path).toString(),
         arrayOf(path)
-    ) != -1 //
+    ) != -1
 
     override val file: File
         get() = uri.toFile()
@@ -345,12 +359,18 @@ data class RFileUri(
 
 }
 
+
 data class RFileShareStorage(
     override val path: String,
     override val name: String,
-    val rfile: RFile = (Environment.getExternalStorageDirectory().path + path).toFile().toRFile(),
-    override val type: RType = RType.ShareStorage
+    val rfile: RFile = (EnvironmentExternalStorageDirectory + path).toFile().toRFile(),
+    override val type: RType = ShareStorage
 ) : RFile(type, path, name) {
+
+    companion object {
+        val EnvironmentExternalStorageDirectory: String =
+            Environment.getExternalStorageDirectory().path
+    }
 
     override val isFile: Boolean
         get() = rfile.isFile
@@ -393,14 +413,14 @@ fun File.toRFile() = RFile.of(
 
 fun Uri.toRFile(name: String = DocumentFile.fromTreeUri(App.context, this)?.name ?: "") = RFile.of(
     type = Uri,
-    path = toString() ?: "",
+    path = toString(),
     name = name
 )
 
 fun Uri.toSingleRFile(name: String = DocumentFile.fromSingleUri(App.context, this)?.name ?: "") =
     RFile.of(
         type = SingleUri,
-        path = toString() ?: "",
+        path = toString(),
         name = name
     )
 

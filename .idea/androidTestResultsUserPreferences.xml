@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AndroidTestResultsUserPreferences">
+    <option name="androidTestResultsTableState">
+      <map>
+        <entry key="441767508">
+          <value>
+            <AndroidTestResultsTableState>
+              <option name="preferredColumnWidths">
+                <map>
+                  <entry key="Duration" value="90" />
+                  <entry key="Tests" value="360" />
+                  <entry key="adb-35047533290021V-sSAWLX._adb-tls-connect._tcp" value="120" />
+                  <entry key="vivo&#10; V2156A" value="120" />
+                </map>
+              </option>
+            </AndroidTestResultsTableState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

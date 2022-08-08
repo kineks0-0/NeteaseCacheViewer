@@ -21,7 +21,7 @@ class App : Application() {
         val isAndroidQorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         val isAndroidRorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
 
-        val REQUEST_CODE_FOR_DIR = 100
+        const val REQUEST_CODE_FOR_DIR = 100
     }
 
     override fun onCreate() {

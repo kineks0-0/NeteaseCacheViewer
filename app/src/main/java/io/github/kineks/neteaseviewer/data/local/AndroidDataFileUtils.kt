@@ -24,7 +24,11 @@ import io.github.kineks.neteaseviewer.ui.view.activity
 
 object fileUriUtils {
     var root = Environment.getExternalStorageDirectory().path + "/"
-    var isGrant by mutableStateOf(isGrant())
+    var isGrant by mutableStateOf(false)
+
+    init {
+        isGrant()
+    }
 
     fun treeToPath(path: String): String {
         var path2: String
@@ -47,9 +51,11 @@ object fileUriUtils {
         for (persistedUriPermission: UriPermission in context.contentResolver
             .persistedUriPermissions) {
             if (persistedUriPermission.isReadPermission && persistedUriPermission.uri.toString() == "content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata") {
+                isGrant = true
                 return true
             }
         }
+        isGrant = false
         return false
     }
 
@@ -147,7 +153,10 @@ class AndroidDataFileUtils(
     private val callback: () -> Unit
 ) {
 
-    private val FRAGMENT_TAG = "FileUriFragment"
+    companion object {
+        private const val FRAGMENT_TAG = "FileUriFragment"
+    }
+
     private val fragmentManager: FragmentManager
         get() {
             return fragment?.childFragmentManager ?: activity.supportFragmentManager
@@ -155,13 +164,13 @@ class AndroidDataFileUtils(
 
     private val invisibleFragment: FileUriFragment
         get() {
-            val existedFragment = fragmentManager.findFragmentByTag(FRAGMENT_TAG)
+            val existedFragment = fragmentManager.findFragmentByTag(Companion.FRAGMENT_TAG)
             return if (existedFragment != null) {
                 existedFragment as FileUriFragment
             } else {
                 val invisibleFragment = FileUriFragment(this)
                 fragmentManager.beginTransaction()
-                    .add(invisibleFragment, FRAGMENT_TAG)
+                    .add(invisibleFragment, Companion.FRAGMENT_TAG)
                     .commitNowAllowingStateLoss()
                 invisibleFragment
             }
@@ -173,7 +182,7 @@ class AndroidDataFileUtils(
 
     fun removeInvisibleFragment() {
         callback()
-        val existedFragment = fragmentManager.findFragmentByTag(FRAGMENT_TAG)
+        val existedFragment = fragmentManager.findFragmentByTag(Companion.FRAGMENT_TAG)
         if (existedFragment != null) {
             fragmentManager.beginTransaction().remove(existedFragment).commit()
         }
@@ -195,7 +204,7 @@ class FileUriFragment(private val androidDataFileUtils: AndroidDataFileUtils) : 
                         uri, result.data!!.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION
                                 or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                     )
-                fileUriUtils.isGrant = fileUriUtils.isGrant()
+                fileUriUtils.isGrant()
                 androidDataFileUtils.removeInvisibleFragment()
             }
         }

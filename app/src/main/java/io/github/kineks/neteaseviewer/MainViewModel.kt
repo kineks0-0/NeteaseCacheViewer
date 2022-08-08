@@ -37,7 +37,7 @@ class MainViewModel : ViewModel() {
     var isUpdateComplete by mutableStateOf(false)
 
     var hadListInited = false
-    val songs = MutableListOf(mutableStateListOf<MusicState>())
+    val songs = mutableListOf(mutableStateListOf<MusicState>())
 
     init {
 

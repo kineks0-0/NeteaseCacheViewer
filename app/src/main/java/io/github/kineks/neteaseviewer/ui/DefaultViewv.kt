@@ -110,7 +110,7 @@ fun DefaultView(model: MainViewModel) {
                     .fillMaxSize()
                     .background(MaterialTheme.colors.background)
                     .padding(paddingValues)
-                    .padding(vertical = 16.dp)
+                    //.padding(vertical = 16.dp)
             ) {
                 when (appState.navItemList[page]) {
                     "home" -> {

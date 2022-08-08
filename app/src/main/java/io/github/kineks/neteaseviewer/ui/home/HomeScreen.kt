@@ -5,7 +5,10 @@ import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudDownload
@@ -21,30 +24,34 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.ExperimentalUnitApi
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
-import io.github.kineks.neteaseviewer.MainViewModel
+import io.github.kineks.neteaseviewer.*
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
+import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
+import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyCacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
-import io.github.kineks.neteaseviewer.formatFileSize
-import io.github.kineks.neteaseviewer.getString
+import io.github.kineks.neteaseviewer.data.local.toRFile
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
 import io.github.kineks.neteaseviewer.ui.view.checkPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 
 var working by mutableStateOf(true)
 
@@ -66,8 +73,7 @@ fun HomeScreen(
             if (model.errorWhenPlaying) {
                 appState.snackbar(
                     getString(
-                        R.string.play_error,
-                        "$index  ${song.name}"
+                        R.string.play_error, "$index  ${song.name}"
                     )
                 )
                 model.errorWhenPlaying = false
@@ -78,53 +84,41 @@ fun HomeScreen(
     if (working || model.isUpdating) {
         LinearProgressIndicator(
             modifier = Modifier
-                /*.padding(
-                    top = 8.dp,
-                    bottom = 8.dp
-                )*/
                 .fillMaxWidth()
+                .height(6.dp)
                 .offset(y = (-3).dp)
-                .zIndex(1f)
+                .zIndex(20f)
         )
     }
 
     LaunchedEffect(model.isUpdating) {
-        if (model.isUpdating)
-            appState.snackbarIndefinite("Working...")
+        if (model.isUpdating) appState.snackbarIndefinite("Working...")
     }
 
     LaunchedEffect(model.isUpdateComplete) {
-        if (model.isUpdateComplete)
-            appState.snackbar(
-                getString(
-                    if (model.isFailure)
-                        R.string.list_update_failure
-                    else
-                        R.string.list_updated
-                )
+        if (model.isUpdateComplete) appState.snackbar(
+            getString(
+                if (model.isFailure) R.string.list_update_failure
+                else R.string.list_updated
             )
+        )
     }
 
-    SwipeRefresh(
-        state = appState.refreshState,
-        onRefresh = {
-            model.viewModelScope.launch {
-                working = true
-                appState.refreshState.isRefreshing = true
-                model.reloadSongsList(updateInfo = true)
-                delay(1500)
-                appState.refreshState.isRefreshing = false
-                working = false
-            }
+    SwipeRefresh(state = appState.refreshState, onRefresh = {
+        model.viewModelScope.launch {
+            working = true
+            appState.refreshState.isRefreshing = true
+            model.reloadSongsList(updateInfo = true)
+            delay(1500)
+            appState.refreshState.isRefreshing = false
+            working = false
         }
-    ) {
-        SongsList(
-            songs = model.songs,
+    }) {
+        SongsList(songs = model.songs,
             model = model,
             clickable = clickable,
             snackbar = appState.snackbar,
-            onWorking = { working = it }
-        )
+            onWorking = { working = it })
     }
 
 
@@ -156,6 +150,7 @@ fun SongsList(
                     artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
                     artBackground = artBackground,
                     incomplete = music.incomplete,
+                    fastReader = NeteaseCacheProvider.fastReader,
                     deleted = music.deleted,
                     saved = music.saved,
                     missInfoFile = music.missingInfo,
@@ -163,9 +158,7 @@ fun SongsList(
                     clickable = { clickable(index, music) },
                     musicItemAlertDialog = { openDialog, onOpenDialog ->
                         MusicItemAlertDialog(
-                            openDialog = openDialog,
-                            onOpenDialog = onOpenDialog,
-                            musicState = music
+                            openDialog = openDialog, onOpenDialog = onOpenDialog, musicState = music
                         )
                     },
                     musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
@@ -178,8 +171,7 @@ fun SongsList(
                             onWorking = onWorking,
                             snackbar = snackbar
                         )
-                    }
-                )
+                    })
 
             }
         }
@@ -187,8 +179,7 @@ fun SongsList(
     } else {
 
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
         ) {
             Column(
                 verticalArrangement = Arrangement.Center,
@@ -212,12 +203,9 @@ fun SongsList(
                             if (model.hadListInited) {
                                 working = false
                             }
-                            model.initList(
-                                updateInfo = true,
-                                callback = {
-                                    working = false
-                                }
-                            )
+                            model.initList(updateInfo = true, callback = {
+                                working = false
+                            })
                         } else {
                             model.displayWelcomeScreen = true
                         }
@@ -227,8 +215,7 @@ fun SongsList(
                         text = stringResource(R.string.list_no_data),
                         style = MaterialTheme.typography.h6
                     )
-                    Text(
-                        text = stringResource(R.string.refresh),
+                    Text(text = stringResource(R.string.refresh),
                         //style = MaterialTheme.typography.h,
                         color = MaterialTheme.colors.primary,
                         fontWeight = FontWeight.Medium,
@@ -240,8 +227,7 @@ fun SongsList(
                                 delay(1500)
                                 working = false
                             }
-                        }
-                    )
+                        })
                 }
 
             }
@@ -272,12 +258,10 @@ fun MusicItemDropdownMenu(
                 snackbar("导出中: 索引 $index 歌曲 " + musicState.displayFileName)
                 musicState.decryptFile { out, hasError, e ->
                     onWorking(false)
-                    val text =
-                        if (hasError) {
-                            Log.e("decrypt songs", e?.message, e)
-                            "保存失败! : ${e?.message} ${out?.toString()}"
-                        } else
-                            "保存成功:  ${musicState.displayFileName}"
+                    val text = if (hasError) {
+                        Log.e("decrypt songs", e?.message, e)
+                        "保存失败! : ${e?.message} ${out?.toString()}"
+                    } else "保存成功:  ${musicState.displayFileName}"
 
                     snackbar(text)
                 }
@@ -307,6 +291,7 @@ fun MusicItemDropdownMenu(
         }
 
         DropdownMenuItem(onClick = {
+            onExpandedChange.invoke(false)
             onOpenDialog(true)
         }) {
             Icon(
@@ -320,46 +305,70 @@ fun MusicItemDropdownMenu(
     }
 }
 
+@OptIn(ExperimentalUnitApi::class)
 @Composable
 fun MusicItemAlertDialog(
     openDialog: Boolean,
     onOpenDialog: (Boolean) -> Unit,
     musicState: MusicState,
+    cacheFileInfo: CacheFileInfo =
+        NeteaseCacheProvider.getCacheFileInfo(musicState) ?: EmptyCacheFileInfo,
+    ext: String = musicState.ext
 ) {
 
     if (openDialog) {
-        AlertDialog(
-            onDismissRequest = { onOpenDialog(false) },
-            title = { Text("缓存文件详细 [${musicState.neteaseAppCache?.type ?: "Netease"},${musicState.id}]") },
+        AlertDialog(onDismissRequest = { onOpenDialog(false) },
+            title = {
+                Text(
+                    text = "详情 [${musicState.neteaseAppCache?.type ?: "Netease"},${musicState.id}]",
+                    modifier = Modifier.alpha(0.9f),
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = TextUnit(0.95f, TextUnitType.Sp),
+                    color = MaterialTheme.colors.onSurface
+                )
+            },
             text = {
                 Column(
                     modifier = Modifier
                         .padding(2.dp)
                         .fillMaxWidth()
                 ) {
-                    Text(
-                        buildAnnotatedString {
-                            musicState.run {
-                                append("\n")
-                                append("歌曲名称: $name\n\n")
-                                append("歌曲专辑: $album\n\n")
-                                append("歌曲歌手: $artists\n\n")
-                                append("导出文件名: $displayFileName\n\n")
-                                append("\n\n")
+                    Text(text = "", modifier = Modifier.padding(8.dp))
+                    musicState.run {
 
-                                val info = NeteaseCacheProvider.getCacheFileInfo(musicState)
-                                append("完整缓存大小:  ${(info?.fileSize ?: -1).formatFileSize()}\n\n")
-                                append("该缓存比特率: $displayBitrate\n\n")
-                                append("完整缓存时长: ${(info?.duration ?: -1)}\n\n")
-                                append("完整缓存MD5: ${(info?.fileMD5 ?: -1)}\n\n")
-                                append("\n\n")
+                        MusicItemAlertDialogItem("文件名称", file.name)
+                        MusicItemAlertDialogItem("文件路径", "${file.type}://${file.path}")
+                        MusicItemAlertDialogItem("导出文件名", "$displayFileName.$ext")
+                        LazyVerticalGrid(
+                            modifier = Modifier.fillMaxWidth(),
+                            columns = GridCells.Fixed(2),
+                            content = {
 
-                                append("文件大小:  ${file.length().formatFileSize()}\n\n")
-                                append("文件名称: ${file.name}\n\n")
-                                append("文件路径: ${file.type}://${file.path}\n\n")
+                                item {
+                                    MusicItemAlertDialogItem(
+                                        "文件大小",
+                                        file.length().formatFileSize()
+                                    )
+                                }
+                                item { MusicItemAlertDialogItem("文件格式", ext.uppercase()) }
+                                item { MusicItemAlertDialogItem("歌曲名称", name) }
+                                item { MusicItemAlertDialogItem("歌曲歌手", artists) }
+                                item { MusicItemAlertDialogItem("歌曲专辑", album) }
+                                item { MusicItemAlertDialogItem("发行年份", year) }
+                                item { MusicItemAlertDialogItem("比特率", displayBitrate + "b/s") }
+                                item {
+                                    MusicItemAlertDialogItem(
+                                        "总时长",
+                                        cacheFileInfo.duration.formatMilSec(min = ":")
+                                    )
+                                }
+                                item { MusicItemAlertDialogItem("碟片号", disc) }
+                                item { MusicItemAlertDialogItem("音轨号", track.toString()) }
+                                //item { MusicItemAlertDialogItem("MD5", md5) }
+
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -368,12 +377,40 @@ fun MusicItemAlertDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { onOpenDialog(false) }) { Text("取消") }
-            }
-        )
+                TextButton(onClick = { onOpenDialog(false) }) {
+                    Text("取消")
+                }
+            })
     }
 }
 
+@OptIn(ExperimentalUnitApi::class)
+@Composable
+fun MusicItemAlertDialogItem(
+    title: String, text: String
+) {
+    Column(modifier = Modifier.padding(bottom = 15.dp, end = 15.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.caption,
+            modifier = Modifier
+                .alpha(0.6f)
+                .padding(bottom = 2.dp),
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colors.onSurface
+        )
+        SelectionContainer {
+            Text(
+                text = text,
+                //style = MaterialTheme.typography.body1,
+                modifier = Modifier.alpha(0.9f),
+                fontWeight = FontWeight.Medium,
+                letterSpacing = TextUnit(0.95f, TextUnitType.Sp),
+                color = MaterialTheme.colors.onSurface
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -382,6 +419,7 @@ fun MusicItem(
     title: String,
     subtitle: String,
 
+    fastReader: Boolean,
     deleted: Boolean,
     incomplete: Boolean,
     saved: Boolean,
@@ -407,22 +445,19 @@ fun MusicItem(
 
     Row(
         modifier = Modifier
-            .height(64.dp)
-            .combinedClickable(
-                onLongClick = {
-                    expanded = true
-                },
-                onClick = {
-                    clickable()
-                })
-            .padding(start = 15.dp, end = 10.dp)
-            .alpha(alpha),
+            .height(65.dp)
+            .combinedClickable(onLongClick = {
+                expanded = true
+            }, onClick = {
+                clickable()
+            })
+            .alpha(alpha)
+            .padding(start = 10.dp, end = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            shape = MaterialTheme.shapes.medium,
-            elevation = 4.dp
+            shape = MaterialTheme.shapes.medium, elevation = 4.dp
         ) {
             Image(
                 painter = artPainter,
@@ -436,77 +471,88 @@ fun MusicItem(
         Column(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth(0.95f)
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(start = 5.dp)
         ) {
 
             Row(
-                modifier = Modifier.padding(start = 10.dp, bottom = 4.dp)
+                modifier = Modifier
+                    .padding(start = 10.dp, bottom = 2.dp)
+                    .height(25.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = (index + 1).toString(),
                     color = MaterialTheme.colors.primary,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.subtitle1,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .offset(y = (2).dp)
                 )
                 Text(
                     text = title,
                     maxLines = 1,
-                    textAlign = TextAlign.Start,
-                    style = MaterialTheme.typography.subtitle1
+                    style = MaterialTheme.typography.subtitle1,
+                    modifier = Modifier
+                        .weight(0.60f)
+                        .offset(y = (2).dp)
+                )
+
+                InfoBoxText(
+                    text = displayBitrate,
+                    textAlign = TextAlign.End,
+                    color = MaterialTheme.colors.primary,
+                    //modifier = Modifier.width(40.dp)
                 )
             }
 
             Row(
-                modifier = Modifier.padding(start = 9.dp, end = 8.dp, top = 3.dp)
+                modifier = Modifier
+                    .padding(start = 9.dp, top = 2.dp)
+                    .height(25.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
 
                 InfoText(
                     text = subtitle,
                     textAlign = TextAlign.Start,
-                    modifier = Modifier.weight(0.70f)
+                    modifier = Modifier
+                        .weight(0.60f)
+                        .offset(y = (-3).dp)
                 )
 
 
                 if (incomplete) {
-                    InfoText(
-                        text = getString(id = R.string.list_incomplete),
+                    InfoBoxText(
+                        text = stringResource(id = R.string.list_incomplete),
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colors.error,
                     )
                 }
 
-                if (!NeteaseCacheProvider.fastReader && missInfoFile) {
-                    InfoText(
-                        text = getString(
-                            R.string.list_missing_info_file,
-                            NeteaseCacheProvider.infoExt
-                        ),
-                        color = MaterialTheme.colors.error
+                if (!fastReader && missInfoFile) {
+                    InfoBoxText(
+                        text = stringResource(
+                            R.string.list_missing_info_file, NeteaseCacheProvider.infoExt
+                        ), color = MaterialTheme.colors.error
                     )
                 }
 
                 if (deleted) {
-                    InfoText(
-                        text = getString(id = R.string.list_deleted),
+                    InfoBoxText(
+                        text = stringResource(id = R.string.list_deleted),
                         color = MaterialTheme.colors.error
                     )
                 }
 
                 if (saved) {
-                    InfoText(
-                        text = getString(id = R.string.list_saved),
+                    InfoBoxText(
+                        text = stringResource(id = R.string.list_saved),
                         color = MaterialTheme.colors.primary
                     )
                 }
-
-                InfoText(
-                    text = displayBitrate,
-                    textAlign = TextAlign.End,
-                    color = MaterialTheme.colors.primary,
-                    modifier = Modifier.width(40.dp)
-                )
 
 
             }
@@ -516,25 +562,26 @@ fun MusicItem(
 
 
 
-        Box {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .fillMaxWidth()
+                .padding(end = 0.dp)
+        ) {
 
-            Icon(
-                Icons.Rounded.MoreVert,
+            Icon(Icons.Rounded.MoreVert,
                 contentDescription = "MoreVert",
                 modifier = Modifier
                     .fillMaxSize()
+                    .fillMaxWidth()
+                    //.width(20.dp)
+                    //.padding(top = 3.dp)
+                    .padding(start = 0.dp, end = 7.dp)
                     .clickable {
                         expanded = true
-                    }
-                    .padding(end = 2.dp, top = 3.dp)
-            )
+                    })
 
-            if (expanded)
-                musicItemDropdownMenu(
-                    expanded,
-                    { expanded = it },
-                    { openDialog = it }
-                )
+            if (expanded) musicItemDropdownMenu(expanded, { expanded = it }, { openDialog = it })
         }
 
 
@@ -565,24 +612,67 @@ fun InfoText(
     )
 }
 
+@Composable
+fun InfoBoxText(
+    text: String,
+    //modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = TextAlign.Center,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
+    maxLines: Int = 1,
+    style: TextStyle = MaterialTheme.typography.caption
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium, elevation = 0.dp,
+        color = color.copy(alpha = 0.1f),
+        modifier = Modifier
+            .size(width = 55.dp, 25.dp)
+            .fillMaxHeight()
+            .padding(start = 1.dp, end = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(55.dp)
+                .fillMaxHeight()
+                .padding(start = 1.dp, end = 1.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                /*modifier = modifier
+                    .size(50.dp)
+                    .fillMaxHeight(),*/
+                color = color,
+                fontWeight = fontWeight,
+                textAlign = textAlign,
+                overflow = overflow,
+                maxLines = maxLines,
+                style = style
+            )
+        }
+
+    }
+
+}
+
 @Preview(showBackground = true, widthDp = 500, heightDp = 80, uiMode = UI_MODE_NIGHT_UNDEFINED)
 @Composable
-fun DefPreView() {
+fun ListItemPreView() {
     NeteaseViewerTheme {
         Column(
-            Modifier.padding(start = 15.dp, end = 10.dp),
-            verticalArrangement = Arrangement.Center
+            Modifier.padding(start = 15.dp, end = 10.dp), verticalArrangement = Arrangement.Center
         ) {
-            MusicItem(
-                index = 1,
-                title = "Name",
-                subtitle = "Album - Artists",
+            MusicItem(index = 1,
+                title = "NameNameNameNameName",
+                subtitle = "AlbumAlbumAlbum - ArtistsArtistsArtists",
                 artPainter = painterResource(id = R.drawable.ic_launcher_background),
                 artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f),
-                incomplete = false,
+                incomplete = true,
+                fastReader = false,
                 deleted = false,
-                saved = false,
-                missInfoFile = false,
+                saved = true,
+                missInfoFile = true,
                 displayBitrate = "192 k",
                 musicItemAlertDialog = { _, _ ->
                     Text("Todo")
@@ -590,6 +680,38 @@ fun DefPreView() {
                 musicItemDropdownMenu = { _, _, _ ->
                     Text("Todo")
                 })
+
+
         }
+    }
+}
+
+@Preview
+@Composable
+fun DialogPreview() {
+
+    NeteaseViewerTheme {
+
+        MusicItemAlertDialog(
+            openDialog = true,
+            onOpenDialog = {},
+            musicState = MusicState(
+                1008611,
+                96000,
+                "N/A",
+                File("Debug/cache.file").toRFile()
+            ),
+            cacheFileInfo = EmptyCacheFileInfo,
+            ext = "mp3"
+        )
+
+    }
+}
+
+@Preview(showBackground = true, uiMode = UI_MODE_NIGHT_UNDEFINED)
+@Composable
+fun DefPreView() {
+    NeteaseViewerTheme {
+        HomeScreen()
     }
 }

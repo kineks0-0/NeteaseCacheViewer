@@ -2,6 +2,8 @@ package io.github.kineks.neteaseviewer.data.local.cacheFile
 
 import com.google.gson.annotations.SerializedName
 
+val EmptyCacheFileInfo = CacheFileInfo(-1, -1, "", -1, "", -1, listOf(), -1)
+
 data class CacheFileInfo(
     val bitrate: Int,
     val duration: Int,

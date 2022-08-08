@@ -12,6 +12,7 @@ import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
 import io.github.kineks.neteaseviewer.getArtists
 import io.github.kineks.neteaseviewer.replaceIllegalChar
+import io.github.kineks.neteaseviewer.runWithPrintTimeCostSuspend
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -19,6 +20,7 @@ import java.util.*
 val EmptyMusicState = MusicState(-1, -1, "", File("").toRFile())
 const val EmptyAlbum = "N/A"
 const val EmptyArtists = "N/A"
+const val TAG = "MusicState"
 
 data class MusicState(
     val id: Int,
@@ -54,6 +56,8 @@ data class MusicState(
 
     val neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache? = null
 ) {
+
+    val ext by lazy { FileType.getFileType(inputStream) ?: "mp3" }
 
     val track get() = song?.no ?: -1
     val disc get() = song?.disc ?: ""
@@ -107,7 +111,12 @@ data class MusicState(
 
     suspend fun decryptFile(
         callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> }
-    ): Boolean = NeteaseCacheProvider.decryptCacheFile(this, callback)
+    ): Boolean = runWithPrintTimeCostSuspend(TAG, "导出文件耗时") {
+        NeteaseCacheProvider.decryptCacheFile(
+            this,
+            callback
+        )
+    }
 
     // 主要避免无效拷贝
     fun reload(_song: Song?): MusicState {
