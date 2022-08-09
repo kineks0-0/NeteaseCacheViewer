@@ -6,7 +6,7 @@
 [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.6.10-blue.svg)](https://kotlinlang.org)
 [![GitHub Releases](https://img.shields.io/github/downloads/kineks0-0/NeteaseCacheViewer/latest/total?logo=github)](https://github.com/kineks0-0/NeteaseCacheViewer/releases)
 
-![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-03-11_41.webp)
+![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-08-10.webp)
 
 ## ✨ 特性
 
@@ -103,8 +103,8 @@
 
 ### 第三方SDK
 
-- Bugly:
-  用于统计和上报崩溃消息,[《Bugly收集信息范围》](https://bugly.qq.com/docs/user-guide/faq-android/?v=1.0.0#1-bugly)
+- AppCenter:
+  用于统计和上报崩溃消息,[《微软隐私策略》](https://privacy.microsoft.com/en-us/privacystatement)
 
 <br>
 
