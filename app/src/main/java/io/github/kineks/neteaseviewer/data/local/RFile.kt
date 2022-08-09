@@ -50,8 +50,8 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
             SingleAndroidData, AndroidData -> {
                 val file = parentFile as RFileAndroidData
                 val documentFile = file.documentFile.findFile(name)
-                Log.d(TAG, "documentFile: " + documentFile?.name)
-                Log.d(TAG, "documentFileUri: " + documentFile?.uri.toString())
+                //Log.d(TAG, "documentFile: " + documentFile?.name)
+                //Log.d(TAG, "documentFileUri: " + documentFile?.uri.toString())
                 if (documentFile != null)
                     RFileAndroidData(
                         type = SingleAndroidData,
@@ -185,7 +185,7 @@ data class RFileAndroidData(
                     App.context,
                     Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata")
                 ) ?: TODO()
-                Log.d("RFILE:", path)
+                //Log.d("RFILE:", path)
                 for (str in path.split("/")) {
                     if (str != "")
                         documentFile = documentFile.findFile(str) ?: documentFile

@@ -32,7 +32,7 @@ data class MusicState(
     // 歌名
     val name: String = when (song) {
         null -> md5
-        else -> song.name ?: song.lMusic.name
+        else -> song.name ?: song.lMusic.name ?: ""
     },
 
     // 歌手
@@ -82,7 +82,7 @@ data class MusicState(
 
             // 无损文件不需要添加比特率避免重名
             if (bitrate != 999000)
-                name += " .${displayBitrate.replace(" ", "")}"
+                name += " - ${displayBitrate.replace(" kb/s", "kbps ")}"
             return name.replaceIllegalChar()
         }
 
@@ -95,7 +95,7 @@ data class MusicState(
             999000 -> {
                 "flac"//无损
             }
-            else -> "${bitrate / 1000} k"
+            else -> "${bitrate / 1000} kb/s"
         }
     }
 
@@ -128,7 +128,7 @@ data class MusicState(
             song = _song,
             name = when (_song) {
                 null -> md5
-                else -> _song.name ?: _song.lMusic.name
+                else -> _song.name ?: _song.lMusic.name ?: ""
             },
             artists = when (_song) {
                 null -> EmptyArtists

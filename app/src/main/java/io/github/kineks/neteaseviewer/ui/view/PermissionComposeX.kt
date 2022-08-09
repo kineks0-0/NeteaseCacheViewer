@@ -61,8 +61,9 @@ fun PermissionComposeX(
 
     requestDescription: String = stringResource(R.string.permission_request_description),
 
+    @Suppress("NAME_SHADOWING")
     request: (permissions: List<String>, function: (Boolean) -> Unit) -> Unit =
-        { permissions: List<String>, function: (Boolean) -> Unit ->
+        { permissions, function ->
             permissionX!!
                 .permissions(permissions)
                 .onExplainRequestReason { scope, deniedList ->
@@ -90,6 +91,7 @@ fun PermissionComposeX(
         mutableStateOf(true)
     }
 
+    // 首先检查权限是否已经同意
     LaunchedEffect(Unit) {
         App.context.apply {
             var allGranted = true
@@ -101,7 +103,8 @@ fun PermissionComposeX(
                                 allGranted = false
                         }
                         Manifest.permission.MANAGE_EXTERNAL_STORAGE -> {
-                            if (!Environment.isExternalStorageManager())
+                            @SuppressLint("NewApi")
+                            if (App.isAndroidRorAbove && !Environment.isExternalStorageManager())
                                 allGranted = false
                         }
                         else -> if (checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED) {
@@ -115,15 +118,12 @@ fun PermissionComposeX(
             if (allGranted) {
                 whenPermissionDenied = false
                 callback(true)
-            }/* else {
-            whenPermissionDenied = true
-            callback(false)
-        }*/
+            }
         }
     }
 
 
-
+    // 申请权限被拒绝时
     if (whenPermissionDenied) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -145,5 +145,6 @@ fun PermissionComposeX(
             }
         }
     }
+
 }
 

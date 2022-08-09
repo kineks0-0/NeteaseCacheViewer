@@ -2,14 +2,16 @@ package io.github.kineks.neteaseviewer
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.notification.INotification
 import com.lzx.starrysky.notification.NotificationConfig
-import com.tencent.bugly.crashreport.CrashReport
 import ealvatag.tag.TagOptionSingleton
 import io.github.kineks.neteaseviewer.data.player.ExoPlayback
+
 
 class App : Application() {
     companion object {
@@ -22,11 +24,23 @@ class App : Application() {
         val isAndroidRorAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
 
         const val REQUEST_CODE_FOR_DIR = 100
+
+        fun copyText(text: String) {
+            //获取剪贴板管理器：
+            val cm: ClipboardManager =
+                context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            // 创建普通字符型ClipData
+            val mClipData = ClipData.newPlainText("Label", text)
+            // 将ClipData内容放到系统剪贴板里。
+            cm.setPrimaryClip(mClipData)
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
         context = this
+
+        AppLib().init(this)
 
         // 初始化播放控制类
         StarrySky
@@ -47,10 +61,6 @@ class App : Application() {
         // 标记 jaudiotagger 的目标平台为安卓
         TagOptionSingleton.getInstance().isAndroid = true
 
-        // 设置 bugly 配置信息
-        CrashReport.initCrashReport(applicationContext, "47b671f209", BuildConfig.DEBUG)
 
-        // 初始化文件操作类
-        //FileOperator.init(this, BuildConfig.DEBUG)
     }
 }

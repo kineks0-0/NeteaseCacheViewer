@@ -25,4 +25,5 @@
     <string name="welcome_loading">加载中</string>
     <string name="permission_request_button">请求权限</string>
     <string name="refresh">刷新</string>
+    <string name="list_loading">加载中</string>
 </resources>

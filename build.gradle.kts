@@ -1,5 +1,4 @@
 
-
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 tasks.register("clean", Delete::class) {
@@ -7,9 +6,13 @@ tasks.register("clean", Delete::class) {
 }
 
 buildscript {
-    @Suppress("LocalVariableName")
-    val compose_version by extra("1.2.0-rc02")
 
-    @Suppress("LocalVariableName")
-    val accompanist_version by extra("0.24.12-rc")
+    val composeVersion by extra("1.3.0-alpha02")
+
+    val accompanistVersion by extra("0.26.0-alpha")
+
+    val pagingVersion by extra("3.1.1")
+
+    val appCenterSdkVersion by extra("4.4.5")
+
 }

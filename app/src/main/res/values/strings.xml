@@ -24,4 +24,5 @@
     <string name="welcome_loading">Loading</string>
     <string name="permission_request_button">Request permission</string>
     <string name="refresh">Refresh</string>
+    <string name="list_loading">Loading</string>
 </resources>

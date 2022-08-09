@@ -6,7 +6,7 @@ import androidx.activity.viewModels
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.permissionx.guolindev.PermissionX
-import io.github.kineks.neteaseviewer.data.local.Setting
+import io.github.kineks.neteaseviewer.data.setting.Setting
 import io.github.kineks.neteaseviewer.ui.DefaultView
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
 import io.github.kineks.neteaseviewer.ui.view.activity

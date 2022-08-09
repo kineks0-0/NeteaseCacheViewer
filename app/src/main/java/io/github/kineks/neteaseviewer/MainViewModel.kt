@@ -12,10 +12,11 @@ import com.lzx.starrysky.SongInfo
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.manager.PlaybackStage
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.data.local.Setting
 import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusicState
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
+import io.github.kineks.neteaseviewer.data.player.PlaybackControls
+import io.github.kineks.neteaseviewer.data.setting.SettingValue
 import io.github.kineks.neteaseviewer.data.update.Update
 import io.github.kineks.neteaseviewer.data.update.UpdateJSON
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainViewModel : ViewModel() {
-    var displayWelcomeScreen by mutableStateOf(false)
+    var displayWelcomeScreen by SettingValue(false, "firstTimeLaunch") //mutableStateOf(false)
     var displayPermissionDialog by mutableStateOf(false)
     var updateAppJSON by mutableStateOf(UpdateJSON())
     var hasUpdateApp by mutableStateOf(false)
@@ -38,14 +39,15 @@ class MainViewModel : ViewModel() {
 
     var hadListInited = false
     val songs = mutableListOf(mutableStateListOf<MusicState>())
+    val playbackControls = PlaybackControls()
 
     init {
 
-        viewModelScope.launch {
+        /*viewModelScope.launch {
             Setting.firstTimeLaunch.collect { firstTimeLaunch ->
                 displayWelcomeScreen = firstTimeLaunch
             }
-        }
+        }*/
 
         viewModelScope.launch {
             Update.checkUpdate { json, hasUpdate ->

@@ -22,6 +22,7 @@
 
 # Api 包下的类混淆会导致无法正常反射
 -keep class io.github.kineks.neteaseviewer.data.network.** {*;}
+-keep class io.github.kineks.neteaseviewer.data.setting.** {*;}
 -keep interface io.github.kineks.neteaseviewer.data.network.** { *; }
 -keepnames class io.github.kineks.neteaseviewer.data.network.** {*;}
 

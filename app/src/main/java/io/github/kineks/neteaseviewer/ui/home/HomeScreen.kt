@@ -85,7 +85,7 @@ fun HomeScreen(
         LinearProgressIndicator(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
+                .height(8.dp)
                 .offset(y = (-3).dp)
                 .zIndex(20f)
         )
@@ -109,7 +109,7 @@ fun HomeScreen(
             working = true
             appState.refreshState.isRefreshing = true
             model.reloadSongsList(updateInfo = true)
-            delay(1500)
+            //delay(1500)
             appState.refreshState.isRefreshing = false
             working = false
         }
@@ -158,7 +158,10 @@ fun SongsList(
                     clickable = { clickable(index, music) },
                     musicItemAlertDialog = { openDialog, onOpenDialog ->
                         MusicItemAlertDialog(
-                            openDialog = openDialog, onOpenDialog = onOpenDialog, musicState = music
+                            openDialog = openDialog,
+                            onOpenDialog = onOpenDialog,
+                            musicState = music,
+                            snackbar = snackbar
                         )
                     },
                     musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
@@ -189,11 +192,21 @@ fun SongsList(
                     .fillMaxWidth(0.6f)
             ) {
 
+                Text(
+                    text = stringResource(
+                        if (working)
+                            R.string.list_loading
+                        else
+                            R.string.list_no_data
+                    ),
+                    style = if (model.displayPermissionDialog)
+                        MaterialTheme.typography.h5
+                    else
+                        MaterialTheme.typography.h6
+
+                )
+
                 if (model.displayPermissionDialog) {
-                    Text(
-                        text = stringResource(R.string.list_no_data),
-                        style = MaterialTheme.typography.h5
-                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     checkPermission { allGranted ->
                         if (allGranted) {
@@ -212,11 +225,7 @@ fun SongsList(
                     }
                 } else {
                     Text(
-                        text = stringResource(R.string.list_no_data),
-                        style = MaterialTheme.typography.h6
-                    )
-                    Text(text = stringResource(R.string.refresh),
-                        //style = MaterialTheme.typography.h,
+                        text = stringResource(R.string.refresh),
                         color = MaterialTheme.colors.primary,
                         fontWeight = FontWeight.Medium,
                         textDecoration = TextDecoration.Underline,
@@ -229,6 +238,7 @@ fun SongsList(
                             }
                         })
                 }
+
 
             }
         }
@@ -311,6 +321,7 @@ fun MusicItemAlertDialog(
     openDialog: Boolean,
     onOpenDialog: (Boolean) -> Unit,
     musicState: MusicState,
+    snackbar: (message: String) -> Unit,
     cacheFileInfo: CacheFileInfo =
         NeteaseCacheProvider.getCacheFileInfo(musicState) ?: EmptyCacheFileInfo,
     ext: String = musicState.ext
@@ -336,9 +347,9 @@ fun MusicItemAlertDialog(
                     Text(text = "", modifier = Modifier.padding(8.dp))
                     musicState.run {
 
-                        MusicItemAlertDialogItem("文件名称", file.name)
-                        MusicItemAlertDialogItem("文件路径", "${file.type}://${file.path}")
-                        MusicItemAlertDialogItem("导出文件名", "$displayFileName.$ext")
+                        MusicItemAlertDialogItem("文件名称", file.name, snackbar)
+                        MusicItemAlertDialogItem("文件路径", "${file.type}://${file.path}", snackbar)
+                        MusicItemAlertDialogItem("导出文件名", "$displayFileName.$ext", snackbar)
                         LazyVerticalGrid(
                             modifier = Modifier.fillMaxWidth(),
                             columns = GridCells.Fixed(2),
@@ -347,23 +358,23 @@ fun MusicItemAlertDialog(
                                 item {
                                     MusicItemAlertDialogItem(
                                         "文件大小",
-                                        file.length().formatFileSize()
+                                        file.length().formatFileSize(), snackbar
                                     )
                                 }
-                                item { MusicItemAlertDialogItem("文件格式", ext.uppercase()) }
-                                item { MusicItemAlertDialogItem("歌曲名称", name) }
-                                item { MusicItemAlertDialogItem("歌曲歌手", artists) }
-                                item { MusicItemAlertDialogItem("歌曲专辑", album) }
-                                item { MusicItemAlertDialogItem("发行年份", year) }
-                                item { MusicItemAlertDialogItem("比特率", displayBitrate + "b/s") }
+                                item { MusicItemAlertDialogItem("文件格式", ext.uppercase(), snackbar) }
+                                item { MusicItemAlertDialogItem("歌曲名称", name, snackbar) }
+                                item { MusicItemAlertDialogItem("歌曲歌手", artists, snackbar) }
+                                item { MusicItemAlertDialogItem("歌曲专辑", album, snackbar) }
+                                item { MusicItemAlertDialogItem("发行年份", year, snackbar) }
+                                item { MusicItemAlertDialogItem("比特率", displayBitrate, snackbar) }
                                 item {
                                     MusicItemAlertDialogItem(
                                         "总时长",
-                                        cacheFileInfo.duration.formatMilSec(min = ":")
+                                        cacheFileInfo.duration.formatMilSec(min = ":"), snackbar
                                     )
                                 }
-                                item { MusicItemAlertDialogItem("碟片号", disc) }
-                                item { MusicItemAlertDialogItem("音轨号", track.toString()) }
+                                item { MusicItemAlertDialogItem("碟片号", disc, snackbar) }
+                                item { MusicItemAlertDialogItem("音轨号", track.toString(), snackbar) }
                                 //item { MusicItemAlertDialogItem("MD5", md5) }
 
                             }
@@ -387,7 +398,8 @@ fun MusicItemAlertDialog(
 @OptIn(ExperimentalUnitApi::class)
 @Composable
 fun MusicItemAlertDialogItem(
-    title: String, text: String
+    title: String, text: String,
+    snackbar: (message: String) -> Unit
 ) {
     Column(modifier = Modifier.padding(bottom = 15.dp, end = 15.dp)) {
         Text(
@@ -403,7 +415,12 @@ fun MusicItemAlertDialogItem(
             Text(
                 text = text,
                 //style = MaterialTheme.typography.body1,
-                modifier = Modifier.alpha(0.9f),
+                modifier = Modifier
+                    .alpha(0.9f)
+                    .clickable {
+                        App.copyText(text)
+                        snackbar("已复制")
+                    },
                 fontWeight = FontWeight.Medium,
                 letterSpacing = TextUnit(0.95f, TextUnitType.Sp),
                 color = MaterialTheme.colors.onSurface
@@ -445,14 +462,14 @@ fun MusicItem(
 
     Row(
         modifier = Modifier
-            .height(65.dp)
+            .height(70.dp)
             .combinedClickable(onLongClick = {
                 expanded = true
             }, onClick = {
                 clickable()
             })
             .alpha(alpha)
-            .padding(start = 10.dp, end = 10.dp),
+            .padding(start = 15.dp, end = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -494,6 +511,7 @@ fun MusicItem(
                 Text(
                     text = title,
                     maxLines = 1,
+                    fontWeight = FontWeight.Medium,
                     style = MaterialTheme.typography.subtitle1,
                     modifier = Modifier
                         .weight(0.60f)
@@ -511,7 +529,8 @@ fun MusicItem(
             Row(
                 modifier = Modifier
                     .padding(start = 9.dp, top = 2.dp)
-                    .height(25.dp),
+                    .height(25.dp)
+                    .alpha(0.8f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
@@ -627,7 +646,7 @@ fun InfoBoxText(
         shape = MaterialTheme.shapes.medium, elevation = 0.dp,
         color = color.copy(alpha = 0.1f),
         modifier = Modifier
-            .size(width = 55.dp, 25.dp)
+            .size(width = 60.dp, 25.dp)
             .fillMaxHeight()
             .padding(start = 1.dp, end = 2.dp)
     ) {
@@ -702,7 +721,8 @@ fun DialogPreview() {
                 File("Debug/cache.file").toRFile()
             ),
             cacheFileInfo = EmptyCacheFileInfo,
-            ext = "mp3"
+            ext = "mp3",
+            snackbar = { _ -> }
         )
 
     }

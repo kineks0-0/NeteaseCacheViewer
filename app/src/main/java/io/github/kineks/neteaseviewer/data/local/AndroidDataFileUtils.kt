@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -75,11 +76,11 @@ object fileUriUtils {
 
     //转换至uriTree的路径
     fun changeToUri(path: String): String {
-        var path = path
-        if (path.endsWith("/")) {
-            path = path.substring(0, path.length - 1)
+        var _path = path
+        if (_path.endsWith("/")) {
+            _path = _path.substring(0, _path.length - 1)
         }
-        val path2 = path.replace("/storage/emulated/0/", "").replace("/", "%2F")
+        val path2 = _path.replace("/storage/emulated/0/", "").replace("/", "%2F")
         return "content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata/document/primary%3A$path2"
     }
 
@@ -139,6 +140,7 @@ object fileUriUtils {
     }
 
     //直接获取data权限，推荐使用这种方案
+    @RequiresApi(Build.VERSION_CODES.R)
     fun startForRoot(context: FragmentActivity = activity!!, callback: () -> Unit) {
         AndroidDataFileUtils(activity = context, callback = callback).requestAndroidDateRootNow()
     }
@@ -176,6 +178,7 @@ class AndroidDataFileUtils(
             }
         }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     fun requestAndroidDateRootNow() {
         invisibleFragment.requestNow()
     }
@@ -197,19 +200,22 @@ class FileUriFragment(private val androidDataFileUtils: AndroidDataFileUtils) : 
     private val requestDataLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK && result.data != null) {
-                val uri: Uri = result.data!!.data!!
-                // 保存目录的访问权限
-                App.context.contentResolver
-                    .takePersistableUriPermission(
-                        uri, result.data!!.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    )
-                fileUriUtils.isGrant()
+                if (result.data?.data != null && result.data?.flags != null) {
+                    val uri: Uri = result.data!!.data!!
+                    // 保存目录的访问权限
+                    App.context.contentResolver
+                        .takePersistableUriPermission(
+                            uri, result.data!!.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        )
+                    fileUriUtils.isGrant()
+                }
                 androidDataFileUtils.removeInvisibleFragment()
             }
         }
 
-    fun requestNow(context: Activity = activity!!) {
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun requestNow(context: Activity = requireActivity()) {
         val uri =
             Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata")
         val documentFile = DocumentFile.fromTreeUri(context, uri)
