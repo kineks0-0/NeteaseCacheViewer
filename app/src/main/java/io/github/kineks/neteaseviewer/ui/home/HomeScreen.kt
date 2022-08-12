@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -36,6 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemsIndexed
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import io.github.kineks.neteaseviewer.*
@@ -104,17 +107,24 @@ fun HomeScreen(
         )
     }
 
+    val list = model.songs.collectAsLazyPagingItems()
+
+    LaunchedEffect(appState.refreshState.isRefreshing) {
+        if (appState.refreshState.isRefreshing)
+            list.refresh()
+    }
+
     SwipeRefresh(state = appState.refreshState, onRefresh = {
         model.viewModelScope.launch {
             working = true
             appState.refreshState.isRefreshing = true
-            model.reloadSongsList(updateInfo = true)
+            //model.reloadSongsList(updateInfo = true)
             //delay(1500)
-            appState.refreshState.isRefreshing = false
-            working = false
         }
+
     }) {
-        SongsList(songs = model.songs,
+        SongsList(
+            songs = list,
             model = model,
             clickable = clickable,
             snackbar = appState.snackbar,
@@ -122,19 +132,27 @@ fun HomeScreen(
     }
 
 
+    when (list.loadState.append) {
+        is LoadState.NotLoading -> {
+            appState.refreshState.isRefreshing = false
+            working = false
+        }
+        else -> {}
+    }
+
 }
 
 
 @Composable
 fun SongsList(
     model: MainViewModel = viewModel(),
-    songs: List<MusicState> = model.songs,
-    available: Boolean = songs.isNotEmpty(),
+    songs: LazyPagingItems<MusicState>,
+    available: Boolean = true,
     snackbar: (message: String) -> Unit,
     onWorking: (Boolean) -> Unit,
     clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
 ) {
-    if (available && songs.isNotEmpty()) {
+    if (available && songs.itemCount != 0) {
 
         val artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f)
 
@@ -143,38 +161,39 @@ fun SongsList(
         ) {
             itemsIndexed(songs) { index, music ->
 
-                MusicItem(
-                    index = index,
-                    title = music.name,
-                    subtitle = "${music.artists} - ${music.album}",
-                    artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
-                    artBackground = artBackground,
-                    incomplete = music.incomplete,
-                    fastReader = NeteaseCacheProvider.fastReader,
-                    deleted = music.deleted,
-                    saved = music.saved,
-                    missInfoFile = music.missingInfo,
-                    displayBitrate = music.displayBitrate,
-                    clickable = { clickable(index, music) },
-                    musicItemAlertDialog = { openDialog, onOpenDialog ->
-                        MusicItemAlertDialog(
-                            openDialog = openDialog,
-                            onOpenDialog = onOpenDialog,
-                            musicState = music,
-                            snackbar = snackbar
-                        )
-                    },
-                    musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
-                        MusicItemDropdownMenu(
-                            index = index,
-                            musicState = music,
-                            expanded = expanded,
-                            onExpandedChange = onExpanded,
-                            onOpenDialog = onOpenDialog,
-                            onWorking = onWorking,
-                            snackbar = snackbar
-                        )
-                    })
+                if (music != null)
+                    MusicItem(
+                        index = index,
+                        title = music.name,
+                        subtitle = "${music.artists} - ${music.album}",
+                        artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
+                        artBackground = artBackground,
+                        incomplete = music.incomplete,
+                        fastReader = NeteaseCacheProvider.fastReader,
+                        deleted = music.deleted,
+                        saved = music.saved,
+                        missInfoFile = music.missingInfo,
+                        displayBitrate = music.displayBitrate,
+                        clickable = { clickable(index, music) },
+                        musicItemAlertDialog = { openDialog, onOpenDialog ->
+                            MusicItemAlertDialog(
+                                openDialog = openDialog,
+                                onOpenDialog = onOpenDialog,
+                                musicState = music,
+                                snackbar = snackbar
+                            )
+                        },
+                        musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
+                            MusicItemDropdownMenu(
+                                index = index,
+                                musicState = music,
+                                expanded = expanded,
+                                onExpandedChange = onExpanded,
+                                onOpenDialog = onOpenDialog,
+                                onWorking = onWorking,
+                                snackbar = snackbar
+                            )
+                        })
 
             }
         }
@@ -232,7 +251,7 @@ fun SongsList(
                         modifier = Modifier.clickable {
                             model.viewModelScope.launch {
                                 working = true
-                                model.reloadSongsList(updateInfo = true)
+                                //model.reloadSongsList(updateInfo = true)
                                 delay(1500)
                                 working = false
                             }
@@ -462,14 +481,14 @@ fun MusicItem(
 
     Row(
         modifier = Modifier
-            .height(70.dp)
+            .height(68.dp)
             .combinedClickable(onLongClick = {
                 expanded = true
             }, onClick = {
                 clickable()
             })
             .alpha(alpha)
-            .padding(start = 15.dp, end = 10.dp),
+            .padding(start = 17.dp, end = 9.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -490,7 +509,7 @@ fun MusicItem(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .padding(start = 5.dp)
+                .padding(start = 6.dp)
         ) {
 
             Row(
@@ -503,7 +522,7 @@ fun MusicItem(
                     text = (index + 1).toString(),
                     color = MaterialTheme.colors.primary,
                     fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.subtitle1,
+                    style = MaterialTheme.typography.body1,
                     modifier = Modifier
                         .padding(end = 8.dp)
                         .offset(y = (2).dp)
@@ -512,7 +531,7 @@ fun MusicItem(
                     text = title,
                     maxLines = 1,
                     fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.subtitle1,
+                    style = MaterialTheme.typography.body1,
                     modifier = Modifier
                         .weight(0.60f)
                         .offset(y = (2).dp)
@@ -722,7 +741,7 @@ fun DialogPreview() {
             ),
             cacheFileInfo = EmptyCacheFileInfo,
             ext = "mp3",
-            snackbar = { _ -> }
+            snackbar = { }
         )
 
     }

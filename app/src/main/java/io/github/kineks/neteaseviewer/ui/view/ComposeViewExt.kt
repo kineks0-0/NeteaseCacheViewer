@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
@@ -67,6 +68,7 @@ fun SaveFilesAlertDialog(
 ) {
     var skipIncomplete by remember { mutableStateOf(true) }
     var skipMissingInfo by remember { mutableStateOf(true) }
+    val list = model.songs.collectAsLazyPagingItems()
 
     if (openDialog) {
         AlertDialog(
@@ -81,7 +83,7 @@ fun SaveFilesAlertDialog(
                         .fillMaxWidth()
                 ) {
                     Text(
-                        "总缓存文件数: " + model.songs.size
+                        "总缓存文件数: " + list.itemCount
                     )
                     Column {
                         Row(

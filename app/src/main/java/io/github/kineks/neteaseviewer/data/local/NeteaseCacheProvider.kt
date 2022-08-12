@@ -2,6 +2,8 @@ package io.github.kineks.neteaseviewer.data.local
 
 import android.net.Uri
 import android.util.Log
+import androidx.paging.PagingData
+import androidx.paging.map
 import com.google.gson.Gson
 import io.github.kineks.neteaseviewer.*
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
@@ -10,6 +12,8 @@ import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -45,7 +49,7 @@ object NeteaseCacheProvider {
 
     // 快速读取,跳过读取一些目前还不需要的信息
     var fastReader = !true
-    private val gson by lazy { Gson() }
+    val gson by lazy { Gson() }
 
     // 在 Android P 及以下的使用的导出路径
     @Suppress("DEPRECATION")
@@ -256,6 +260,30 @@ object NeteaseCacheProvider {
         }
 
         return out != null
+    }
+
+    fun decryptSongList(
+        flow: Flow<PagingData<MusicState>>,
+        skipIncomplete: Boolean = true,
+        skipMissingInfo: Boolean = true,
+        callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> },
+        isLastOne: (Boolean) -> Unit = {},
+    ) {
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.IO) {
+                val list = flow.toList()
+                list.forEachIndexed { index, pagingData ->
+                    launch launch1@{
+                        pagingData.map { music ->
+                            if (index == list.lastIndex) isLastOne.invoke(true)
+                            if (skipIncomplete && music.incomplete) return@map
+                            if (skipMissingInfo && music.missingInfo) return@map
+                            music.decryptFile(callback)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun decryptSongList(

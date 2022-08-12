@@ -11,6 +11,9 @@ import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.BuildConfig
 import io.github.kineks.neteaseviewer.data.local.RFile.RType.*
 import io.github.kineks.neteaseviewer.toFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -124,7 +127,7 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
 
     abstract fun delete(): Boolean
 
-    open fun copyto(
+    open fun copyTo(
         rfile: RFile,
         overwrite: Boolean = false,
         bufferSize: Int = DEFAULT_BUFFER_SIZE
@@ -142,9 +145,9 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
         val output = rfile.output
 
         if (input != null && output != null) {
-            input.use { input ->
+            input.use {
                 output.use { output ->
-                    input.copyTo(output, bufferSize)
+                    it.copyTo(output, bufferSize)
                 }
             }
             return rfile
@@ -161,7 +164,21 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
 
     abstract val output: OutputStream?
 
-    abstract fun read2File(callback: (index: Int, rfile: RFile) -> Unit)
+    abstract suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit)
+
+    suspend fun listRFiles(): List<RFile> {
+        val list = ArrayList<RFile>()
+        withContext(Dispatchers.IO) {
+            launch {
+                read2File { _, rfile ->
+                    launch {
+                        list.add(rfile)
+                    }
+                }
+            }
+        }
+        return list
+    }
 
 
 }
@@ -202,13 +219,20 @@ data class RFileAndroidData(
 
     override fun exists(): Boolean = documentFile.exists()
 
-    override fun readText(charset: Charset): String = try {
-        App.context.contentResolver
-            .openInputStream(documentFile.uri)?.bufferedReader(charset)
-            ?.readText() ?: ""
-    } catch (e: Exception) {
-        Log.e(TAG, e.message, e)
-        ""
+    override fun readText(charset: Charset): String {
+        try {
+            App.context.contentResolver
+                .openInputStream(documentFile.uri)
+                ?.use { input ->
+                    input.bufferedReader(charset).use {
+                        return it.readText()
+                    }
+                }
+            return ""
+        } catch (e: Exception) {
+            Log.e(TAG, e.message, e)
+            return ""
+        }
     }
 
     override fun mkdirs() {
@@ -230,32 +254,40 @@ data class RFileAndroidData(
     override val output: OutputStream?
         get() = App.context.contentResolver.openOutputStream(uri)
 
-    override fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
-        if (fileUriUtils.isGrant()) {
-            if (documentFile.isDirectory) {
-                var index = 0
-                for (docuFile: DocumentFile in documentFile.listFiles()) {
-                    // 不会循环加载子目录
-                    if (docuFile.isFile) {
-                        callback(
-                            index,
-                            RFileAndroidData(
-                                type = SingleAndroidData,
-                                path = path + "/" + docuFile.name,
-                                name = docuFile.name ?: "",
-                                documentFile = docuFile
-                            )
-                        )
-                        index++
+    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
+        withContext(Dispatchers.IO) {
+            if (fileUriUtils.isGrant()) {
+                launch {
+                    if (documentFile.isDirectory) {
+                        var index = 0
+                        for (docuFile: DocumentFile in documentFile.listFiles()) {
+                            launch {
+                                // 不会循环加载子目录
+                                if (docuFile.isFile) {
+                                    callback(
+                                        index,
+                                        RFileAndroidData(
+                                            type = SingleAndroidData,
+                                            path = path + "/" + docuFile.name,
+                                            name = docuFile.name ?: "",
+                                            documentFile = docuFile
+                                        )
+                                    )
+                                    index++
+                                }
+                            }
+                        }
+
+                    } else {
+                        callback(0, documentFile.toRFile())
                     }
                 }
 
             } else {
-                callback(0, documentFile.toRFile())
+                Log.e(TAG, "RFileType.AndroidData not support on Android R+")
             }
-        } else {
-            Log.e(TAG, "RFileType.AndroidData not support on Android R+")
         }
+
     }
 
 
@@ -295,13 +327,17 @@ data class RFileFile(
     override val output: OutputStream
         get() = file.outputStream()
 
-    override fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
-        if (file.isDirectory) {
-            file.walk().forEachIndexed { index, file ->
-                callback.invoke(index, file.toRFile())
+    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
+        withContext(Dispatchers.IO) {
+            if (file.isDirectory) {
+                file.walk().forEachIndexed { index, file ->
+                    launch {
+                        callback.invoke(index, file.toRFile())
+                    }
+                }
+            } else {
+                callback.invoke(0, file.toRFile())
             }
-        } else {
-            callback.invoke(0, file.toRFile())
         }
     }
 
@@ -317,7 +353,7 @@ data class RFileUri(
 
     override val isFile: Boolean
         get() = try {
-            input?.read()// 如果 inputstream 正常读取出文件内容就确定为文件
+            input?.read()// 如果 InputStream 正常读取出文件内容就确定为文件
             true
         } catch (e: Exception) {
             Log.e(TAG, e.message, e)
@@ -350,7 +386,7 @@ data class RFileUri(
     override val output: OutputStream?
         get() = App.context.contentResolver.openOutputStream(uri)
 
-    override fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
+    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
         if (type == SingleUri)
             callback(0, uri.toSingleRFile(name = name))
         else
@@ -397,7 +433,8 @@ data class RFileShareStorage(
     override val output: OutputStream?
         get() = rfile.output
 
-    override fun read2File(callback: (index: Int, rfile: RFile) -> Unit) = rfile.read2File(callback)
+    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) =
+        rfile.read2File(callback)
 
 }
 

@@ -20,16 +20,18 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Api 包下的类混淆会导致无法正常反射
--keep class io.github.kineks.neteaseviewer.data.network.** {*;}
--keep class io.github.kineks.neteaseviewer.data.setting.** {*;}
--keep interface io.github.kineks.neteaseviewer.data.network.** { *; }
--keepnames class io.github.kineks.neteaseviewer.data.network.** {*;}
+# Network 包下的类混淆会导致无法正常反射
+-keep class       io.github.kineks.neteaseviewer.data.network.** {*;}
+-keep interface   io.github.kineks.neteaseviewer.data.network.** {*;}
+-keepnames class  io.github.kineks.neteaseviewer.data.network.** {*;}
+# -keep class       io.github.kineks.neteaseviewer.data.setting.** {*;}
 
--keep class io.github.kineks.neteaseviewer.data.update.** {*;}
--keep interface io.github.kineks.neteaseviewer.data.update.** { *; }
+-keep class       io.github.kineks.neteaseviewer.data.update.** {*;}
+-keep interface   io.github.kineks.neteaseviewer.data.update.** {*;}
+-keepnames class  io.github.kineks.neteaseviewer.data.update.** {*;}
 
--keepnames class io.github.kineks.neteaseviewer.** {*;}
+-keepnames class        io.github.kineks.neteaseviewer.** {*;}
+-keepnames interface    io.github.kineks.neteaseviewer.** {*;}
 
 
 # Exoplayer
@@ -50,10 +52,6 @@
 -dontwarn java.nio.file.Paths
 -dontwarn java.nio.file.OpenOption
 -dontwarn java.nio.file.Files
-
-# Bugly
--dontwarn com.tencent.bugly.**
--keep public class com.tencent.bugly.**{*;}
 
 # Debug Log
 -assumenosideeffects class android.util.Log {
