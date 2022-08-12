@@ -107,7 +107,7 @@ fun HomeScreen(
         )
     }
 
-    val list = model.songs.collectAsLazyPagingItems()
+    val list = model.songsFlow.collectAsLazyPagingItems()
 
     LaunchedEffect(appState.refreshState.isRefreshing) {
         if (appState.refreshState.isRefreshing)
@@ -147,7 +147,7 @@ fun HomeScreen(
 fun SongsList(
     model: MainViewModel = viewModel(),
     songs: LazyPagingItems<MusicState>,
-    available: Boolean = true,
+    available: Boolean = songs.itemCount != 0,
     snackbar: (message: String) -> Unit,
     onWorking: (Boolean) -> Unit,
     clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
@@ -235,9 +235,9 @@ fun SongsList(
                             if (model.hadListInited) {
                                 working = false
                             }
-                            model.initList(updateInfo = true, callback = {
+                            model.initList {
                                 working = false
-                            })
+                            }
                         } else {
                             model.displayWelcomeScreen = true
                         }
@@ -251,7 +251,6 @@ fun SongsList(
                         modifier = Modifier.clickable {
                             model.viewModelScope.launch {
                                 working = true
-                                //model.reloadSongsList(updateInfo = true)
                                 delay(1500)
                                 working = false
                             }

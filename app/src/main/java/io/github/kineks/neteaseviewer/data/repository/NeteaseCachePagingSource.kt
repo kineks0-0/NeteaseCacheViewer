@@ -22,7 +22,6 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
     private suspend inline fun rfile2MusicSate(
         neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache,
         infoFileMap: HashMap<String, RFile>,
-        playFileList: ArrayList<RFile>,
         rfile: RFile
     ): MusicState {
         val infoFile = when (NeteaseCacheProvider.fastReader) {
@@ -34,8 +33,6 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
         var md5 = ""
         var incomplete = false
         var missingInfo = true
-
-        //playFileList.remove(rfile)
 
 
         if ((infoFile != null) && infoFile.exists()) {
@@ -49,7 +46,6 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
                 incomplete = idx.fileSize != rfile.length()
                 missingInfo = false
             }
-            //infoFileMap.remove(rfile.nameWithoutExtension)
         }
 
         // 如果数据依旧没初始化
@@ -76,47 +72,22 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
         )
     }
 
-    /*suspend fun reloadSongsList(list: List<MusicState>? = null, updateInfo: Boolean = false) {
-        if (songs.isNotEmpty())
-            songs.clear()
-
-        if (list != null && list.isNotEmpty()) {
-            songs.addAll(list)
-        } else {
-            songs.addAll(NeteaseCacheProvider.getCacheSongs())
-        }
-
-        if (updateInfo)
-            updateSongsInfo()
-
-        hadListInited = true
-    }*/
-
-    private suspend fun updateSongsInfo(songs: ArrayList<MusicState>, quantity: Int = 50) {
-        /*isUpdateComplete = false
-        isFailure = false
-
-        isUpdating = true
-
-        val updateComplete: (isFailure: Boolean) -> Unit =
-            { isFailure ->
-                this.isUpdating = false
-                this.isUpdateComplete = true
-                this.isFailure = isFailure
-            }*/
+    private suspend fun updateSongsInfo(
+        songs: ArrayList<MusicState>,
+        index: Int = -1,
+        quantity: Int = 50
+    ) {
 
         // 如果列表为空
-        if (songs.isEmpty()) {
-            //updateComplete.invoke(true)
-            return
-        }
+        if (songs.isEmpty()) return
 
         // 计算分页数量
         var pages = songs.size / quantity - 1
         if (songs.size % quantity != 0)
             pages++
+        val pi = if (index == -1) 0..pages else index..index
 
-        for (i in 0..pages) {
+        for (i in pi) {
             withContext(Dispatchers.IO) {
                 launch {
 
@@ -210,7 +181,6 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
                                 rfile2MusicSate(
                                     neteaseAppCache,
                                     infoFileMap,
-                                    playFileList,
                                     rfile
                                 )
                             )

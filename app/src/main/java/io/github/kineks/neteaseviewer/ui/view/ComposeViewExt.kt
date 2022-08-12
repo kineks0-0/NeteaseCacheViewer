@@ -68,7 +68,7 @@ fun SaveFilesAlertDialog(
 ) {
     var skipIncomplete by remember { mutableStateOf(true) }
     var skipMissingInfo by remember { mutableStateOf(true) }
-    val list = model.songs.collectAsLazyPagingItems()
+    val list = model.songsFlow.collectAsLazyPagingItems()
 
     if (openDialog) {
         AlertDialog(
@@ -121,7 +121,7 @@ fun SaveFilesAlertDialog(
                         onValueChange.invoke(false)
                         working = true
                         NeteaseCacheProvider.decryptSongList(
-                            model.songs, skipIncomplete, skipMissingInfo,
+                            model.songsFlow, skipIncomplete, skipMissingInfo,
                             callback = { out, hasError, e ->
                                 if (hasError) {
                                     Log.e("decrypt songs", e?.message, e)

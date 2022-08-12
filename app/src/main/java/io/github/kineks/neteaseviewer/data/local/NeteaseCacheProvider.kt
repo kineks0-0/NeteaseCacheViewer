@@ -5,11 +5,12 @@ import android.util.Log
 import androidx.paging.PagingData
 import androidx.paging.map
 import com.google.gson.Gson
-import io.github.kineks.neteaseviewer.*
+import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
-import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
-import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
+import io.github.kineks.neteaseviewer.mutableListOf
+import io.github.kineks.neteaseviewer.scanFile
+import io.github.kineks.neteaseviewer.toRFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -92,7 +93,7 @@ object NeteaseCacheProvider {
         return files
     }
 
-    suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): MutableList<MusicState> {
+    /*suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): MutableList<MusicState> {
         val songs = mutableListOf<MusicState>()
 
         runWithPrintTimeCostSuspend(TAG, "总加载耗时") {
@@ -118,9 +119,9 @@ object NeteaseCacheProvider {
         }
 
         return songs
-    }
+    }*/
 
-    private suspend fun getMusicState(file: RFile, neteaseAppCache: NeteaseAppCache): MusicState =
+    /*private suspend fun getMusicState(file: RFile, neteaseAppCache: NeteaseAppCache): MusicState =
         withContext(Dispatchers.IO) {
             val begin2 = System.currentTimeMillis()
             val infoFile = when (fastReader) {
@@ -172,7 +173,7 @@ object NeteaseCacheProvider {
                 missingInfo = missingInfo,
                 neteaseAppCache = neteaseAppCache
             )
-        }
+        }*/
 
 
     fun getCacheFileInfo(musicState: MusicState): CacheFileInfo? {
@@ -211,13 +212,13 @@ object NeteaseCacheProvider {
 
                 try {
                     // 从输入流获取文件头判断,获取失败则默认 mp3
-                    val ext = FileType.getFileType(inputStream) ?: "mp3"
+                    //val ext = FileType.getFileType(inputStream) ?: "mp3"
                     val path =
                         if (App.isAndroidQorAbove)
                             App.context.cacheDir.toRFile()
                         else
                             musicDirectory
-                    val file = RFile.of(path, "$displayFileName.$ext")!!
+                    val file = RFile.of(path, "$displayFileName.${musicState.ext}")!!
                     // 在 Android Q 之后的先放在私有目录, P 及以下的则直接写出
                     // 避免写出文件 父目录 不存在
                     path.mkdirs()

@@ -33,12 +33,8 @@ class MainViewModel : ViewModel() {
     var isUpdateComplete by mutableStateOf(false)
 
     var hadListInited = false
-    var songs =
-        NeteaseCacheRepository.getMusicStatePagingData()//mutableListOf(mutableStateListOf<MusicState>())
+    val songsFlow = NeteaseCacheRepository.getMusicStatePagingData(viewModelScope)
 
-    /*val updateInfoFlow: Flow<PagingData<MusicState>> = songs.buffer().transform {
-        //it.
-    }*/
     val playbackControls = PlaybackControls()
 
     init {
@@ -78,13 +74,12 @@ class MainViewModel : ViewModel() {
 
     fun initList(
         init: Boolean = hadListInited,
-        updateInfo: Boolean = false,
         callback: () -> Unit = {}
     ) {
         if (!init) {
             viewModelScope.launch {
                 hadListInited = true
-                //reloadSongsList(updateInfo = updateInfo)
+                // todo: 重载
                 callback()
             }
         }
