@@ -1,6 +1,6 @@
 {
   "versionCode": 105,
   "versionName": "Alpha 3.2.1",
-  "updateInfo": "⭕ 该版本在 Android P with Miui 11 上测试通过\n⭕ 该版本在 Android R 上测试通过\n⭕ 该版本在 Android S with WSA 上正常启动\n\n\uD83D\uDD28 修复\n优化 RFile.kt 文件性能\n修复部分情况下可能导致的崩溃\n第三方 SDK 在 Android S 下崩溃\n将 TargetSdk 升回 32\n\n\uD83C\uDF1F更新\nUI 风格更新\n对话框和列表性能优化\n播放页面添加播放控制\n弃用 Bugly 改用 AppCenter\n播放通知支持控制媒体控件\n\n✏ 重构\n重构加载相关类, 加载性能快约 1/3\n优化加载性能与内存占用\n",
+  "updateInfo": "⭕ 该版本在 Android P with Miui 11 上测试通过\n⭕ 该版本在 Android R 上测试通过\n⭕ 该版本在 Android S with WSA 上测试通过\n\n\uD83D\uDD28 修复\n优化 RFile.kt 文件性能\n修复部分情况下可能导致的崩溃\n第三方 SDK 在 Android S 下崩溃\n将 TargetSdk 升回 32\n\n\uD83C\uDF1F更新\nUI 风格更新\n对话框和列表性能优化\n播放页面添加播放控制\n弃用 Bugly 改用 AppCenter\n播放通知支持控制媒体控件\n\n✏ 重构\n重构加载相关类, 加载性能快约 1/3\n优化加载性能与内存占用\n",
   "updateLink": "https://github.com/kineks0-0/NeteaseCacheViewer/releases"
 }
