@@ -103,7 +103,13 @@ fun Number.formatFileSize(
 fun Number.formatMilSec(
     min: String = "",
     sec: String = ""
-): String = "" + (this.toLong() / 60000) + min + (this.toLong() % 60000 / 1000) + sec
+): String {
+    var time: String = (this.toLong() / 60000).toString() + min
+    val secInt = (this.toLong() % 60000 / 1000)
+    time += if (secInt < 10) "0$secInt" else secInt.toString()
+    time += sec
+    return time
+}
 
 @SinceKotlin("1.1")
 fun <T> mutableListOf(list: List<T> = ArrayList<T>()): MutableList<T> {
@@ -169,10 +175,10 @@ suspend fun Call.await(): ResponseBody {
     }
 }
 
-suspend fun <T> runWithPrintTimeCostSuspend(
+suspend inline fun <T> runWithPrintTimeCostSuspend(
     tag: String = "",
     prefix: String = "",
-    block: suspend (() -> T)
+    block: (() -> T)
 ): T {
     val timeBegin = System.currentTimeMillis()
     val result = block.invoke()

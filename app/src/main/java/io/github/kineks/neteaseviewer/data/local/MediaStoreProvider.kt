@@ -30,8 +30,7 @@ object MediaStoreProvider {
     private const val TAG = "MediaStoreProvider"
 
     suspend fun setInfo(musicState: MusicState, file: RFile) {
-        musicState.song ?: return
-
+        if (musicState.track == -1) return
 
         val audioFile = withContext(Dispatchers.IO) {
             AudioFileIO.read(file.file)

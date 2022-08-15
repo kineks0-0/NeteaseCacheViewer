@@ -1,7 +1,7 @@
 package io.github.kineks.neteaseviewer
 
 import io.github.kineks.neteaseviewer.data.local.cacheFile.FileType
-import io.github.kineks.neteaseviewer.data.player.XorByteInputStream
+import io.github.kineks.neteaseviewer.data.player.exoplayer.XorByteInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File

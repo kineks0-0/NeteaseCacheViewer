@@ -1,8 +1,6 @@
 package io.github.kineks.neteaseviewer.data.repository
 
 import android.util.Log
-import androidx.paging.PagingSource
-import androidx.paging.PagingState
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
@@ -10,16 +8,17 @@ import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import io.github.kineks.neteaseviewer.runWithPrintTimeCostSuspend
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.NeteaseAppCache> = NeteaseCacheProvider.cacheDir) :
-    PagingSource<NeteaseCacheProvider.NeteaseAppCache, MusicState>() {
+private const val TAG = "Paging 3"
 
-    override fun getRefreshKey(state: PagingState<NeteaseCacheProvider.NeteaseAppCache, MusicState>): NeteaseCacheProvider.NeteaseAppCache? =
-        null
+class NeteaseCachePagingSource(
+    private val cacheDir: List<NeteaseCacheProvider.NeteaseAppCache> = NeteaseCacheProvider.cacheDir
+) {
 
-    private suspend inline fun rfile2MusicSate(
+    suspend fun rfile2MusicSate(
         neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache,
         infoFileMap: HashMap<String, RFile>,
         rfile: RFile
@@ -30,6 +29,8 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
         }
         var id = -1
         var bitrate: Int = -1
+        var duration: Long = -1
+        var fileSize: Long = -1
         var md5 = ""
         var incomplete = false
         var missingInfo = true
@@ -43,6 +44,8 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
                 bitrate = idx.bitrate
                 md5 = idx.fileMD5
                 // 判断缓存文件和缓存文件信息中的文件长度大小是否一致
+                duration = idx.duration
+                fileSize = idx.fileSize
                 incomplete = idx.fileSize != rfile.length()
                 missingInfo = false
             }
@@ -60,20 +63,36 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
             }
         }
 
-        return MusicState(
-            id = id,
-            bitrate = bitrate,
-            md5 = md5,
-            file = rfile,
-            song = NeteaseDataService.instance.getSongFromCache(id),
-            incomplete = incomplete,
-            missingInfo = missingInfo,
-            neteaseAppCache = neteaseAppCache
-        )
+        return when (val song = NeteaseDataService.instance.getSongFromCache(id)) {
+            null ->
+                MusicState(
+                    id = id,
+                    rawBitrate = bitrate,
+                    duration = duration,
+                    fileSize = fileSize,
+                    md5 = md5,
+                    file = rfile,
+                    incomplete = incomplete,
+                    missingInfo = missingInfo,
+                    neteaseAppCache = neteaseAppCache
+                )
+            else -> MusicState.get(
+                id = id,
+                rawBitrate = bitrate,
+                duration = duration,
+                fileSize = fileSize,
+                md5 = md5,
+                file = rfile,
+                song = song,
+                incomplete = incomplete,
+                missingInfo = missingInfo,
+                neteaseAppCache = neteaseAppCache
+            )
+        }
     }
 
-    private suspend fun updateSongsInfo(
-        songs: ArrayList<MusicState>,
+    suspend fun updateSongsInfo(
+        songs: MutableList<MusicState>,
         index: Int = -1,
         quantity: Int = 50
     ) {
@@ -111,11 +130,11 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
                     val ids = ArrayList<Int>()
                     val indexList = ArrayList<Int>()
                     repeat(size) {
-                        val index = offset + it
+                        val offsetIndex = offset + it
                         //Log.d(this@MainViewModel::javaClass.name, "update:$index")
                         // 如果缓存里有则跳过
-                        if (songs[index].song == null) {
-                            val id = songs[index].id
+                        if (songs[offsetIndex].track == -1) {
+                            val id = songs[offsetIndex].id
                             ids.add(id)
                             indexList.add(offset + it)
                         }
@@ -153,66 +172,135 @@ class NeteaseCachePagingSource(private val cacheDir: List<NeteaseCacheProvider.N
 
     }
 
-    override suspend fun load(params: LoadParams<NeteaseCacheProvider.NeteaseAppCache>): LoadResult<NeteaseCacheProvider.NeteaseAppCache, MusicState> {
-        try {
-            val neteaseAppCache = params.key ?: cacheDir[0]
-            val infoFileMap = HashMap<String, RFile>()
-            val playFileList = ArrayList<RFile>()
-            val musicStateList = ArrayList<MusicState>()
-
-            neteaseAppCache.rFiles.forEach {
-                it.read2File { _, rfile ->
-                    when (rfile.extension) {
-                        NeteaseCacheProvider.playExt -> {
-                            playFileList.add(rfile)
-                        }
-                        NeteaseCacheProvider.infoExt -> {
-                            infoFileMap[rfile.nameWithoutExtension] = rfile
-                        }
-                    }
-                }
-            }
-
-            withContext(Dispatchers.IO) {
-                playFileList.forEach { rfile ->
-                    launch {
-                        runWithPrintTimeCostSuspend("paging", "RFile to MusicState") {
-                            musicStateList.add(
-                                rfile2MusicSate(
-                                    neteaseAppCache,
-                                    infoFileMap,
-                                    rfile
-                                )
-                            )
-                        }
-
-                    }
-
-                }
-
+    private suspend fun RFile.toNeteaseRawData(
+        infoFileMap: HashMap<String, RFile>,
+        playFileList: ArrayList<RFile>
+    ): Pair<ArrayList<RFile>, HashMap<String, RFile>> {
+        withContext(Dispatchers.IO) {
+            read2File { _, rfile ->
                 launch {
-                    updateSongsInfo(musicStateList)
+                    runWithPrintTimeCostSuspend(
+                        TAG,
+                        "${playFileList.size} rfile: ${rfile.name}"
+                    ) {
+                        when (rfile.extension) {
+                            NeteaseCacheProvider.playExt -> {
+                                playFileList.add(rfile)
+                            }
+                            NeteaseCacheProvider.infoExt -> {
+                                infoFileMap[rfile.nameWithoutExtension] = rfile
+                            }
+                            else -> {
+                                Log.e(TAG, "Unknown RFile Ext: " + rfile.extension)
+                            }
+                        }
+                    }
+
                 }
 
             }
-
-            val index = cacheDir.indexOf(neteaseAppCache)
-            val prevKey =
-                if (index == 0 || 0 > (index - 1))
-                    null
-                else
-                    cacheDir[index - 1]
-            val nextKey =
-                if (index == cacheDir.lastIndex)
-                    null
-                else
-                    cacheDir[index + 1]
-
-
-            return LoadResult.Page(musicStateList, prevKey, nextKey)
-        } catch (e: Exception) {
-            return LoadResult.Error(e)
         }
+        return Pair(playFileList, infoFileMap)
+    }
+
+
+    private suspend fun List<RFile>.toMusicState(
+        neteaseAppCache: NeteaseCacheProvider.NeteaseAppCache,
+        infoFileMap: HashMap<String, RFile>
+    ): ArrayList<MusicState> {
+        val playFileList = this
+        val musicStateList = ArrayList<MusicState>(playFileList.size + 2)
+        withContext(Dispatchers.Default) {
+            playFileList.forEachIndexed { index, rfile ->
+                launch {
+                    runWithPrintTimeCostSuspend(
+                        TAG,
+                        "${playFileList.size} RFile to MusicState ${rfile.name}"
+                    ) {
+                        musicStateList.add(
+                            rfile2MusicSate(
+                                neteaseAppCache,
+                                infoFileMap,
+                                rfile
+                            )
+                        )
+                    }
+
+                }
+            }
+        }
+
+
+        Log.d(TAG, "musicStateList :  ${musicStateList.size}")
+        return musicStateList
+
+    }
+
+    suspend fun load(): MutableList<MusicState> {
+        val result = mutableListOf<MusicState>()
+        coroutineScope {
+            launch {
+                cacheDir.forEachIndexed { index, _ ->
+                    result.addAll(load(index))
+                }
+            }
+        }
+        return result
+    }
+
+    suspend fun load(index: Int): ArrayList<MusicState> {
+        val result = ArrayList<MusicState>()
+
+        try {
+            withContext(Dispatchers.IO) {
+
+                val neteaseAppCache = cacheDir[index]
+                Log.d(TAG, "neteaseAppCache : " + neteaseAppCache.type)
+                val infoFileMap = HashMap<String, RFile>()
+                val playFileList = ArrayList<RFile>()
+                val musicStateList = ArrayList<MusicState>()
+
+                neteaseAppCache.rFiles.forEach {
+                    runWithPrintTimeCostSuspend(
+                        TAG,
+                        neteaseAppCache.type + " ： 文件检索总耗时"
+                    ) {
+                        it.toNeteaseRawData(infoFileMap, playFileList)
+                    }
+                }
+
+
+                musicStateList.addAll(
+                    runWithPrintTimeCostSuspend(
+                        TAG,
+                        neteaseAppCache.type + " ： 读取缓存信息总耗时"
+                    ) {
+                        playFileList.toMusicState(
+                            neteaseAppCache = neteaseAppCache,
+                            infoFileMap = infoFileMap
+                        )
+                    }
+
+                )
+
+
+
+                Log.d(TAG, "musicStateList : " + musicStateList.size)
+                Log.d(TAG, "playFileList : " + playFileList.size)
+                Log.d(TAG, "infoFileMap : " + infoFileMap.size)
+
+                playFileList.clear()
+                infoFileMap.clear()
+
+                result.addAll(musicStateList)
+
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, e.message, e)
+        }
+
+        return result
     }
 
 

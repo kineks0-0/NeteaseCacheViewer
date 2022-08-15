@@ -8,10 +8,10 @@ import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.kineks.neteaseviewer.App
-import io.github.kineks.neteaseviewer.BuildConfig
 import io.github.kineks.neteaseviewer.data.local.RFile.RType.*
 import io.github.kineks.neteaseviewer.toFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -76,16 +76,13 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
         val DIRECTORY_MUSIC: String = Environment.DIRECTORY_MUSIC
         fun getExternalStorageDirectory(name: String, parentFile: String = ""): RFile = of(
             File,
-            if (BuildConfig.DEBUG)
-                "/$parentFile/$name"
-            else
-                Environment.getExternalStorageDirectory().path + "/$parentFile/$name",
+            Environment.getExternalStorageDirectory().path + "/$parentFile/$name",
             name
         )
     }
 
     // 使用 Type 可以和 RFile接口实现类可以区分开，
-    // 例如 AndroidData 标识可以分别使用 File 和 DocumentFile 实现, 但外部调用获取的 Type 依旧是 AndroidData
+    // 例如 AndroidData 标识可以分别使用 File 和 DocumentFile 实现, 但对于外部获取的 Type 依旧是 AndroidData
     enum class RType(val type: String) {
         // 将某个支持文件读写的类由 RFile 接口实现包装类代理
         // 目录或文件, 通常包装类会先识别为目录
@@ -105,10 +102,20 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
 
 
     val extension: String
-        get() = name.substringAfterLast('.', "")
+        get() = try {
+            name.substringAfterLast('.', "")
+        } catch (e: Exception) {
+            Log.e(TAG, e.message, e)
+            ""
+        }
 
     val nameWithoutExtension: String
-        get() = name.substringBeforeLast(".")
+        get() = try {
+            name.substringBeforeLast(".")
+        } catch (e: Exception) {
+            Log.e(TAG, e.message, e)
+            name
+        }
 
     abstract val isFile: Boolean
 
@@ -164,21 +171,12 @@ sealed class RFile(open val type: RType, open val path: String, open val name: S
 
     abstract val output: OutputStream?
 
-    abstract suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit)
-
-    suspend fun listRFiles(): List<RFile> {
-        val list = ArrayList<RFile>()
-        withContext(Dispatchers.IO) {
-            launch {
-                read2File { _, rfile ->
-                    launch {
-                        list.add(rfile)
-                    }
-                }
-            }
+    open suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) =
+        listRFiles().forEachIndexed { index, rfile ->
+            callback(index, rfile)
         }
-        return list
-    }
+
+    abstract suspend fun listRFiles(): List<RFile>
 
 
 }
@@ -188,11 +186,11 @@ data class RFileAndroidData(
     override val path: String,
     override val name: String,
     override val type: RType = AndroidData,
-    var documentFile: DocumentFile = getNewDocumentFile(path, name, type)
+    var documentFile: DocumentFile = getNewDocumentFile(path, type)
 ) : RFile(type, path, name) {
 
     companion object {
-        fun getNewDocumentFile(path: String, name: String, type: RFile.RType): DocumentFile =
+        fun getNewDocumentFile(path: String, type: RType): DocumentFile =
             if (type == SingleAndroidData) {
                 DocumentFile.fromFile(
                     (Environment.getExternalStorageDirectory().path + "/Android/Data/" + path).toFile()
@@ -255,41 +253,69 @@ data class RFileAndroidData(
         get() = App.context.contentResolver.openOutputStream(uri)
 
     override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
-        withContext(Dispatchers.IO) {
-            if (fileUriUtils.isGrant()) {
-                launch {
+        coroutineScope {
+            launch {
+                if (FileUriUtils.isGrant()) {
                     if (documentFile.isDirectory) {
-                        var index = 0
-                        for (docuFile: DocumentFile in documentFile.listFiles()) {
-                            launch {
-                                // 不会循环加载子目录
-                                if (docuFile.isFile) {
-                                    callback(
-                                        index,
-                                        RFileAndroidData(
-                                            type = SingleAndroidData,
-                                            path = path + "/" + docuFile.name,
-                                            name = docuFile.name ?: "",
-                                            documentFile = docuFile
-                                        )
+                        documentFile.listFiles().forEachIndexed { index, file ->
+                            // 不会加载子目录
+                            if (file.isFile) {
+                                val name = file.name ?: "null"
+                                callback(
+                                    index,
+                                    RFileAndroidData(
+                                        type = SingleAndroidData,
+                                        path = "$path/$name",
+                                        name = name,
+                                        documentFile = file
                                     )
-                                    index++
-                                }
+                                )
                             }
+
                         }
-
                     } else {
-                        callback(0, documentFile.toRFile())
+                        if (documentFile.isFile) callback(0, this@RFileAndroidData)
                     }
-                }
 
-            } else {
-                Log.e(TAG, "RFileType.AndroidData not support on Android R+")
+                } else {
+                    Log.e(TAG, "RFileType.AndroidData not support on Android R+")
+                }
             }
         }
 
     }
 
+    override suspend fun listRFiles(): List<RFile> =
+        coroutineScope withContext@{
+            if (FileUriUtils.isGrant()) {
+                if (documentFile.isDirectory) {
+                    val listFiles = documentFile.listFiles()
+                    val list = ArrayList<RFile>(listFiles.size + 2)
+                    listFiles.forEach { file ->
+                        // 不会加载子目录
+                        if (file.isFile) {
+                            val name = file.name ?: "null"
+                            list.add(
+                                RFileAndroidData(
+                                    type = SingleAndroidData,
+                                    path = "$path/$name",
+                                    name = name,
+                                    documentFile = file
+                                )
+                            )
+                        }
+
+                    }
+                } else {
+                    if (documentFile.isFile) return@withContext listOf(this@RFileAndroidData)
+                }
+
+                return@withContext listOf()
+            } else {
+                Log.e(TAG, "RFileType.AndroidData not support on Android R+")
+                return@withContext listOf()
+            }
+        }
 
 }
 
@@ -327,19 +353,19 @@ data class RFileFile(
     override val output: OutputStream
         get() = file.outputStream()
 
-    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
+    override suspend fun listRFiles(): List<RFile> =
         withContext(Dispatchers.IO) {
+            val list = ArrayList<RFile>()
             if (file.isDirectory) {
-                file.walk().forEachIndexed { index, file ->
-                    launch {
-                        callback.invoke(index, file.toRFile())
-                    }
+                file.walk().forEach { file ->
+                    withContext(Dispatchers.Default) { file.toRFile() }.let { list.add(it) }
                 }
             } else {
-                callback.invoke(0, file.toRFile())
+                if (file.isFile) list.add(this@RFileFile)
             }
+            return@withContext list
         }
-    }
+
 
 }
 
@@ -386,12 +412,7 @@ data class RFileUri(
     override val output: OutputStream?
         get() = App.context.contentResolver.openOutputStream(uri)
 
-    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) {
-        if (type == SingleUri)
-            callback(0, uri.toSingleRFile(name = name))
-        else
-            callback(0, uri.toRFile(name = name))
-    }
+    override suspend fun listRFiles(): List<RFile> = listOf(this)
 
 }
 
@@ -433,8 +454,7 @@ data class RFileShareStorage(
     override val output: OutputStream?
         get() = rfile.output
 
-    override suspend fun read2File(callback: (index: Int, rfile: RFile) -> Unit) =
-        rfile.read2File(callback)
+    override suspend fun listRFiles(): List<RFile> = rfile.listRFiles()
 
 }
 

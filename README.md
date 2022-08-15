@@ -6,7 +6,7 @@
 [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.6.10-blue.svg)](https://kotlinlang.org)
 [![GitHub Releases](https://img.shields.io/github/downloads/kineks0-0/NeteaseCacheViewer/latest/total?logo=github)](https://github.com/kineks0-0/NeteaseCacheViewer/releases)
 
-![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-08-10.webp)
+![截图](https://github.com/kineks0-0/NeteaseCacheViewer/raw/dev/screenshot/2022-08-15.webp)
 
 ## ✨ 特性
 

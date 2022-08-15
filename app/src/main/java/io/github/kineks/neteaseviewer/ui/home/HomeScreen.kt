@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -22,11 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.ExperimentalUnitApi
 import androidx.compose.ui.unit.TextUnit
@@ -35,20 +34,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.paging.LoadState
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemsIndexed
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import io.github.kineks.neteaseviewer.*
 import io.github.kineks.neteaseviewer.R
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
-import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
-import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyCacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.local.toRFile
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import io.github.kineks.neteaseviewer.ui.view.InfoBoxText
+import io.github.kineks.neteaseviewer.ui.view.InfoText
 import io.github.kineks.neteaseviewer.ui.view.checkPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,11 +67,11 @@ fun HomeScreen(
             appState.snackbar(getString(R.string.list_file_has_deleted))
         } else {
             model.playMusic(song)
-            appState.snackbar("$index  ${song.name}")
+            appState.snackbar("${index + 1}  ${song.name}")
             if (model.errorWhenPlaying) {
                 appState.snackbar(
                     getString(
-                        R.string.play_error, "$index  ${song.name}"
+                        R.string.play_error, "${index + 1}  ${song.name}"
                     )
                 )
                 model.errorWhenPlaying = false
@@ -84,7 +79,7 @@ fun HomeScreen(
         }
     }
 
-    if (working || model.isUpdating) {
+    if (working) {
         LinearProgressIndicator(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,37 +89,17 @@ fun HomeScreen(
         )
     }
 
-    LaunchedEffect(model.isUpdating) {
-        if (model.isUpdating) appState.snackbarIndefinite("Working...")
-    }
-
-    LaunchedEffect(model.isUpdateComplete) {
-        if (model.isUpdateComplete) appState.snackbar(
-            getString(
-                if (model.isFailure) R.string.list_update_failure
-                else R.string.list_updated
-            )
-        )
-    }
-
-    val list = model.songsFlow.collectAsLazyPagingItems()
-
-    LaunchedEffect(appState.refreshState.isRefreshing) {
-        if (appState.refreshState.isRefreshing)
-            list.refresh()
-    }
-
     SwipeRefresh(state = appState.refreshState, onRefresh = {
         model.viewModelScope.launch {
             working = true
             appState.refreshState.isRefreshing = true
+            model.refresh(updateInfo = true)
             //model.reloadSongsList(updateInfo = true)
             //delay(1500)
         }
 
     }) {
-        SongsList(
-            songs = list,
+        SongsList(songs = model.songs,
             model = model,
             clickable = clickable,
             snackbar = appState.snackbar,
@@ -132,12 +107,19 @@ fun HomeScreen(
     }
 
 
-    when (list.loadState.append) {
-        is LoadState.NotLoading -> {
-            appState.refreshState.isRefreshing = false
-            working = false
+    LaunchedEffect(model.refresh) {
+        when (model.refresh) {
+            true -> {
+                appState.refreshState.isRefreshing = true
+                working = true
+            }
+            false -> {
+                delay(1500)
+                appState.refreshState.isRefreshing = false
+                working = false
+
+            }
         }
-        else -> {}
     }
 
 }
@@ -146,13 +128,13 @@ fun HomeScreen(
 @Composable
 fun SongsList(
     model: MainViewModel = viewModel(),
-    songs: LazyPagingItems<MusicState>,
-    available: Boolean = songs.itemCount != 0,
+    songs: MutableList<MusicState>,
+    available: Boolean = songs.size != 0,
     snackbar: (message: String) -> Unit,
     onWorking: (Boolean) -> Unit,
     clickable: (index: Int, musicState: MusicState) -> Unit = { _, _ -> }
 ) {
-    if (available && songs.itemCount != 0) {
+    if (available && songs.size != 0) {
 
         val artBackground = MaterialTheme.colors.onBackground.copy(alpha = 0.6f)
 
@@ -161,39 +143,37 @@ fun SongsList(
         ) {
             itemsIndexed(songs) { index, music ->
 
-                if (music != null)
-                    MusicItem(
-                        index = index,
-                        title = music.name,
-                        subtitle = "${music.artists} - ${music.album}",
-                        artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
-                        artBackground = artBackground,
-                        incomplete = music.incomplete,
-                        fastReader = NeteaseCacheProvider.fastReader,
-                        deleted = music.deleted,
-                        saved = music.saved,
-                        missInfoFile = music.missingInfo,
-                        displayBitrate = music.displayBitrate,
-                        clickable = { clickable(index, music) },
-                        musicItemAlertDialog = { openDialog, onOpenDialog ->
-                            MusicItemAlertDialog(
-                                openDialog = openDialog,
-                                onOpenDialog = onOpenDialog,
-                                musicState = music,
-                                snackbar = snackbar
-                            )
-                        },
-                        musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
-                            MusicItemDropdownMenu(
-                                index = index,
-                                musicState = music,
-                                expanded = expanded,
-                                onExpandedChange = onExpanded,
-                                onOpenDialog = onOpenDialog,
-                                onWorking = onWorking,
-                                snackbar = snackbar
-                            )
-                        })
+                MusicItem(index = index,
+                    title = music.name,
+                    subtitle = "${music.artists} - ${music.album}",
+                    artPainter = rememberAsyncImagePainter(music.smallAlbumArt),
+                    artBackground = artBackground,
+                    incomplete = music.incomplete,
+                    fastReader = NeteaseCacheProvider.fastReader,
+                    deleted = music.deleted,
+                    saved = music.saved,
+                    missInfoFile = music.missingInfo,
+                    displayBitrate = music.displayBitrate,
+                    clickable = { clickable(index, music) },
+                    musicItemAlertDialog = { openDialog, onOpenDialog ->
+                        MusicItemAlertDialog(
+                            openDialog = openDialog,
+                            onOpenDialog = onOpenDialog,
+                            musicState = music,
+                            snackbar = snackbar
+                        )
+                    },
+                    musicItemDropdownMenu = { expanded, onExpanded, onOpenDialog ->
+                        MusicItemDropdownMenu(
+                            index = index,
+                            musicState = music,
+                            expanded = expanded,
+                            onExpandedChange = onExpanded,
+                            onOpenDialog = onOpenDialog,
+                            onWorking = onWorking,
+                            snackbar = snackbar
+                        )
+                    })
 
             }
         }
@@ -213,30 +193,25 @@ fun SongsList(
 
                 Text(
                     text = stringResource(
-                        if (working)
-                            R.string.list_loading
-                        else
-                            R.string.list_no_data
+                        if (working) R.string.list_loading else R.string.list_no_data
                     ),
-                    style = if (model.displayPermissionDialog)
-                        MaterialTheme.typography.h5
-                    else
-                        MaterialTheme.typography.h6
-
+                    style = when (model.displayPermissionDialog) {
+                        true -> MaterialTheme.typography.h5
+                        false -> MaterialTheme.typography.h6
+                    }
                 )
 
                 if (model.displayPermissionDialog) {
                     Spacer(modifier = Modifier.height(8.dp))
                     checkPermission { allGranted ->
                         if (allGranted) {
-                            model.displayPermissionDialog = false
-                            // 注: 该函数仅在第一次调用会重新加载数据
-                            // 重载数据请用 model.reload()
-                            if (model.hadListInited) {
-                                working = false
-                            }
-                            model.initList {
-                                working = false
+                            model.viewModelScope.launch {
+                                model.displayPermissionDialog = false
+                                // 注: 该函数仅在第一次调用会重新加载数据
+                                // 重载数据请用 model.refresh()
+                                model.initList(updateInfo = true, callback = {
+                                    working = false
+                                })
                             }
                         } else {
                             model.displayWelcomeScreen = true
@@ -252,6 +227,7 @@ fun SongsList(
                             model.viewModelScope.launch {
                                 working = true
                                 delay(1500)
+                                model.refresh(updateInfo = true)
                                 working = false
                             }
                         })
@@ -319,8 +295,8 @@ fun MusicItemDropdownMenu(
         }
 
         DropdownMenuItem(onClick = {
-            onExpandedChange.invoke(false)
             onOpenDialog(true)
+            onExpandedChange(false)
         }) {
             Icon(
                 Icons.Rounded.Feed,
@@ -340,84 +316,81 @@ fun MusicItemAlertDialog(
     onOpenDialog: (Boolean) -> Unit,
     musicState: MusicState,
     snackbar: (message: String) -> Unit,
-    cacheFileInfo: CacheFileInfo =
-        NeteaseCacheProvider.getCacheFileInfo(musicState) ?: EmptyCacheFileInfo,
-    ext: String = musicState.ext
+    extension: String = "Music"
 ) {
+    var ext by remember {
+        mutableStateOf(extension)
+    }
+    LaunchedEffect(Unit) {
+        launch {
+            ext = musicState.ext
+        }
+    }
 
     if (openDialog) {
-        AlertDialog(onDismissRequest = { onOpenDialog(false) },
-            title = {
-                Text(
-                    text = "详情 [${musicState.neteaseAppCache?.type ?: "Netease"},${musicState.id}]",
-                    modifier = Modifier.alpha(0.9f),
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = TextUnit(0.95f, TextUnitType.Sp),
-                    color = MaterialTheme.colors.onSurface
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .fillMaxWidth()
-                ) {
-                    Text(text = "", modifier = Modifier.padding(8.dp))
-                    musicState.run {
+        AlertDialog(onDismissRequest = { onOpenDialog(false) }, title = {
+            Text(
+                text = "详情 [${musicState.neteaseAppCache?.type ?: "Netease"},${musicState.id}]",
+                modifier = Modifier.alpha(0.9f),
+                fontWeight = FontWeight.Medium,
+                letterSpacing = TextUnit(0.95f, TextUnitType.Sp),
+                color = MaterialTheme.colors.onSurface
+            )
+        }, text = {
+            Column(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(text = "", modifier = Modifier.padding(8.dp))
+                musicState.run {
 
-                        MusicItemAlertDialogItem("文件名称", file.name, snackbar)
-                        MusicItemAlertDialogItem("文件路径", "${file.type}://${file.path}", snackbar)
-                        MusicItemAlertDialogItem("导出文件名", "$displayFileName.$ext", snackbar)
-                        LazyVerticalGrid(
-                            modifier = Modifier.fillMaxWidth(),
-                            columns = GridCells.Fixed(2),
-                            content = {
+                    MusicItemAlertDialogItem("文件名称", file.name, snackbar)
+                    MusicItemAlertDialogItem("文件路径", "${file.type}://${file.path}", snackbar)
+                    MusicItemAlertDialogItem("导出文件名", "$displayFileName.$ext", snackbar)
+                    LazyVerticalGrid(modifier = Modifier.fillMaxWidth(),
+                        columns = GridCells.Fixed(2),
+                        content = {
 
-                                item {
-                                    MusicItemAlertDialogItem(
-                                        "文件大小",
-                                        file.length().formatFileSize(), snackbar
-                                    )
-                                }
-                                item { MusicItemAlertDialogItem("文件格式", ext.uppercase(), snackbar) }
-                                item { MusicItemAlertDialogItem("歌曲名称", name, snackbar) }
-                                item { MusicItemAlertDialogItem("歌曲歌手", artists, snackbar) }
-                                item { MusicItemAlertDialogItem("歌曲专辑", album, snackbar) }
-                                item { MusicItemAlertDialogItem("发行年份", year, snackbar) }
-                                item { MusicItemAlertDialogItem("比特率", displayBitrate, snackbar) }
-                                item {
-                                    MusicItemAlertDialogItem(
-                                        "总时长",
-                                        cacheFileInfo.duration.formatMilSec(min = ":"), snackbar
-                                    )
-                                }
-                                item { MusicItemAlertDialogItem("碟片号", disc, snackbar) }
-                                item { MusicItemAlertDialogItem("音轨号", track.toString(), snackbar) }
-                                //item { MusicItemAlertDialogItem("MD5", md5) }
-
+                            item {
+                                MusicItemAlertDialogItem(
+                                    "文件大小", file.length().formatFileSize(), snackbar
+                                )
                             }
-                        )
-                    }
+                            item { MusicItemAlertDialogItem("文件格式", ext.uppercase(), snackbar) }
+                            item { MusicItemAlertDialogItem("歌曲名称", name, snackbar) }
+                            item { MusicItemAlertDialogItem("歌曲歌手", artists, snackbar) }
+                            item { MusicItemAlertDialogItem("歌曲专辑", album, snackbar) }
+                            item { MusicItemAlertDialogItem("发行年份", year, snackbar) }
+                            item { MusicItemAlertDialogItem("比特率", displayBitrate, snackbar) }
+                            item {
+                                MusicItemAlertDialogItem(
+                                    "总时长", duration.formatMilSec(min = ":"), snackbar
+                                )
+                            }
+                            item { MusicItemAlertDialogItem("碟片号", disc, snackbar) }
+                            item { MusicItemAlertDialogItem("音轨号", track.toString(), snackbar) }
+                            //item { MusicItemAlertDialogItem("MD5", md5) }
+
+                        })
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { onOpenDialog(false) }) {
-                    Text("确定")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onOpenDialog(false) }) {
-                    Text("取消")
-                }
-            })
+            }
+        }, confirmButton = {
+            TextButton(onClick = { onOpenDialog(false) }) {
+                Text("确定")
+            }
+        }, dismissButton = {
+            TextButton(onClick = { onOpenDialog(false) }) {
+                Text("取消")
+            }
+        })
     }
 }
 
 @OptIn(ExperimentalUnitApi::class)
 @Composable
 fun MusicItemAlertDialogItem(
-    title: String, text: String,
-    snackbar: (message: String) -> Unit
+    title: String, text: String, snackbar: (message: String) -> Unit
 ) {
     Column(modifier = Modifier.padding(bottom = 15.dp, end = 15.dp)) {
         Text(
@@ -487,7 +460,7 @@ fun MusicItem(
                 clickable()
             })
             .alpha(alpha)
-            .padding(start = 17.dp, end = 9.dp),
+            .padding(start = 18.dp, end = 9.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -508,7 +481,7 @@ fun MusicItem(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .padding(start = 6.dp)
+                .padding(start = 5.dp)
         ) {
 
             Row(
@@ -626,73 +599,6 @@ fun MusicItem(
 
 }
 
-@Composable
-fun InfoText(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = Color.Unspecified,
-    fontWeight: FontWeight? = null,
-    textAlign: TextAlign? = TextAlign.Center,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
-    maxLines: Int = 1,
-    style: TextStyle = MaterialTheme.typography.body2
-) {
-    Text(
-        text = text,
-        modifier = modifier.padding(start = 1.dp, end = 2.dp),
-        color = color,
-        fontWeight = fontWeight,
-        textAlign = textAlign,
-        overflow = overflow,
-        maxLines = maxLines,
-        style = style
-    )
-}
-
-@Composable
-fun InfoBoxText(
-    text: String,
-    //modifier: Modifier = Modifier,
-    color: Color = Color.Unspecified,
-    fontWeight: FontWeight? = null,
-    textAlign: TextAlign? = TextAlign.Center,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
-    maxLines: Int = 1,
-    style: TextStyle = MaterialTheme.typography.caption
-) {
-    Surface(
-        shape = MaterialTheme.shapes.medium, elevation = 0.dp,
-        color = color.copy(alpha = 0.1f),
-        modifier = Modifier
-            .size(width = 60.dp, 25.dp)
-            .fillMaxHeight()
-            .padding(start = 1.dp, end = 2.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(55.dp)
-                .fillMaxHeight()
-                .padding(start = 1.dp, end = 1.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = text,
-                /*modifier = modifier
-                    .size(50.dp)
-                    .fillMaxHeight(),*/
-                color = color,
-                fontWeight = fontWeight,
-                textAlign = textAlign,
-                overflow = overflow,
-                maxLines = maxLines,
-                style = style
-            )
-        }
-
-    }
-
-}
-
 @Preview(showBackground = true, widthDp = 500, heightDp = 80, uiMode = UI_MODE_NIGHT_UNDEFINED)
 @Composable
 fun ListItemPreView() {
@@ -733,15 +639,14 @@ fun DialogPreview() {
             openDialog = true,
             onOpenDialog = {},
             musicState = MusicState(
-                1008611,
-                96000,
-                "N/A",
-                File("Debug/cache.file").toRFile()
-            ),
-            cacheFileInfo = EmptyCacheFileInfo,
-            ext = "mp3",
-            snackbar = { }
-        )
+                id = 1008611,
+                rawBitrate = 96000,
+                duration = 100232,
+                fileSize = 151616,
+                md5 = "",
+                name = "N/A",
+                file = File("Debug/cache.file").toRFile()
+            ), extension = "mp3", snackbar = { })
 
     }
 }

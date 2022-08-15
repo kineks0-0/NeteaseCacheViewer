@@ -6,7 +6,7 @@ val EmptyCacheFileInfo = CacheFileInfo(-1, -1, "", -1, "", -1, listOf(), -1)
 
 data class CacheFileInfo(
     val bitrate: Int,
-    val duration: Int,
+    val duration: Long,
     @SerializedName("filemd5")
     val fileMD5: String,
     @SerializedName("filesize")

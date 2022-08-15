@@ -91,11 +91,11 @@ private suspend fun MutableList<Song>.addAll(
         var index = 0
 
         elements.forEach { song ->
-            if (song == null) {
+            if (song == null && index < networkList.size) {
                 add(networkList[index])
                 index++
             } else
-                add(song)
+                song?.let { add(it) }
         }
     } else {
 

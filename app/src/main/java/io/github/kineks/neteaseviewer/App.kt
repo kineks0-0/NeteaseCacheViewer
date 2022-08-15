@@ -9,8 +9,10 @@ import android.os.Build
 import com.lzx.starrysky.StarrySky
 import com.lzx.starrysky.notification.INotification
 import com.lzx.starrysky.notification.NotificationConfig
+import com.lzx.starrysky.notification.NotificationManager
 import ealvatag.tag.TagOptionSingleton
-import io.github.kineks.neteaseviewer.data.player.ExoPlayback
+import io.github.kineks.neteaseviewer.data.player.SystemNotification
+import io.github.kineks.neteaseviewer.data.player.exoplayer.ExoPlayback
 
 
 class App : Application() {
@@ -46,7 +48,20 @@ class App : Application() {
         StarrySky
             .init(this)
             .setPlayback(ExoPlayback(this, true))
-            .setNotificationType(INotification.SYSTEM_NOTIFICATION)
+            .setNotificationType(INotification.CUSTOM_NOTIFICATION)
+            .setNotificationFactory(object : NotificationManager.NotificationFactory {
+                override fun build(context: Context, config: NotificationConfig?): INotification =
+                    SystemNotification(context, config!!)
+            })
+            .setNotificationConfig(
+                NotificationConfig.create {
+                    targetClass { "io.github.kineks.neteaseviewer.MainActivity" }
+                    pauseDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_pause }
+                    playDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_play }
+                    skipNextDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_next }
+                    skipPreviousDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_previous }
+                }
+            )
             .setNotificationSwitch(true)
             .setOpenCache(false)
             .isStartService(false)

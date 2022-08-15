@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.data.player
+package io.github.kineks.neteaseviewer.data.player.exoplayer
 
 import com.google.android.exoplayer2.upstream.DataSource
 

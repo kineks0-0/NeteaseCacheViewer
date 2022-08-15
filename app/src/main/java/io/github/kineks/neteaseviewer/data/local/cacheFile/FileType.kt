@@ -6,8 +6,23 @@ import java.io.InputStream
 
 
 object FileType {
-    private val mFileTypes by lazy { HashMap<String?, String>() }
+    private val mFileTypes by lazy {
+        val mFileTypes = HashMap<String?, String>()
+        mFileTypes["57415645"] = "wav"
+        mFileTypes["41564920"] = "avi"
+        mFileTypes["2E524D46"] = "rm"
+        mFileTypes["000001BA"] = "mpg"
+        mFileTypes["000001B3"] = "mpg"
+        mFileTypes["6D6F6F76"] = "mov"
+        mFileTypes["4D546864"] = "mid"
 
+        mFileTypes["494433"] = "mp3"  // id3
+        mFileTypes["664c61"] = "flac" // flac[664c6143]
+        mFileTypes["667479"] = "m4a"  // 跳过4位得到 ftyp[66747970]
+        mFileTypes
+    }
+
+    @Suppress("SameParameterValue")
     fun getFileType(inputStream: InputStream): String? {
 
         val hex = getFileHeader(inputStream, 0, 8)
@@ -17,12 +32,13 @@ object FileType {
 
         key = hex?.substring(4 * 2, 4 * 2 + 3 * 2)
         return when (true) {
-            mFileTypes[key] != null -> mFileTypes[key]
+            (mFileTypes[key] != null) -> mFileTypes[key]
             else -> "mp3"
         }
     }
 
     // 获取文件头信息
+    @Suppress("SameParameterValue")
     private fun getFileHeader(inputStream: InputStream, offset: Int = 0, size: Int = 3): String? {
         var value: String? = null
         try {
@@ -47,17 +63,4 @@ object FileType {
         return builder.toString()
     }
 
-    init {
-        mFileTypes["57415645"] = "wav"
-        mFileTypes["41564920"] = "avi"
-        mFileTypes["2E524D46"] = "rm"
-        mFileTypes["000001BA"] = "mpg"
-        mFileTypes["000001B3"] = "mpg"
-        mFileTypes["6D6F6F76"] = "mov"
-        mFileTypes["4D546864"] = "mid"
-
-        mFileTypes["494433"] = "mp3"  // id3
-        mFileTypes["664c61"] = "flac" // flac[664c6143]
-        mFileTypes["667479"] = "m4a"  // 跳过4位得到 ftyp[66747970]
-    }
 }

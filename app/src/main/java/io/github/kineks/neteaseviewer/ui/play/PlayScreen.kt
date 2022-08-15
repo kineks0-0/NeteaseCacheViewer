@@ -2,10 +2,14 @@ package io.github.kineks.neteaseviewer.ui.play
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,31 +17,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import com.lzx.starrysky.StarrySky
+import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.data.local.cacheFile.EmptyMusicState
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
+import io.github.kineks.neteaseviewer.ui.view.InfoBoxIcon
 
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewPlay() {
-    PlayScreen(EmptyMusicState)
+    PlayScreen(EmptyMusicState, false)
 }
 
 @Composable
-fun PlayScreen(song: MusicState) {
+fun PlayScreen(
+    song: MusicState,
+    isPlaying: Boolean = viewModel(modelClass = MainViewModel::class.java).isPlaying
+) {
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .offset(y = (-95).dp)
     ) {
 
 
         Column(
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.width(240.dp)
+            modifier = Modifier
+                .width(240.dp)
+                .padding(top = 60.dp)
         ) {
 
             Surface(
@@ -58,13 +70,13 @@ fun PlayScreen(song: MusicState) {
 
             Text(
                 text = song.name,
-                style = MaterialTheme.typography.subtitle2,
+                style = MaterialTheme.typography.h6,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 30.dp, start = 3.dp)
+                    .padding(top = 40.dp, start = 3.dp)
             )
             Text(
                 text = song.artists,
@@ -73,8 +85,39 @@ fun PlayScreen(song: MusicState) {
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp, start = 3.dp)
+                    .padding(top = 10.dp, start = 3.dp)
             )
+
+
+            Spacer(
+                Modifier
+                    .padding(top = 2.dp)
+                    .fillMaxHeight(0.25f)
+            )
+
+            InfoBoxIcon(
+                icon = if (isPlaying)
+                    Icons.Filled.Pause
+                else
+                    Icons.Filled.PlayArrow,
+                color = MaterialTheme.colors.primary,
+                modifier = Modifier
+                    .padding(top = 8.dp, start = 1.dp)
+                    .clickable {
+                        if (StarrySky
+                                .with()
+                                .isPlaying()
+                        )
+                            StarrySky
+                                .with()
+                                .pauseMusic()
+                        else
+                            StarrySky
+                                .with()
+                                .restoreMusic()
+                    }
+            )
+
         }
 
 
@@ -82,3 +125,4 @@ fun PlayScreen(song: MusicState) {
 
 
 }
+

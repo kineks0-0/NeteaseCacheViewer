@@ -2,19 +2,13 @@ package io.github.kineks.neteaseviewer.data.local
 
 import android.net.Uri
 import android.util.Log
-import androidx.paging.PagingData
-import androidx.paging.map
 import com.google.gson.Gson
-import io.github.kineks.neteaseviewer.App
+import io.github.kineks.neteaseviewer.*
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
-import io.github.kineks.neteaseviewer.mutableListOf
-import io.github.kineks.neteaseviewer.scanFile
-import io.github.kineks.neteaseviewer.toRFile
+import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -93,7 +87,7 @@ object NeteaseCacheProvider {
         return files
     }
 
-    /*suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): MutableList<MusicState> {
+    suspend fun getCacheSongs(cacheDir: List<NeteaseAppCache> = this.cacheDir): MutableList<MusicState> {
         val songs = mutableListOf<MusicState>()
 
         runWithPrintTimeCostSuspend(TAG, "总加载耗时") {
@@ -119,40 +113,44 @@ object NeteaseCacheProvider {
         }
 
         return songs
-    }*/
+    }
 
-    /*private suspend fun getMusicState(file: RFile, neteaseAppCache: NeteaseAppCache): MusicState =
+    private suspend fun getMusicState(rfile: RFile, neteaseAppCache: NeteaseAppCache): MusicState =
         withContext(Dispatchers.IO) {
             val begin2 = System.currentTimeMillis()
             val infoFile = when (fastReader) {
                 true -> null
-                false -> RFile.of(file.parentFile!!, file.nameWithoutExtension + ".$infoExt")
+                false -> RFile.of(rfile.parentFile!!, rfile.nameWithoutExtension + ".$infoExt")
             }
             var id = -1
             var bitrate: Int = -1
+            var duration: Long = -1
+            var fileSize: Long = -1
             var md5 = ""
             var incomplete = false
             var missingInfo = true
 
 
-            if (!fastReader && (infoFile != null) && infoFile.exists()) {
-                val idx = gson.fromJson(infoFile.readText(), CacheFileInfo::class.java)
+            if ((infoFile != null) && infoFile.exists()) {
+                val idx =
+                    gson.fromJson(infoFile.readText(), CacheFileInfo::class.java)
                 if (idx != null) {
                     id = idx.id
                     bitrate = idx.bitrate
                     md5 = idx.fileMD5
                     // 判断缓存文件和缓存文件信息中的文件长度大小是否一致
-                    incomplete = idx.fileSize != file.length()
+                    duration = idx.duration
+                    fileSize = idx.fileSize
+                    incomplete = idx.fileSize != rfile.length()
                     missingInfo = false
                 }
             }
-
 
             // 如果数据依旧没初始化
             if (id == -1) {
                 // 如果启用快速扫描则跳过读取idx文件
                 // 或者 *.idx! 文件并不存在(一般是 unlock netease music 导致)
-                file.nameWithoutExtension.split("-").let { str ->
+                rfile.nameWithoutExtension.split("-").let { str ->
                     id = str[0].toInt()
                     bitrate = str[1].toInt()
                     md5 = str[2].substring(0, 31)
@@ -163,17 +161,33 @@ object NeteaseCacheProvider {
             val costTime = System.currentTimeMillis() - begin2
             Log.d(TAG, "加载单个耗时: ${costTime}ms")
 
-            return@withContext MusicState(
-                id = id,
-                bitrate = bitrate,
-                md5 = md5,
-                file = file,
-                song = NeteaseDataService.instance.getSongFromCache(id),
-                incomplete = incomplete,
-                missingInfo = missingInfo,
-                neteaseAppCache = neteaseAppCache
-            )
-        }*/
+            return@withContext when (val song = NeteaseDataService.instance.getSongFromCache(id)) {
+                null ->
+                    MusicState(
+                        id = id,
+                        rawBitrate = bitrate,
+                        duration = duration,
+                        fileSize = fileSize,
+                        md5 = md5,
+                        file = rfile,
+                        incomplete = incomplete,
+                        missingInfo = missingInfo,
+                        neteaseAppCache = neteaseAppCache
+                    )
+                else -> MusicState.get(
+                    id = id,
+                    rawBitrate = bitrate,
+                    duration = duration,
+                    fileSize = fileSize,
+                    md5 = md5,
+                    file = rfile,
+                    song = song,
+                    incomplete = incomplete,
+                    missingInfo = missingInfo,
+                    neteaseAppCache = neteaseAppCache
+                )
+            }
+        }
 
 
     fun getCacheFileInfo(musicState: MusicState): CacheFileInfo? {
@@ -228,13 +242,13 @@ object NeteaseCacheProvider {
 
                     inputStream.use { input ->
                         file.output.use {
-                            input.buffered().copyTo(it!!.buffered())
+                            input?.buffered()?.copyTo(it!!.buffered())
                         }
                     }
 
                     Log.d(TAG, file.length().toString())
                     MediaStoreProvider.setInfo(this, file)
-                    // 在 Android Q 之后的用 MediaStore 导出文件,然后清理私有目录的源缓存文件
+                    // 在 Android Q+ 的系统用 MediaStore 导出文件,然后清理私有目录的源缓存文件
                     if (App.isAndroidQorAbove) {
                         out = MediaStoreProvider.insert2Music(
                             file.input!!,
@@ -261,30 +275,6 @@ object NeteaseCacheProvider {
         }
 
         return out != null
-    }
-
-    fun decryptSongList(
-        flow: Flow<PagingData<MusicState>>,
-        skipIncomplete: Boolean = true,
-        skipMissingInfo: Boolean = true,
-        callback: (out: Uri?, hasError: Boolean, e: Exception?) -> Unit = { _, _, _ -> },
-        isLastOne: (Boolean) -> Unit = {},
-    ) {
-        CoroutineScope(Dispatchers.IO).launch {
-            withContext(Dispatchers.IO) {
-                val list = flow.toList()
-                list.forEachIndexed { index, pagingData ->
-                    launch launch1@{
-                        pagingData.map { music ->
-                            if (index == list.lastIndex) isLastOne.invoke(true)
-                            if (skipIncomplete && music.incomplete) return@map
-                            if (skipMissingInfo && music.missingInfo) return@map
-                            music.decryptFile(callback)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     fun decryptSongList(

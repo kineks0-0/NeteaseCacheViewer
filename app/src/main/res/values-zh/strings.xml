@@ -26,4 +26,6 @@
     <string name="permission_request_button">请求权限</string>
     <string name="refresh">刷新</string>
     <string name="list_loading">加载中</string>
+    <string name="notification_channel">播放媒体</string>
+    <string name="notification_channel_description">用于应用播放媒体通知</string>
 </resources>

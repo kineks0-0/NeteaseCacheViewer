@@ -1,3 +1,4 @@
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,6 +14,7 @@ val pagingVersion: String by project
 val appCenterSdkVersion: String by project
 
 
+
 android {
 
     compileSdk = 32
@@ -21,9 +23,9 @@ android {
     defaultConfig {
         applicationId = "io.github.kineks.neteaseviewer"
         minSdk = 21
-        targetSdk = 30
-        versionCode = 59
-        versionName = "Alpha 2.9.8"
+        targetSdk = 32
+        versionCode = 105
+        versionName = "Alpha 3.2.1"
         resourceConfigurations += listOf("en", "zh", "zh-rCN")
 
         ndk {
@@ -52,12 +54,15 @@ android {
     android.applicationVariants.all {
         // 编译类型
         val buildType = this.buildType.name
+        val appName = "NeteaseViewer"
         outputs.all {
             // 判断是否是输出 apk 类型
             if (this is com.android.build.gradle.internal.api.ApkVariantOutputImpl) {
-                this.outputFileName = "KOTLIN_DSL_V${defaultConfig.versionName}_$buildType.apk"
+                this.outputFileName =
+                    "${appName} - ${defaultConfig.versionName} - $buildType.apk"
             }
         }
+
     }
 
     compileOptions {
@@ -109,11 +114,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:$composeVersion")
     //implementation("androidx.compose.runtime:runtime-livedata:$compose_version")
 
-    // todo: 等我折腾明白注入怎么用再加回来
-    //implementation 'androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha03'
-    // When using Kotlin.
-    //kapt 'androidx.hilt:hilt-compiler:1.0.0'
-
     // 适用 compose 的系统ui控制(代码设置沉浸状态栏和导航栏)
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
@@ -132,9 +132,10 @@ dependencies {
     // 播放控制
     implementation("com.github.EspoirX:StarrySky:v2.6.5")
     implementation("com.google.android.exoplayer:exoplayer-core:2.18.1")
+    implementation("com.google.android.exoplayer:exoplayer-ui:2.18.1")
     //implementation ("com.google.android.exoplayer:exoplayer-ui:2.17.1")
     configurations.all {
-        implementation("com.google.android.exoplayer:exoplayer-core:2.18.0")
+        implementation("com.google.android.exoplayer:exoplayer-core:2.18.1")
     }
 
     // Compose 的下拉刷新
@@ -153,14 +154,6 @@ dependencies {
 
     // 文件操作
     implementation("com.github.javakam:file.core:3.5.0@aar")
-
-
-    // Compose Paging 3
-    implementation("androidx.paging:paging-runtime:$pagingVersion")
-    // alternatively - without Android dependencies for tests
-    testImplementation("androidx.paging:paging-common:$pagingVersion")
-    // optional - Jetpack Compose integration
-    implementation("androidx.paging:paging-compose:1.0.0-alpha15")
 
 
     // 单元测试

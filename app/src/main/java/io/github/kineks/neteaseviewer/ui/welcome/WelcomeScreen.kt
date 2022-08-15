@@ -1,5 +1,6 @@
 package io.github.kineks.neteaseviewer.ui.welcome
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,11 +26,11 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.R
+import io.github.kineks.neteaseviewer.data.local.FileUriUtils
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.RFile
 import io.github.kineks.neteaseviewer.data.local.RFileAndroidData
 import io.github.kineks.neteaseviewer.data.local.RFileAndroidData.Companion.getNewDocumentFile
-import io.github.kineks.neteaseviewer.data.local.fileUriUtils
 import io.github.kineks.neteaseviewer.getString
 import io.github.kineks.neteaseviewer.openBrowser
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
@@ -130,6 +131,7 @@ fun WelcomeScreen(
 }
 
 
+@SuppressLint("NewApi")
 @Composable
 fun PageTwo(
     checkPermission: @Composable (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
@@ -248,7 +250,7 @@ fun PageTwo(
 
         }
 
-        if (App.isAndroidRorAbove && !fileUriUtils.isGrant && allGranted)
+        if (App.isAndroidRorAbove && !FileUriUtils.isGrant && allGranted)
             InfoCard(
                 shape = MaterialTheme.shapes.small,
                 elevation = 10.dp,
@@ -260,13 +262,13 @@ fun PageTwo(
                     callback = { },
                     permissions = listOf("RFile"),
                     request = { _: List<String>, _: (Boolean) -> Unit ->
-                        fileUriUtils.startForRoot {
+                        FileUriUtils.startForRoot {
                             NeteaseCacheProvider.cacheDir.forEach { neteaseAppCache ->
                                 neteaseAppCache.rFiles.forEach { rFile ->
                                     if (rFile.type == RFile.RType.AndroidData) {
                                         val file = rFile as RFileAndroidData
                                         file.documentFile =
-                                            getNewDocumentFile(file.path, file.name, file.type)
+                                            getNewDocumentFile(file.path, file.type)
                                     }
                                 }
                             }

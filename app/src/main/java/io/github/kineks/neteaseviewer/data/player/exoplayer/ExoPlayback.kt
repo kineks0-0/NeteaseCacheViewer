@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.data.player
+package io.github.kineks.neteaseviewer.data.player.exoplayer
 
 import android.content.Context
 import android.net.Uri
@@ -31,11 +31,11 @@ class ExoPlayback(
     private val isAutoManagerFocus: Boolean
 ) : Playback, FocusManager.OnFocusStateChangeListener {
 
-    private var player: ExoPlayer? = null
-    private var mediaSource: MediaSource? = null
+    var player: ExoPlayer? = null
     private var trackSelector: DefaultTrackSelector? = null
     private var trackSelectorParameters: DefaultTrackSelector.Parameters? = null
     private var dataSourceFactory: DataSource.Factory? = null
+    private val extractorsFactory = DefaultExtractorsFactory()
 
     private var currSongInfo: SongInfo? = null
     private var callback: Playback.Callback? = null
@@ -92,16 +92,32 @@ class ExoPlayback(
 
     private fun getPlayWhenReady() = player?.playWhenReady ?: false
 
+    private fun play(songInfo: SongInfo) {
+        val mediaSource = songInfo.toMediaSource() ?: let {
+            pause()
+            null
+        } ?: return
+        player?.setMediaSource(mediaSource)
+    }
+
+    private fun SongInfo.toMediaSource(): MediaSource? {
+        //url 处理
+        var source = this.songUrl
+        if (source.isEmpty()) {
+            callback?.onPlaybackError(currSongInfo, "播放 url 为空")
+            return null
+        }
+        source = source.replace(" ".toRegex(), "%20") // Escape spaces for URL
+        return createMediaSource(source)
+    }
+
     override fun play(songInfo: SongInfo, isPlayWhenReady: Boolean) {
         val mediaId = songInfo.songId
-        if (mediaId.isEmpty()) {
-            return
-        }
+        if (mediaId.isEmpty()) return
+
         currSongInfo = songInfo
         val mediaHasChanged = mediaId != currentMediaId
-        if (mediaHasChanged) {
-            currentMediaId = mediaId
-        }
+        if (mediaHasChanged) currentMediaId = mediaId
         Log.d(
             TAG,
             "title = " + songInfo.songName +
@@ -110,29 +126,27 @@ class ExoPlayback(
                     " \nurl = " + songInfo.songUrl
         )
 
-        //url 处理
-        var source = songInfo.songUrl
-        if (source.isEmpty()) {
-            callback?.onPlaybackError(currSongInfo, "播放 url 为空")
-            return
-        }
-        source = source.replace(" ".toRegex(), "%20") // Escape spaces for URL
-        mediaSource = createMediaSource(source)
-        if (mediaSource == null) return
-        if (mediaHasChanged || player == null) {
-            //创建播放器实例
+        //创建播放器实例
+        if (player == null)
             createExoPlayer()
 
-            player?.setMediaSource(mediaSource!!)
+        if (mediaHasChanged) {
+
+            play(songInfo)
+
             player?.prepare()
             if (!isAutoManagerFocus) {
                 focusManager.updateAudioFocus(getPlayWhenReady(), Playback.STATE_BUFFERING)
             }
         }
+
+
         //当错误发生时，如果还播放同一首歌，
         //这时候需要重新加载一下，并且吧进度 seekTo 到出错的地方
         if (sourceTypeErrorInfo.happenSourceError && !mediaHasChanged) {
-            player?.setMediaSource(mediaSource!!)
+
+            play(songInfo)
+
             player?.prepare()
             if (!isAutoManagerFocus) {
                 focusManager.updateAudioFocus(getPlayWhenReady(), Playback.STATE_BUFFERING)
@@ -159,10 +173,9 @@ class ExoPlayback(
 
     @Synchronized
     private fun createMediaSource(source: String): MediaSource {
-        var uri = Uri.parse(source)
+        val uri = Uri.parse(source)
 
         if (dataSourceFactory == null) dataSourceFactory = getDataSourceFactory()
-        val extractorsFactory = DefaultExtractorsFactory()
 
         return ProgressiveMediaSource
             .Factory(
@@ -185,7 +198,7 @@ class ExoPlayback(
                 .setExtensionRendererMode(extensionRendererMode)
 
 
-            trackSelectorParameters = DefaultTrackSelector.ParametersBuilder(context).build()
+            trackSelectorParameters = DefaultTrackSelector.Parameters.Builder(context).build()
             trackSelector = DefaultTrackSelector(context)
             trackSelector?.parameters = trackSelectorParameters as DefaultTrackSelector.Parameters
 
@@ -208,14 +221,13 @@ class ExoPlayback(
     @Synchronized
     fun getDataSourceFactory(): DataSource.Factory {
         if (dataSourceFactory == null) {
-            //context = context.applicationContext
             dataSourceFactory = DefaultDataSource.Factory(context)
         }
         return dataSourceFactory as DataSource.Factory
     }
 
     override fun stop() {
-        player?.stop(true)
+        player?.stop()
         player?.release()
         player?.removeListener(eventListener)
 //        player?.removeAnalyticsListener(analyticsListener)

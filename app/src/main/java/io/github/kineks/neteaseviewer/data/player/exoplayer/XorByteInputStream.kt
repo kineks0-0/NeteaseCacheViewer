@@ -1,4 +1,4 @@
-package io.github.kineks.neteaseviewer.data.player
+package io.github.kineks.neteaseviewer.data.player.exoplayer
 
 import java.io.File
 import java.io.FileInputStream
@@ -19,7 +19,7 @@ class XorByteInputStream(private val inputStream: InputStream) : InputStream() {
     override fun close() = inputStream.close()
     override fun markSupported(): Boolean = inputStream.markSupported()
     override fun reset() = inputStream.reset()
-    override fun equals(other: Any?): Boolean = inputStream.equals(other)
+    override fun equals(other: Any?): Boolean = inputStream == other
     override fun mark(readlimit: Int) = inputStream.mark(readlimit)
 
     override fun read(b: ByteArray?): Int = inputStream.read(b)

@@ -14,8 +14,9 @@ import kotlinx.coroutines.flow.map
 import kotlin.reflect.KProperty
 
 class SettingValue<T> @OptIn(DelicateCoroutinesApi::class) constructor(
-    val defValue: T,
+    defValue: T,
     name: String? = null,
+    private val whenFail: T = defValue,
     private val coroutineScope: CoroutineScope = GlobalScope,
     private val dataStore: DataStore<Preferences> = App.context.dataStore,
     private val mutableState: SnapshotMutableState<T> = mutableStateOf(defValue) as SnapshotMutableState<T>
@@ -41,7 +42,7 @@ class SettingValue<T> @OptIn(DelicateCoroutinesApi::class) constructor(
 
     // 由于 PreferencesKey 限制了允许保存的数据类型，所以这里需要根据数据类型返回相应 PreferencesKey
     @Suppress("UNCHECKED_CAST")
-    private fun initPreferencesKey(v: T = defValue): Preferences.Key<T> =
+    private fun initPreferencesKey(v: T = whenFail): Preferences.Key<T> =
         when (v) {
             is Int -> intPreferencesKey(this.name)
             is Long -> longPreferencesKey(this.name)
@@ -60,7 +61,7 @@ class SettingValue<T> @OptIn(DelicateCoroutinesApi::class) constructor(
 
     private val flow: Flow<T> by lazy {
         dataStore.data.map { preferences ->
-            preferences[preferencesKey] ?: defValue
+            preferences[preferencesKey] ?: whenFail
         }
     }
 

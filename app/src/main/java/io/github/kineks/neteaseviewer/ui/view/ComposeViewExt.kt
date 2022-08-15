@@ -4,16 +4,18 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Checkbox
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.MainViewModel
 import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
@@ -22,9 +24,9 @@ import io.github.kineks.neteaseviewer.ui.home.working
 @Composable
 fun CheckUpdate(model: MainViewModel) {
 
-    if (model.hasUpdateApp) {
+    if (model.hasAppUpdate) {
         AlertDialog(
-            onDismissRequest = { model.hasUpdateApp = false },
+            onDismissRequest = { model.hasAppUpdate = false },
             title = { Text("发现新版本[" + model.updateAppJSON.versionName + "]") },
             text = {
                 Column(
@@ -38,7 +40,7 @@ fun CheckUpdate(model: MainViewModel) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        model.hasUpdateApp = false
+                        model.hasAppUpdate = false
                         val uri: Uri = Uri.parse(model.updateAppJSON.updateLink)
                         val intent = Intent()
                         intent.action =
@@ -52,7 +54,7 @@ fun CheckUpdate(model: MainViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { model.hasUpdateApp = false }) { Text("取消") }
+                TextButton(onClick = { model.hasAppUpdate = false }) { Text("取消") }
             }
         )
     }
@@ -68,7 +70,6 @@ fun SaveFilesAlertDialog(
 ) {
     var skipIncomplete by remember { mutableStateOf(true) }
     var skipMissingInfo by remember { mutableStateOf(true) }
-    val list = model.songsFlow.collectAsLazyPagingItems()
 
     if (openDialog) {
         AlertDialog(
@@ -83,7 +84,7 @@ fun SaveFilesAlertDialog(
                         .fillMaxWidth()
                 ) {
                     Text(
-                        "总缓存文件数: " + list.itemCount
+                        "总缓存文件数: " + model.songs.size
                     )
                     Column {
                         Row(
@@ -121,7 +122,7 @@ fun SaveFilesAlertDialog(
                         onValueChange.invoke(false)
                         working = true
                         NeteaseCacheProvider.decryptSongList(
-                            model.songsFlow, skipIncomplete, skipMissingInfo,
+                            model.songs, skipIncomplete, skipMissingInfo,
                             callback = { out, hasError, e ->
                                 if (hasError) {
                                     Log.e("decrypt songs", e?.message, e)
@@ -142,3 +143,107 @@ fun SaveFilesAlertDialog(
     }
 }
 
+
+@Composable
+fun InfoBoxIcon(
+    color: Color = Color.Unspecified,
+    icon: ImageVector,
+    contentDescription: String = "",
+    elevation: Dp = 0.dp,
+    width: Dp = 50.dp,
+    height: Dp = 50.dp,
+    modifier: Modifier
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium, elevation = elevation,
+        color = color.copy(alpha = 0.1f),
+        modifier = modifier
+            .size(width = width, height = height)
+            .fillMaxHeight()
+            .padding(start = 1.dp, end = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width)
+                .fillMaxHeight()
+                .padding(start = 1.dp, end = 1.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = color
+            )
+        }
+
+    }
+
+}
+
+
+@Composable
+fun InfoText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = TextAlign.Center,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
+    maxLines: Int = 1,
+    style: TextStyle = MaterialTheme.typography.body2
+) {
+    Text(
+        text = text,
+        modifier = modifier.padding(start = 1.dp, end = 2.dp),
+        color = color,
+        fontWeight = fontWeight,
+        textAlign = textAlign,
+        overflow = overflow,
+        maxLines = maxLines,
+        style = style
+    )
+}
+
+@Composable
+fun InfoBoxText(
+    text: String,
+    //modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = TextAlign.Center,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
+    maxLines: Int = 1,
+    style: TextStyle = MaterialTheme.typography.caption
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium, elevation = 0.dp,
+        color = color.copy(alpha = 0.1f),
+        modifier = Modifier
+            .size(width = 60.dp, 25.dp)
+            .fillMaxHeight()
+            .padding(start = 1.dp, end = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(55.dp)
+                .fillMaxHeight()
+                .padding(start = 1.dp, end = 1.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                /*modifier = modifier
+                    .size(50.dp)
+                    .fillMaxHeight(),*/
+                color = color,
+                fontWeight = fontWeight,
+                textAlign = textAlign,
+                overflow = overflow,
+                maxLines = maxLines,
+                style = style
+            )
+        }
+
+    }
+
+}

@@ -17,19 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
 import com.permissionx.guolindev.PermissionMediator
 import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.R
-import io.github.kineks.neteaseviewer.data.local.fileUriUtils
+import io.github.kineks.neteaseviewer.data.local.FileUriUtils
 import io.github.kineks.neteaseviewer.getString
 
 
 @SuppressLint("StaticFieldLeak")
 var permissionX: PermissionMediator? = null
-
-@SuppressLint("StaticFieldLeak")
-var activity: FragmentActivity? = null
 
 @Composable
 fun checkPermission(
@@ -99,7 +95,7 @@ fun PermissionComposeX(
                 if (allGranted) {
                     when (it) {
                         "RFile" -> {
-                            if (!fileUriUtils.isGrant())
+                            if (!FileUriUtils.isGrant())
                                 allGranted = false
                         }
                         Manifest.permission.MANAGE_EXTERNAL_STORAGE -> {

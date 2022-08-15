@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
     com.google.accompanist.pager.ExperimentalPagerApi::class
 )
 @Composable
-fun DefaultView(model: MainViewModel) {
+fun DefaultView(model: MainViewModel = viewModel()) {
 
     val appState =
         rememberMainAppState()
@@ -115,7 +115,6 @@ fun DefaultView(model: MainViewModel) {
                 when (appState.navItemList[page]) {
                     "home" -> {
                         HomeScreen(
-                            model = model,
                             scope = appState.scope,
                             scaffoldState = appState.scaffoldState
                         )
