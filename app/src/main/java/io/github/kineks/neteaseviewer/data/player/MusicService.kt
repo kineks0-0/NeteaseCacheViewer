@@ -1,4 +1,4 @@
-package com.lzx.starrysky.service
+//package com.lzx.starrysky.serviceX
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -19,6 +19,7 @@ import android.os.IBinder
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
 import com.lzx.starrysky.notification.utils.NotificationUtils
+import com.lzx.starrysky.service.MusicServiceBinder
 import com.lzx.starrysky.utils.MainLooper
 import com.lzx.starrysky.utils.TimerTaskManager
 import com.lzx.starrysky.utils.orDef

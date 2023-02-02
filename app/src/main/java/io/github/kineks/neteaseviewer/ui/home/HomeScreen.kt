@@ -42,9 +42,9 @@ import io.github.kineks.neteaseviewer.data.local.NeteaseCacheProvider
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.local.toRFile
 import io.github.kineks.neteaseviewer.ui.theme.NeteaseViewerTheme
+import io.github.kineks.neteaseviewer.ui.view.CheckPermission
 import io.github.kineks.neteaseviewer.ui.view.InfoBoxText
 import io.github.kineks.neteaseviewer.ui.view.InfoText
-import io.github.kineks.neteaseviewer.ui.view.checkPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -203,7 +203,7 @@ fun SongsList(
 
                 if (model.displayPermissionDialog) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    checkPermission { allGranted ->
+                    CheckPermission { allGranted ->
                         if (allGranted) {
                             model.viewModelScope.launch {
                                 model.displayPermissionDialog = false
@@ -309,7 +309,6 @@ fun MusicItemDropdownMenu(
     }
 }
 
-@OptIn(ExperimentalUnitApi::class)
 @Composable
 fun MusicItemAlertDialog(
     openDialog: Boolean,
@@ -454,11 +453,7 @@ fun MusicItem(
     Row(
         modifier = Modifier
             .height(68.dp)
-            .combinedClickable(onLongClick = {
-                expanded = true
-            }, onClick = {
-                clickable()
-            })
+            .combinedClickable(onLongClick = { expanded = true }, onClick = clickable)
             .alpha(alpha)
             .padding(start = 18.dp, end = 9.dp),
         horizontalArrangement = Arrangement.Center,
@@ -471,7 +466,7 @@ fun MusicItem(
                 painter = artPainter,
                 contentDescription = "Song Album Art",
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(45.dp)
                     .background(artBackground)
             )
         }
@@ -497,7 +492,7 @@ fun MusicItem(
                     style = MaterialTheme.typography.body1,
                     modifier = Modifier
                         .padding(end = 8.dp)
-                        .offset(y = (2).dp)
+                        .offset(y = (3).dp)
                 )
                 Text(
                     text = title,
@@ -506,7 +501,7 @@ fun MusicItem(
                     style = MaterialTheme.typography.body1,
                     modifier = Modifier
                         .weight(0.60f)
-                        .offset(y = (2).dp)
+                        .offset(y = (3).dp)
                 )
 
                 InfoBoxText(

@@ -44,6 +44,9 @@ class WelcomeAppState @OptIn(ExperimentalPagerApi::class) constructor(
     var floatingActionText by mutableStateOf(
         getString(id = R.string.welcome_next)
     )
+    var floatingActionDisplay by mutableStateOf(
+        true
+    )
 
     // 弹出需要同意隐私协议的吐司
     val needAgreeAgreementToast: () -> Unit = {

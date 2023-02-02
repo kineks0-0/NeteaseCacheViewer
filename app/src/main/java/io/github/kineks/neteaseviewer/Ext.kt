@@ -1,9 +1,9 @@
 package io.github.kineks.neteaseviewer
 
-import ando.file.core.FileOpener
 import ando.file.core.FileSizeUtils
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -26,6 +26,7 @@ import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.experimental.and
+
 
 fun List<Int>.toURLArray(): String {
     val str = StringBuilder()
@@ -83,7 +84,12 @@ fun String.replaceIllegalChar(isWindows: Boolean = false) =
         }
 
 
-fun String.openBrowser() = FileOpener.openBrowser(context = App.context, url = this, newTask = true)
+fun String.openBrowser() {
+    val uri = Uri.parse(this)
+    val intent = Intent(Intent.ACTION_VIEW, uri)
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    App.context.startActivity(intent)
+}
 
 
 fun Byte.toHex(): String {

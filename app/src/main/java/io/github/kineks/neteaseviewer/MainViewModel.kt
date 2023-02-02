@@ -145,6 +145,7 @@ class MainViewModel : ViewModel() {
             }
         )
         Log.d("MainViewModel", "SongInfo : ${info.songId}")
+        Log.d("MainViewModel", "SongInfo.url : ${info.songUrl}")
         Log.d("MainViewModel", "MusicState : $song")
         StarrySky.with().playMusicByInfo(info)
     }

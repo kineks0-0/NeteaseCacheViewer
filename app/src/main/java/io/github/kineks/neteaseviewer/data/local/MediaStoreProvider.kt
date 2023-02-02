@@ -158,12 +158,10 @@ object MediaStoreProvider {
                 Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
             )
         } else {
-            @Suppress("DEPRECATION")
             val dstPath = (Environment.getExternalStorageDirectory().toString()
                     + File.separator + Environment.DIRECTORY_MUSIC + "/NeteaseViewer/"
                     + File.separator + fileName)
             // DATA 字段在 Android Q 之后已经废弃
-            @Suppress("DEPRECATION")
             songDetails.put(MediaStore.Audio.AudioColumns.DATA, dstPath)
         }
 

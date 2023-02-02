@@ -33,7 +33,8 @@ class MainAppState @OptIn(ExperimentalPagerApi::class) constructor(
     val coroutineScope: CoroutineScope,
 
     // use UI Controller in compose
-    val systemUiController: SystemUiController
+    val systemUiController: SystemUiController,
+    val backgroundColor: Color
 
 ) {
 
@@ -77,8 +78,7 @@ class MainAppState @OptIn(ExperimentalPagerApi::class) constructor(
     }
 
     @SuppressLint("ComposableNaming")
-    @Composable
-    fun setSystemBarColor(backgroundColor: Color = MaterialTheme.colors.background): MainAppState {
+    fun setSystemBarColor(backgroundColor: Color = this.backgroundColor): MainAppState {
         systemUiController.setStatusBarColor(backgroundColor)
         systemUiController.setNavigationBarColor(backgroundColor)
         return this
@@ -105,11 +105,12 @@ fun rememberMainAppState(
         listOf(Icons.Outlined.Home, Icons.Outlined.MusicNote, Icons.Outlined.Settings),
     state: PagerState = rememberPagerState(initialPage = 0),
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
-    systemUiController: SystemUiController = rememberSystemUiController()
+    systemUiController: SystemUiController = rememberSystemUiController(),
+    backgroundColor: Color = MaterialTheme.colors.background
 ) = remember {
     MainAppState(
         scope, scaffoldState,
         selectedItem, navItemList, navItemIconList, state, coroutineScope,
-        systemUiController
+        systemUiController, backgroundColor
     )
 }

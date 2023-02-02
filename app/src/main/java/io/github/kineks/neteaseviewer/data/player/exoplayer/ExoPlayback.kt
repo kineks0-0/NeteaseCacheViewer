@@ -3,7 +3,13 @@ package io.github.kineks.neteaseviewer.data.player.exoplayer
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.DefaultRenderersFactory
+import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.PlaybackParameters
+import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.source.MediaSource
@@ -131,9 +137,7 @@ class ExoPlayback(
             createExoPlayer()
 
         if (mediaHasChanged) {
-
             play(songInfo)
-
             player?.prepare()
             if (!isAutoManagerFocus) {
                 focusManager.updateAudioFocus(getPlayWhenReady(), Playback.STATE_BUFFERING)
@@ -146,7 +150,6 @@ class ExoPlayback(
         if (sourceTypeErrorInfo.happenSourceError && !mediaHasChanged) {
 
             play(songInfo)
-
             player?.prepare()
             if (!isAutoManagerFocus) {
                 focusManager.updateAudioFocus(getPlayWhenReady(), Playback.STATE_BUFFERING)

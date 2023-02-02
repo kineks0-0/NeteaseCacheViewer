@@ -39,7 +39,10 @@ fun DefaultView(model: MainViewModel = viewModel()) {
 
     val appState =
         rememberMainAppState()
-            .setSystemBarColor()
+
+    SideEffect {
+        appState.setSystemBarColor()
+    }
 
     CheckUpdate(model)
 
@@ -110,7 +113,7 @@ fun DefaultView(model: MainViewModel = viewModel()) {
                     .fillMaxSize()
                     .background(MaterialTheme.colors.background)
                     .padding(paddingValues)
-                    //.padding(vertical = 16.dp)
+                //.padding(vertical = 16.dp)
             ) {
                 when (appState.navItemList[page]) {
                     "home" -> {

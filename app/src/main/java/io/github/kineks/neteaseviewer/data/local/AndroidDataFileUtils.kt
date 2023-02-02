@@ -30,7 +30,8 @@ object FileUriUtils {
     }
 
     //判断是否已经获取了Data权限，改改逻辑就能判断其他目录，懂得都懂
-    fun isGrant(context: Context = App.context): Boolean {
+    fun isGrant(context: Context? = App.context): Boolean {
+        context ?: return false
         for (persistedUriPermission: UriPermission in context.contentResolver
             .persistedUriPermissions) {
             if (persistedUriPermission.isReadPermission && persistedUriPermission.uri.toString() == "content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata") {

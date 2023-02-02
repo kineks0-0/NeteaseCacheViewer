@@ -7,6 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import com.lzx.starrysky.StarrySky
+import com.lzx.starrysky.StarrySkyInstall
 import com.lzx.starrysky.notification.INotification
 import com.lzx.starrysky.notification.NotificationConfig
 import com.lzx.starrysky.notification.NotificationManager
@@ -44,15 +45,20 @@ class App : Application() {
 
         AppLib().init(this)
 
+        StarrySky.openNotification()
         // 初始化播放控制类
-        StarrySky
+        StarrySkyInstall
             .init(this)
             .setPlayback(ExoPlayback(this, true))
             .setNotificationType(INotification.CUSTOM_NOTIFICATION)
-            .setNotificationFactory(object : NotificationManager.NotificationFactory {
-                override fun build(context: Context, config: NotificationConfig?): INotification =
-                    SystemNotification(context, config!!)
-            })
+            .setNotificationFactory(
+                object : NotificationManager.NotificationFactory {
+                    override fun build(
+                        context: Context,
+                        config: NotificationConfig?
+                    ): INotification =
+                        SystemNotification(context, config!!)
+                })
             .setNotificationConfig(
                 NotificationConfig.create {
                     targetClass { "io.github.kineks.neteaseviewer.MainActivity" }
@@ -60,18 +66,17 @@ class App : Application() {
                     playDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_play }
                     skipNextDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_next }
                     skipPreviousDrawableRes { com.google.android.exoplayer2.ui.R.drawable.exo_notification_previous }
-                }
-            )
+                })
             .setNotificationSwitch(true)
+            .setNotificationType(INotification.SYSTEM_NOTIFICATION)
             .setOpenCache(false)
-            .isStartService(false)
+            //.isStartService(false)
+            .startForegroundByWorkManager(true)
+            //.onlyStartService(false)
+            .connService(false)
+            .setDebug(true)
             .apply()
-        StarrySky.bindService()
-        StarrySky.setNotificationConfig(
-            NotificationConfig.create {
-                targetClass { "io.github.kineks.neteaseviewer.MainActivity" }
-            }
-        )
+
 
         // 标记 jaudiotagger 的目标平台为安卓
         TagOptionSingleton.getInstance().isAndroid = true

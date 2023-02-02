@@ -11,11 +11,15 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,6 +60,7 @@ fun WelcomeScreen(
                     else
                         appState.nextPage()
                 }
+
                 appState.pagerState.pageCount - 1 -> {
                     if (!appState.agreeAgreement) {
                         appState.needAgreeAgreementToast()
@@ -66,6 +71,7 @@ fun WelcomeScreen(
                     }
 
                 }
+
                 else -> appState.nextPage()
             }
         }
@@ -76,11 +82,11 @@ fun WelcomeScreen(
 
             Scaffold(
                 scaffoldState = appState.scaffoldState,
-                floatingActionButton = {
+                /*floatingActionButton = {
                     ExtendedFloatingActionButton(
                         text = { Text(text = appState.floatingActionText) }, onClick = onNextClick
                     )
-                }
+                }*/
             ) { paddingValues ->
                 HorizontalPager(
                     state = appState.pagerState,
@@ -100,7 +106,9 @@ fun WelcomeScreen(
                     }
 
                     Box(
-                        modifier = Modifier.fillMaxSize(0.75f),
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.75f),
                         contentAlignment = Alignment.Center
                     ) {
                         when (page) {
@@ -110,10 +118,12 @@ fun WelcomeScreen(
                                 agreeAgreement = appState.agreeAgreement,
                                 onValueChange = { appState.agreeAgreement = it }
                             )
-                            1 -> PageTwo(checkPermission)
+
+                            1 -> PageTwo(
+                                checkPermission = checkPermission,
+                                onNextClick = onNextClick
+                            )
                         }
-
-
                     }
 
                 }
@@ -135,17 +145,24 @@ fun WelcomeScreen(
 @Composable
 fun PageTwo(
     checkPermission: @Composable (checkPermissionCallback: (allGranted: Boolean) -> Unit) -> Unit,
+    onNextClick: () -> Unit
 ) {
-    Column {
+    Column(
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         //val context = LocalContext.current
-
 
         var allGranted by remember {
             mutableStateOf(false)
         }
         var title by remember {
-            mutableStateOf(getString(R.string.welcome_check_permissions))
+            mutableStateOf("")
+        }.apply {
+            this.value =
+                stringResource(R.string.welcome_check_permissions)
         }
+
 
         InfoCard(
             shape = MaterialTheme.shapes.small,
@@ -169,8 +186,11 @@ fun PageTwo(
             modifier = Modifier.padding(top = 16.dp)
         ) {
             if (allGranted) {
+                val list by remember {
+                    mutableStateOf(NeteaseCacheProvider.cacheDir)
+                }
                 LazyColumn {
-                    NeteaseCacheProvider.cacheDir.forEachIndexed { index, neteaseAppCache ->
+                    list.forEachIndexed { index, neteaseAppCache ->
                         item {
                             var isLoading by remember {
                                 mutableStateOf(true)
@@ -224,9 +244,7 @@ fun PageTwo(
                             }
                             LaunchedEffect(Unit) {
                                 val size =
-                                    NeteaseCacheProvider.getCacheFiles(
-                                        neteaseAppCache
-                                    ).size
+                                    NeteaseCacheProvider.getCacheFiles(neteaseAppCache).size
                                 text = "Size: $size"
                                 isLoading = false
                                 if (index == NeteaseCacheProvider.cacheDir.lastIndex) {
@@ -296,6 +314,12 @@ fun PageTwo(
             }
 
 
+        Button(
+            onClick = onNextClick,
+            modifier = Modifier.padding(top = 50.dp)
+        ) { Text(text = "完成") }
+
+
     }
 }
 
@@ -307,69 +331,74 @@ fun PageOne(
     agreeAgreement: Boolean,
     onValueChange: (Boolean) -> Unit
 ) {
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.5f),
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         InfoCard(
             shape = MaterialTheme.shapes.small,
-            elevation = 10.dp,
-            boxModifier = Modifier.padding(top = 6.dp)
+            elevation = 0.dp,
+            backgroundColor = Color.Transparent,
+            boxModifier = Modifier.padding(bottom = 0.dp),
+            boxAlignment = Alignment.TopCenter
         ) {
-            Column {
-                Row {
-                    Surface(
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .padding(bottom = 4.dp)
-                    ) {
-                        Image(
-                            contentDescription = "AppIcon",
-                            painter = rememberAsyncImagePainter(
-                                R.mipmap.ic_launcher
-                            ),
-                            modifier = Modifier
-                                .size(66.dp)
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .height(66.dp)
-                            .padding(
-                                top = 8.dp,
-                                end = 6.dp,
-                                start = 6.dp
-                            ),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "欢迎使用 NeteaseViewer",
-                            style = MaterialTheme.typography.h6,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "一个用来管理网易云音乐缓存的工具",
-                            style = MaterialTheme.typography.subtitle2,
-                            modifier = Modifier.padding(
-                                top = 6.dp
-                            )
-                        )
-                    }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = Color.Transparent,
+                    elevation = 12.dp
+                ) {
+                    Image(
+                        contentDescription = "AppIcon",
+                        painter = rememberAsyncImagePainter(R.mipmap.ic_launcher),
+                        modifier = Modifier.size(80.dp)
+                    )
                 }
 
                 Text(
-                    text = "该应用仅用于提供学习 Compose 的示例,\n并无修改或破坏其他应用的能力",
-                    style = MaterialTheme.typography.subtitle2
+                    text = "欢迎使用 NeteaseViewer",
+                    style = MaterialTheme.typography.h6,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 20.dp)
                 )
-            }
-        }
 
-        InfoCard(
-            shape = MaterialTheme.shapes.small,
-            elevation = 10.dp,
-            modifier = Modifier.padding(top = 14.dp),
-            boxModifier = Modifier.padding(top = 4.dp)
-        ) {
-            Column {
-                Text(text = "请阅读后再同意该应用的隐私协议")
+                Text(
+                    text = "一个用来管理网易云音乐缓存的工具",
+                    style = MaterialTheme.typography.subtitle2,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+
+                Text(
+                    text = "该应用仅用于提供学习 Compose 的示例,\n并无修改或破坏其他应用的能力",
+                    style = MaterialTheme.typography.subtitle2,
+                    fontStyle = FontStyle.Italic,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(
+                            top = 20.dp,
+                            bottom = 20.dp,
+                            start = 10.dp
+                        )
+                        .alpha(0.5f)
+                )
+
+                /*Text(
+                    text = "请阅读后再同意该应用的隐私协议",
+                    style = MaterialTheme.typography.subtitle2,
+                    modifier = Modifier.padding(
+                        top = 15.dp,
+                        bottom = 0.dp,
+                        start = 2.dp
+                    ).alpha(0.9f)
+                )*/
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
@@ -385,7 +414,7 @@ fun PageOne(
 
                         pushStringAnnotation(
                             tag = "URL",
-                            annotation = "https://github.com/kineks0-0/NeteaseCacheViewer/blob/dev/README.md#%E9%9A%90%E7%A7%81%E5%8D%8F%E8%AE%AE"
+                            annotation = "https://github.com/kineks0-0/NeteaseCacheViewer/blob/dev/README.md#-%E9%9A%90%E7%A7%81%E5%8D%8F%E8%AE%AE"
                         )
                         withStyle(
                             style = SpanStyle(
@@ -396,6 +425,7 @@ fun PageOne(
                         ) {
                             append("隐私协议")
                         }
+                        pop()
 
                         withStyle(style = SpanStyle(color = MaterialTheme.colors.onSurface)) {
                             append("并授权所需权限")
@@ -414,14 +444,10 @@ fun PageOne(
                 }
 
                 Button(onClick = {
-                    if (!agreeAgreement)
-                        onNextClick.invoke()
-                    else
-                        nextPage.invoke()
-                }) {
-                    Text(text = "我同意")
-                }
+                    if (!agreeAgreement) onNextClick.invoke() else nextPage.invoke()
+                }) { Text(text = "我同意") }
             }
+
         }
     }
 }
@@ -473,7 +499,5 @@ fun PageOnePreview() {
 @Composable
 @Preview
 fun PageTwoPreview() {
-    PageTwo {
-
-    }
+    PageTwo({}, {})
 }

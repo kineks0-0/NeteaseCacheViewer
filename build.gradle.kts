@@ -6,12 +6,10 @@ tasks.register("clean", Delete::class) {
 
 buildscript {
 
-    val composeVersion by extra("1.3.0-alpha02")
+    val composeVersion by extra("1.3.3")
 
-    val accompanistVersion by extra("0.26.0-alpha")
+    val accompanistVersion by extra("0.29.1-alpha")
 
-    val pagingVersion by extra("3.1.1")
-
-    val appCenterSdkVersion by extra("4.4.5")
+    val appCenterSdkVersion by extra("5.0.0")
 
 }

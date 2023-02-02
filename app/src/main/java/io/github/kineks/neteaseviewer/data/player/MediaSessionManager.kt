@@ -1,4 +1,4 @@
-package com.lzx.starrysky.manager
+//package com.lzx.starrysky.manager
 
 import android.content.Context
 import android.os.Handler
@@ -7,6 +7,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import com.lzx.starrysky.SongInfo
+import com.lzx.starrysky.manager.PlaybackManager
 import com.lzx.starrysky.utils.orDef
 
 class MediaSessionManager(

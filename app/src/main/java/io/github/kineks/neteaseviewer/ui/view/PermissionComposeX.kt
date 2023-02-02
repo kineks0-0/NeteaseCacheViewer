@@ -28,7 +28,7 @@ import io.github.kineks.neteaseviewer.getString
 var permissionX: PermissionMediator? = null
 
 @Composable
-fun checkPermission(
+fun CheckPermission(
     callback: (
         allGranted: Boolean
     ) -> Unit
@@ -47,7 +47,7 @@ fun PermissionComposeX(
     permissions: List<String> =
         if (App.isAndroidRorAbove)
             listOf(
-                //Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.MANAGE_EXTERNAL_STORAGE
             )
         else

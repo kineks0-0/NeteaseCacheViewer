@@ -3,10 +3,14 @@ package io.github.kineks.neteaseviewer.data.local
 import android.net.Uri
 import android.util.Log
 import com.google.gson.Gson
-import io.github.kineks.neteaseviewer.*
+import io.github.kineks.neteaseviewer.App
 import io.github.kineks.neteaseviewer.data.local.cacheFile.CacheFileInfo
 import io.github.kineks.neteaseviewer.data.local.cacheFile.MusicState
 import io.github.kineks.neteaseviewer.data.network.service.NeteaseDataService
+import io.github.kineks.neteaseviewer.mutableListOf
+import io.github.kineks.neteaseviewer.runWithPrintTimeCostSuspend
+import io.github.kineks.neteaseviewer.scanFile
+import io.github.kineks.neteaseviewer.toRFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,6 +35,16 @@ object NeteaseCacheProvider {
                     // 部分修改版本会用这个路径
                     RFile.RType.AndroidData.toRFile("/com.netease.cloudmusiclite/cache/Music1/")
                 )
+            ),
+            NeteaseAppCache(
+                "NeteaseIOT", listOf(
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic.iot/files/netease/cloudmusic/cache/Music1/")
+                )
+            ),
+            NeteaseAppCache(
+                "NeteaseTV", listOf(
+                    RFile.RType.AndroidData.toRFile("/com.netease.cloudmusic.tv/files/netease/cloudmusic/cache/Music1/")
+                )
             )
 
         )
@@ -47,7 +61,6 @@ object NeteaseCacheProvider {
     val gson by lazy { Gson() }
 
     // 在 Android P 及以下的使用的导出路径
-    @Suppress("DEPRECATION")
     private val musicDirectory by lazy {
         RFile.getExternalStorageDirectory("NeteaseViewer", RFile.DIRECTORY_MUSIC)
     }
